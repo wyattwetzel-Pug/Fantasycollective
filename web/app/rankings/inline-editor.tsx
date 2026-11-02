@@ -58,9 +58,11 @@ export function InlineEditor({
       while (s > 0 && prev[s - 1].tier === tier) s--;
       while (e < prev.length - 1 && prev[e + 1].tier === tier) e++;
 
+      // The tier right above or below, even if nobody is in it yet. Players with no tier join the one above.
+      const at = ORDER.indexOf(tier);
       let newTier: string;
-      if (dir === -1) newTier = s > 0 ? prev[s - 1].tier : ORDER[ORDER.indexOf(tier) - 1] ?? "";
-      else newTier = e < prev.length - 1 ? prev[e + 1].tier : ORDER[ORDER.indexOf(tier) + 1] ?? "";
+      if (dir === -1) newTier = tier === "" ? (s > 0 ? prev[s - 1].tier : "") : ORDER[at - 1] ?? "";
+      else newTier = tier === "" ? "" : ORDER[at + 1] ?? "";
       if (!newTier || newTier === tier) return prev;
 
       const next = [...prev];
@@ -95,6 +97,17 @@ export function InlineEditor({
     const last = runs[runs.length - 1];
     if (last && last.tier === it.tier) last.idx.push(i); else runs.push({ tier: it.tier, idx: [i] });
   });
+  // Every tier always has a card, so a player can be moved into a tier nobody is in yet.
+  const used = new Set(items.map((i) => i.tier));
+  const cards: { tier: string; idx: number[] }[] = [];
+  let nextTier = 0;
+  for (const run of runs) {
+    const ti = run.tier ? ORDER.indexOf(run.tier) : ORDER.length;
+    for (; nextTier < ti; nextTier++) if (!used.has(ORDER[nextTier])) cards.push({ tier: ORDER[nextTier], idx: [] });
+    cards.push(run);
+    nextTier = Math.max(nextTier, ti + 1);
+  }
+  for (; nextTier < ORDER.length; nextTier++) if (!used.has(ORDER[nextTier])) cards.push({ tier: ORDER[nextTier], idx: [] });
   const posCount: Record<string, number> = {};
   const posRank = items.map((it) => (posCount[it.position] = (posCount[it.position] ?? 0) + 1));
   const unplaced = items.filter((i) => !i.placed).length;
@@ -121,7 +134,7 @@ export function InlineEditor({
       </div>
 
       <div className="space-y-5 overflow-x-auto pb-1">
-        {runs.map((run, ri) => {
+        {cards.map((run, ri) => {
           const c = run.tier ? COLORS[run.tier] : "#8b8576";
           return (
             <div key={ri} className="gl-tierbox min-w-[44rem]">
@@ -141,6 +154,9 @@ export function InlineEditor({
                   </tr>
                 </thead>
                 <tbody>
+                  {run.idx.length === 0 && (
+                    <tr><td colSpan={6} className="!py-4 text-sm text-zinc-400">No players in this tier yet. Use ⇈ and ⇊ on a player to move one here.</td></tr>
+                  )}
                   {run.idx.map((i) => {
                     const it = items[i];
                     const l = lines[it.player_id];
