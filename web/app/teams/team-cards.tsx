@@ -1,3 +1,4 @@
+import { TIER_COLORS } from "@/lib/tier-config";
 import { Avatar } from "@/app/avatar";
 import { PlayerLink } from "@/app/player-link";
 
@@ -5,7 +6,6 @@ export type TeamPlayer = { id: number; name: string; pos: string; slot: string; 
 export type TeamRow = { name: string; mine: boolean; players: TeamPlayer[]; group: Record<string, number>; total: number };
 
 const POS_COLOR: Record<string, string> = { QB: "#b99aff", RB: "#5db4ff", WR: "#ff74b4", TE: "#ffb457", K: "#63d6bc", DEF: "#c9c4b8" };
-const TIER_COLORS: Record<string, string> = { S: "#D4A72C", A: "#43B02A", B: "#2F7BEA", C: "#8B5CF6", D: "#E0A800", E: "#F28C28", F: "#E5484D" };
 const posName = (p: string) => (p === "DEF" ? "DST" : p);
 
 // Every team in a league, strongest first. Click a team to open its roster by position.

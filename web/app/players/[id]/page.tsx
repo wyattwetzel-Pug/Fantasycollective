@@ -1,3 +1,4 @@
+import { TIER_COLORS } from "@/lib/tier-config";
 import { fixTiers } from "@/lib/tiers";
 import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
@@ -28,9 +29,6 @@ const SCORING = [["ppr", "PPR"], ["half", "Half PPR"], ["std", "Standard"]] as c
 const QBS = [["1qb", "1 QB"], ["superflex", "Superflex"]] as const;
 const TABS = [["overview", "Overview"], ["log", "Game Log"], ["matchup", "Matchup"], ["adp", "ADP"], ["news", "News"]] as const;
 const LABEL: Record<string, string> = { redraft: "Redraft", dynasty: "Dynasty", ppr: "PPR", half: "Half PPR", std: "Standard", "1qb": "1 QB", superflex: "Superflex" };
-const TIER_COLORS: Record<string, string> = {
-  S: "#D4AF37", A: "#22A722", B: "#9333EA", C: "#3B82F6", D: "#FACC15", E: "#F97316", F: "#EF4444",
-};
 const DAY = 24 * 60 * 60 * 1000;
 
 type Params = { tab: string; format: string; scoring: string; qb: string };

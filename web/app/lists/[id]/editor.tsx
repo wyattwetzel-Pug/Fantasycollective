@@ -1,5 +1,6 @@
 "use client";
 
+import { TIER_ORDER } from "@/lib/tier-config";
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { saveList } from "../actions";
@@ -14,7 +15,7 @@ export type Item = {
   placed: boolean;
 };
 
-const TIERS = ["", "S", "A", "B", "C", "D", "E", "F"];
+const TIERS = ["", ...TIER_ORDER];
 const POSITIONS = ["All", "QB", "RB", "WR", "TE", "K", "DEF"];
 const PAGE = 100;
 

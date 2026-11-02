@@ -1,3 +1,4 @@
+import { TIER_COLORS } from "@/lib/tier-config";
 import { fixTiers } from "@/lib/tiers";
 import { Suspense } from "react";
 import { PlayerLink } from "@/app/player-link";
@@ -24,9 +25,6 @@ const FORMATS = [["redraft", "Redraft"], ["dynasty", "Dynasty"]] as const;
 const SCORING = [["ppr", "PPR"], ["half", "Half PPR"], ["std", "Standard"]] as const;
 const QBS = [["1qb", "1 QB"], ["superflex", "Superflex"]] as const;
 const TABS = [["rankings", "Rankings"], ["season", "Season"], ["matchup", "Matchup"], ["trends", "Trends"]] as const;
-const TIER_COLORS: Record<string, string> = {
-  S: "#D4AF37", A: "#22A722", B: "#9333EA", C: "#3B82F6", D: "#FACC15", E: "#F97316", F: "#EF4444",
-};
 
 type Params = { tab: string; format: string; scoring: string; qb: string };
 

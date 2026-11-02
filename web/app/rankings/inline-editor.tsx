@@ -1,5 +1,6 @@
 "use client";
 
+import { TIER_COLORS, TIER_ORDER } from "@/lib/tier-config";
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Avatar } from "@/app/avatar";
@@ -10,9 +11,9 @@ import { saveList } from "../lists/actions";
 export type Item = { player_id: number; name: string; position: string; team: string; tier: string; note: string; placed: boolean };
 export type Line = { proj: number | null; played: number; snapPct: number | null; posFinish: number | null };
 
-const ORDER = ["S", "A", "B", "C", "D", "E", "F"];
+const ORDER = TIER_ORDER;
 const POSITIONS = ["All", "QB", "RB", "WR", "TE", "K", "DEF"];
-const COLORS: Record<string, string> = { S: "#D4A72C", A: "#43B02A", B: "#2F7BEA", C: "#8B5CF6", D: "#E0A800", E: "#F28C28", F: "#E5484D" };
+const COLORS = TIER_COLORS;
 
 // Players with a tier always sit above players with none, and tiers run S to F, so a tier card can
 // never show up below the Unsorted players. Order inside a tier is kept.

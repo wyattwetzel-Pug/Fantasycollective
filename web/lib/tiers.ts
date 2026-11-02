@@ -1,4 +1,6 @@
-const ORDER = ["S", "A", "B", "C", "D", "E", "F"];
+import { TIER_ORDER } from "@/lib/tier-config";
+
+const ORDER = TIER_ORDER;
 
 // Consensus tiers are averages, so down the list they can bounce (a B, then an A). This fits the
 // closest non-decreasing run of tiers to them (pool adjacent violators), so one odd player doesn't

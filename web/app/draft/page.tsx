@@ -1,3 +1,4 @@
+import { TIER_COLORS } from "@/lib/tier-config";
 import { fixTiers } from "@/lib/tiers";
 import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
@@ -10,9 +11,6 @@ type Row = {
   players: { name: string; position: string; nfl_team: string | null } | null;
 };
 
-const TIER_COLORS: Record<string, string> = {
-  S: "#D4AF37", A: "#22A722", B: "#9333EA", C: "#3B82F6", D: "#FACC15", E: "#F97316", F: "#EF4444",
-};
 const SOURCE_LINKS: Record<string, string> = {
   MyFantasyLeague: "https://www.myfantasyleague.com",
   "Fantasy Football Calculator": "https://fantasyfootballcalculator.com",

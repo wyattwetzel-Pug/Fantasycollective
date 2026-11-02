@@ -1,3 +1,4 @@
+import { TIER_COLORS } from "@/lib/tier-config";
 import { fixTiers } from "@/lib/tiers";
 import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
@@ -12,9 +13,6 @@ type Row = {
 
 type Prospect = { id: number; name: string; position: string; school: string; class_year: string | null; draft_year: number | null; note: string | null };
 
-const TIER_COLORS: Record<string, string> = {
-  S: "#D4AF37", A: "#22A722", B: "#9333EA", C: "#3B82F6", D: "#FACC15", E: "#F97316", F: "#EF4444",
-};
 const TABS = [["overview", "Overview"], ["cfb", "CFB Rankings"], ["breakouts", "Breakouts"], ["strategy", "Strategy"]] as const;
 const SCORING = [["ppr", "PPR"], ["half", "Half PPR"], ["std", "Standard"]] as const;
 const QBS = [["1qb", "1 QB"], ["superflex", "Superflex"]] as const;
