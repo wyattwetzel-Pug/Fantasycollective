@@ -187,7 +187,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
       <div className="gl-hero p-5 sm:p-7">
         <p className="text-[11px] font-semibold tracking-[0.35em] text-zinc-400">FANTASY FOOTBALL</p>
         <h2 id="h-rank" className="gl-title text-5xl sm:text-7xl">Rankings</h2>
-        <p className="mt-2 text-base text-zinc-300">{editing ? "Editing your own list. Pick the settings on the right to switch which list you are editing." : "Expert player rankings, projections, and tiers."}</p>
+        <p className="mt-2 text-base text-zinc-300">{editing ? "Editing your own list. The settings on the right choose which list you edit; pick a position below to edit just that position." : "Expert player rankings, projections, and tiers."}</p>
         <div role="group" aria-label="Position filter" className="mt-5 flex flex-wrap gap-2">
           {!editing && POSITIONS.map((p) => <Link key={p} href={href(params, { pos: p })} className={`gl-pill !px-5 ${params.pos === p ? "on" : ""}`}>{p === "All" ? "Overall" : p === "DEF" ? "DST" : p}</Link>)}
           <span className="flex-1" />

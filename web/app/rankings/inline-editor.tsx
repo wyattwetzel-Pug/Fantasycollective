@@ -11,6 +11,7 @@ export type Item = { player_id: number; name: string; position: string; team: st
 export type Line = { proj: number | null; played: number; snapPct: number | null; posFinish: number | null };
 
 const ORDER = ["S", "A", "B", "C", "D", "E", "F"];
+const POSITIONS = ["All", "QB", "RB", "WR", "TE", "K", "DEF"];
 const COLORS: Record<string, string> = { S: "#D4A72C", A: "#43B02A", B: "#2F7BEA", C: "#8B5CF6", D: "#E0A800", E: "#F28C28", F: "#E5484D" };
 
 // Edit your own list right on the Rankings page: move players up and down, or up and down a tier.
@@ -23,6 +24,7 @@ export function InlineEditor({
   const [message, setMessage] = useState("");
   const [pending, start] = useTransition();
   const [limit, setLimit] = useState(100);
+  const [pos, setPos] = useState("All");
   const [dragId, setDragId] = useState<number | null>(null);
   const [over, setOver] = useState<{ id: number; after: boolean } | { card: string } | null>(null);
 
@@ -59,20 +61,20 @@ export function InlineEditor({
     setMessage("");
   }
 
-  // Move one spot. At the edge of a tier, the arrow moves the player into the next tier instead
+  // Move one spot. With a position picked, "one spot" means past the next player at that position.
+  // At the edge of a tier, the arrow moves the player into the next tier instead
   // (the tier right above or below, even if it is empty).
   function step(idx: number, dir: -1 | 1) {
     const here = items[idx];
-    const neighbour = items[idx + dir];
-    if (!neighbour) return;
+    let j = idx + dir;
+    while (j >= 0 && j < items.length && pos !== "All" && items[j].position !== pos) j += dir;
+    if (j < 0 || j >= items.length) return;
+    const neighbour = items[j];
     if (here.tier !== "" && neighbour.tier !== here.tier) { shiftTier(idx, dir); return; }
     change((prev) => {
-      const j = idx + dir;
-      if (j < 0 || j >= prev.length) return prev;
       const next = [...prev];
-      const moved = { ...next[idx], placed: true, tier: next[j].tier || next[idx].tier };
-      next[idx] = next[j];
-      next[j] = moved;
+      const [moved] = next.splice(idx, 1);
+      next.splice(j, 0, { ...moved, placed: true, tier: neighbour.tier || moved.tier });
       return next;
     });
   }
@@ -157,12 +159,15 @@ export function InlineEditor({
 
   // Runs of the same tier share one card.
   const runs: { tier: string; idx: number[] }[] = [];
-  items.slice(0, Math.max(limit, 0)).forEach((it, i) => {
+  const inView: number[] = [];
+  items.forEach((it, i) => { if (pos === "All" || it.position === pos) inView.push(i); });
+  inView.slice(0, Math.max(limit, 0)).forEach((i) => {
+    const it = items[i];
     const last = runs[runs.length - 1];
     if (last && last.tier === it.tier) last.idx.push(i); else runs.push({ tier: it.tier, idx: [i] });
   });
   // Every tier always has a card, so a player can be moved into a tier nobody is in yet.
-  const used = new Set(items.map((i) => i.tier));
+  const used = new Set(inView.map((i) => items[i].tier));
   const cards: { tier: string; idx: number[] }[] = [];
   let nextTier = 0;
   for (const run of runs) {
@@ -197,6 +202,13 @@ export function InlineEditor({
         <Link href={fullEditorHref} className="text-green-400">Open the full editor (notes, sort by ADP)</Link>
       </div>
 
+      <div role="group" aria-label="Position filter" className="flex flex-wrap gap-2">
+        {POSITIONS.map((p) => (
+          <button key={p} onClick={() => { setPos(p); setLimit(100); }} className={`gl-pill !px-5 ${pos === p ? "on" : ""}`}>{p === "All" ? "Overall" : p === "DEF" ? "DST" : p}</button>
+        ))}
+        {pos !== "All" && <span className="self-center text-xs text-zinc-400">Showing only {pos === "DEF" ? "DST" : pos}. Rank numbers are still overall.</span>}
+      </div>
+
       <div className="space-y-5 overflow-x-auto pb-1">
         {cards.map((run, ri) => {
           const c = run.tier ? COLORS[run.tier] : "#8b8576";
@@ -223,7 +235,7 @@ export function InlineEditor({
                 </thead>
                 <tbody>
                   {run.idx.length === 0 && (
-                    <tr><td colSpan={6} className="!py-4 text-sm text-zinc-400">No players in this tier yet. Move a player to the edge of the tier above or below and press ▲ or ▼ to bring them here.</td></tr>
+                    <tr><td colSpan={6} className="!py-4 text-sm text-zinc-400">{pos === "All" ? "No players in this tier yet." : `No ${pos === "DEF" ? "DST" : pos} players in this tier.`} Drag a player here, or move one to the edge of the tier above or below and press ▲ or ▼.</td></tr>
                   )}
                   {run.idx.map((i) => {
                     const it = items[i];
@@ -283,9 +295,9 @@ export function InlineEditor({
           );
         })}
       </div>
-      {items.length > limit && (
+      {inView.length > limit && (
         <button onClick={() => setLimit(limit + 100)} className="gl-pill block w-full !py-3 text-center">
-          Show {Math.min(100, items.length - limit)} more ({items.length - limit} left)
+          Show {Math.min(100, inView.length - limit)} more ({inView.length - limit} left)
         </button>
       )}
     </div>
