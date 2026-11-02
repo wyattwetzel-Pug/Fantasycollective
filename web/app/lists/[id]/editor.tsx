@@ -19,8 +19,8 @@ const POSITIONS = ["All", "QB", "RB", "WR", "TE", "K", "DEF"];
 const PAGE = 100;
 
 export function Editor({
-  setId, title, backHref, initial, initialPublished,
-}: { setId: number; title: string; backHref: string; initial: Item[]; initialPublished: boolean }) {
+  setId, title, backHref, adp, initial, initialPublished,
+}: { setId: number; title: string; backHref: string; adp: { map: Record<number, number>; label: string } | null; initial: Item[]; initialPublished: boolean }) {
   const [items, setItems] = useState(initial);
   const [published, setPublished] = useState(initialPublished);
   const [pos, setPos] = useState("All");
@@ -68,6 +68,20 @@ export function Editor({
     const at = visible.indexOf(idx);
     const neighbour = visible[at + dir];
     if (neighbour !== undefined) moveTo(idx, neighbour);
+  }
+
+  // Starting point: reorder the whole list by where people draft players. Players with no ADP keep their order below.
+  function sortByAdp() {
+    if (!adp) return;
+    if (!window.confirm("This reorders your whole list by ADP. Your tiers and notes stay. Continue?")) return;
+    change((prev) => {
+      const ranked = prev
+        .filter((p) => adp.map[p.player_id] !== undefined)
+        .sort((a, b) => adp.map[a.player_id] - adp.map[b.player_id])
+        .map((p) => ({ ...p, placed: true }));
+      const rest = prev.filter((p) => adp.map[p.player_id] === undefined);
+      return [...ranked, ...rest];
+    });
   }
 
   function update(idx: number, patch: Partial<Item>) {
@@ -123,6 +137,8 @@ export function Editor({
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <span className="text-zinc-300">{items.length - unplaced} of {items.length} placed</span>
           <button onClick={() => change((prev) => prev.map((i) => ({ ...i, placed: true })))} className="text-green-400">Mark all as placed</button>
+          <button onClick={sortByAdp} disabled={!adp} className="text-green-400 disabled:text-zinc-600"
+            title={adp ? `Reorder by ADP (${adp.label})` : "No ADP is loaded for these settings"}>Sort by ADP</button>
           <span className="flex-1" />
           {message && <span className={message.startsWith("Could not") ? "text-red-400" : "text-green-400"}>{message}</span>}
           {dirty && !message && <span className="text-yellow-400">Unsaved changes</span>}

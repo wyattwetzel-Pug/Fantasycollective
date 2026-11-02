@@ -32,6 +32,19 @@ async function Loaded({ params }: { params: Promise<{ id: string }> }) {
     .limit(2000)
     .returns<Row[]>();
 
+  // ADP for this list's settings, so the contributor can start from the market order.
+  const combo = { format: set.format, scoring: set.scoring, qb_type: set.qb_type };
+  let adp: { map: Record<number, number>; label: string } | null = null;
+  const { data: latest } = await supabase.from("adp").select("season, source").match(combo).order("season", { ascending: false }).limit(1);
+  if (latest?.length) {
+    const { data: adpRows } = await supabase
+      .from("adp").select("player_id, adp").match(combo).eq("season", latest[0].season).eq("source", latest[0].source).limit(1000)
+      .returns<{ player_id: number; adp: number }[]>();
+    if (adpRows?.length) {
+      adp = { map: Object.fromEntries(adpRows.map((r) => [r.player_id, Number(r.adp)])), label: `${latest[0].season} · ${latest[0].source}` };
+    }
+  }
+
   const items: Item[] = (rows ?? []).map((r) => ({
     player_id: r.player_id,
     name: r.players?.name ?? "Unknown",
@@ -44,7 +57,7 @@ async function Loaded({ params }: { params: Promise<{ id: string }> }) {
 
   const title = `${set.format} · ${set.scoring} · ${set.qb_type}`.toUpperCase();
   const back = new URLSearchParams({ format: set.format, scoring: set.scoring, qb: set.qb_type });
-  return <Editor setId={setId} title={title} backHref={`/rankings?${back}`} initial={items} initialPublished={set.published} />;
+  return <Editor setId={setId} title={title} backHref={`/rankings?${back}`} adp={adp} initial={items} initialPublished={set.published} />;
 }
 
 export default function ListPage(props: PageProps<"/lists/[id]">) {

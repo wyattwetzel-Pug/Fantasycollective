@@ -36,9 +36,18 @@ async function Room({ searchParams }: { searchParams: Promise<Record<string, str
     .order("position_in_list").limit(400)
     .returns<Row[]>();
 
+  const { data: latest } = await supabase.from("adp").select("season, source").match({ format, scoring, qb_type: qb }).order("season", { ascending: false }).limit(1);
+  const adpOf = new Map<number, number>();
+  if (latest?.length) {
+    const { data: adpRows } = await supabase
+      .from("adp").select("player_id, adp").match({ format, scoring, qb_type: qb }).eq("season", latest[0].season).eq("source", latest[0].source).limit(1000)
+      .returns<{ player_id: number; adp: number }[]>();
+    (adpRows ?? []).forEach((r) => adpOf.set(r.player_id, Number(r.adp)));
+  }
+
   const back = new URLSearchParams({ tab: "mock", format, scoring, qb });
   const players: P[] = (data ?? []).map((r) => ({
-    id: r.player_id, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", team: r.players?.nfl_team ?? "", rank: r.position_in_list,
+    id: r.player_id, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", team: r.players?.nfl_team ?? "", rank: r.position_in_list, adp: adpOf.get(r.player_id) ?? null,
   }));
 
   if (players.length < teams * rounds) {

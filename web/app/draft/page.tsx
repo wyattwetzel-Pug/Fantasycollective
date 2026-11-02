@@ -10,6 +10,10 @@ type Row = {
 const TIER_COLORS: Record<string, string> = {
   S: "#D4AF37", A: "#22A722", B: "#9333EA", C: "#3B82F6", D: "#FACC15", E: "#F97316", F: "#EF4444",
 };
+const SOURCE_LINKS: Record<string, string> = {
+  MyFantasyLeague: "https://www.myfantasyleague.com",
+  "Fantasy Football Calculator": "https://fantasyfootballcalculator.com",
+};
 const TABS = [["rankings", "Rankings"], ["adp", "ADP"], ["mock", "Mock Draft"]] as const;
 const FORMATS = [["redraft", "Standard"], ["dynasty", "Dynasty"]] as const;
 const SCORING = [["ppr", "PPR"], ["half", "Half PPR"], ["std", "Standard"]] as const;
@@ -17,7 +21,20 @@ const QBS = [["1qb", "1 QB"], ["superflex", "Superflex"]] as const;
 const SLOT_FIELDS = ["QB", "RB", "WR", "TE", "FLEX", "SUPERFLEX", "K", "DEF"] as const;
 const SLOT_DEFAULTS: Record<string, number> = { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1, SUPERFLEX: 0, K: 1, DEF: 1 };
 
+type AdpRow = {
+  player_id: number; adp: number; high: number | null; low: number | null; times_drafted: number | null;
+  season: number; source: string; as_of: string | null; teams: number;
+  players: { name: string; position: string; nfl_team: string | null } | null;
+};
+
 type Params = { tab: string; format: string; scoring: string; qb: string };
+
+// 3.8 in a 12-team draft is pick 4 of round 1, written 1.04.
+function pickLabel(adp: number, teams: number) {
+  const round = Math.max(1, Math.ceil(adp / teams));
+  const pick = Math.min(teams, Math.max(1, Math.round(adp - (round - 1) * teams)));
+  return `${round}.${String(pick).padStart(2, "0")}`;
+}
 
 function href(current: Params, over: Partial<Params>) {
   const next = { ...current, ...over };
@@ -52,6 +69,27 @@ async function DraftView({ searchParams }: { searchParams: Promise<Record<string
       .returns<Row[]>();
     rows = res.data ?? [];
     error = res.error?.message ?? "";
+  }
+  let adpRows: AdpRow[] = [];
+  const consensusRank = new Map<number, number>();
+  let adpError = "";
+  if (params.tab === "adp") {
+    const supabase = await createClient();
+    const combo = { format: params.format, scoring: params.scoring, qb_type: params.qb };
+    const { data: latest } = await supabase.from("adp").select("season, source").match(combo).order("season", { ascending: false }).limit(1);
+    if (latest?.length) {
+      const res = await supabase
+        .from("adp")
+        .select("player_id, adp, high, low, times_drafted, season, source, as_of, teams, players(name, position, nfl_team)")
+        .match(combo).eq("season", latest[0].season).eq("source", latest[0].source).order("adp").limit(150)
+        .returns<AdpRow[]>();
+      adpRows = res.data ?? [];
+      adpError = res.error?.message ?? "";
+    }
+    const { data: cons } = await supabase
+      .from("consensus_current").select("player_id, position_in_list").match(combo).limit(1000)
+      .returns<{ player_id: number; position_in_list: number }[]>();
+    (cons ?? []).forEach((c) => consensusRank.set(c.player_id, c.position_in_list));
   }
   const stale = rows.length > 0 && rows.every((r) => r.is_stale);
   const pill = (on: boolean) => `gl-pill !rounded-full text-xs ${on ? "on-o" : ""}`;
@@ -124,9 +162,78 @@ async function DraftView({ searchParams }: { searchParams: Promise<Record<string
       )}
 
       {params.tab === "adp" && (
-        <div className="gl-panel p-4">
-          <h3 className="mb-2 text-xl font-bold"><span style={{ color: "#39ff14" }} aria-hidden="true">▮</span> Average Draft Position (ADP)</h3>
-          <p className="text-sm text-zinc-400">ADP needs a data source, and none is connected yet. This tab will show ADP and trends once one is.</p>
+        <div className="grid items-start gap-4 lg:grid-cols-[1fr_0.5fr]">
+          <div className="gl-panel min-w-0 p-4">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-xl font-bold"><span style={{ color: "#39ff14" }} aria-hidden="true">▮</span> Average Draft Position (ADP)</h3>
+              {adpRows.length > 0 && (
+                <p className="text-xs text-zinc-300">
+                  {adpRows[0].season} preseason · {adpRows[0].teams}-team drafts · Source:{" "}
+                  <a href={SOURCE_LINKS[adpRows[0].source] ?? "#"} className="underline" target="_blank" rel="noreferrer">{adpRows[0].source}</a>
+                </p>
+              )}
+            </div>
+            {adpError && <p className="rounded border border-red-900 bg-red-950/30 p-3 text-sm text-red-300">Could not load ADP: {adpError}</p>}
+            {adpRows.length ? (
+              <div className="overflow-x-auto">
+                <table className="gl-table min-w-[34rem]">
+                  <thead>
+                    <tr>
+                      <th scope="col" className="w-8">#</th><th scope="col" className="!text-left">PLAYER</th><th scope="col">POS</th><th scope="col">TEAM</th>
+                      <th scope="col">ADP</th><th scope="col">HIGH-LOW</th><th scope="col">DRAFTED</th><th scope="col">OUR RANK</th><th scope="col">VALUE</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adpRows.map((r, i) => {
+                      const ours = consensusRank.get(r.player_id);
+                      const diff = ours === undefined ? null : i + 1 - ours; // positive: we rank him higher than the market
+                      return (
+                        <tr key={r.player_id}>
+                          <td className="text-sm font-bold">{i + 1}</td>
+                          <td className="!text-left"><span className="flex items-center gap-2"><span className="h-8 w-8 shrink-0 rounded-full bg-zinc-700" aria-hidden="true" /><span className="pn">{r.players?.name}</span></span></td>
+                          <td><span className={`bd ${r.players?.position}`}>{r.players?.position}</span></td>
+                          <td>{r.players?.nfl_team}</td>
+                          <td><span className="inline-block rounded-full border px-3 py-0.5 text-xs font-semibold" style={{ background: "#0c2a0c", color: "#7dff6a", borderColor: "#39ff14" }}>{pickLabel(r.adp, r.teams)}</span></td>
+                          <td>{r.high ?? "–"}-{r.low ?? "–"}</td>
+                          <td>{r.times_drafted ?? "–"}</td>
+                          <td>{ours === undefined ? <span className="text-zinc-500">–</span> : `#${ours}`}</td>
+                          <td className="font-semibold" style={{ color: diff === null || diff === 0 ? undefined : diff > 0 ? "#39ff14" : "#ef4444" }}>
+                            {diff === null ? "–" : diff === 0 ? "even" : `${diff > 0 ? "▲" : "▼"} ${Math.abs(diff)}`}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : !adpError && (
+              <p className="text-sm text-zinc-400">
+                No ADP is loaded for these settings. ADP exists for Standard, PPR and Half PPR 1 QB redraft, PPR Superflex redraft, and PPR 1 QB Dynasty.
+              </p>
+            )}
+            {adpRows.length > 0 && (
+              <p className="mt-3 text-xs text-zinc-500">
+                Top 150 by ADP. <strong>Value</strong> compares ADP order with the Ball Knowers Consensus: green means our contributors rank him higher than the market does,
+                red means lower. ADP comes from public draft data and is refreshed by loading a new season.
+              </p>
+            )}
+          </div>
+
+          <div className="gl-panel space-y-4 p-4">
+            <h3 className="text-xl font-bold"><span style={{ color: "#39ff14" }} aria-hidden="true">⚙</span> Settings</h3>
+            <div>
+              <p className="mb-1 text-sm">League Format</p>
+              <div className="flex flex-wrap gap-2">{FORMATS.map(([v, l]) => <Link key={v} href={href(params, { format: v })} className={pill(params.format === v)}>{l}</Link>)}</div>
+            </div>
+            <div>
+              <p className="mb-1 text-sm">Scoring Format</p>
+              <div className="flex flex-wrap gap-2">{SCORING.map(([v, l]) => <Link key={v} href={href(params, { scoring: v })} className={pill(params.scoring === v)}>{l}</Link>)}</div>
+            </div>
+            <div>
+              <p className="mb-1 text-sm">Quarterback Format</p>
+              <div className="flex flex-wrap gap-2">{QBS.map(([v, l]) => <Link key={v} href={href(params, { qb: v })} className={pill(params.qb === v)}>{l}</Link>)}</div>
+            </div>
+          </div>
         </div>
       )}
 

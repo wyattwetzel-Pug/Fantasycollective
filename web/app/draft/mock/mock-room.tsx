@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
-export type P = { id: number; name: string; position: string; team: string; rank: number };
+export type P = { id: number; name: string; position: string; team: string; rank: number; adp: number | null };
 export type Slots = { QB: number; RB: number; WR: number; TE: number; FLEX: number; SUPERFLEX: number; K: number; DEF: number };
 
 const POSITIONS = ["All", "QB", "RB", "WR", "TE", "K", "DEF"];
@@ -43,11 +43,15 @@ export function MockRoom({
     const c = countsFor(onClock);
     const round = Math.floor(overall / teams);
     const late = round >= rounds - Math.max(2, slots.K + slots.DEF);
-    const eligible = available.filter((p) => {
+    // Computer teams follow ADP when we have it, otherwise the consensus order.
+    const order = players.some((p) => p.adp !== null)
+      ? [...available].sort((a, b) => (a.adp ?? 9999) - (b.adp ?? 9999) || a.rank - b.rank)
+      : available;
+    const eligible = order.filter((p) => {
       if ((p.position === "K" || p.position === "DEF") && !late) return false;
       return (c[p.position] ?? 0) < Math.max(cap(p.position), 1);
     });
-    const pool = (eligible.length ? eligible : available).slice(0, 4);
+    const pool = (eligible.length ? eligible : order).slice(0, 4);
     const weights = [0.55, 0.25, 0.12, 0.08];
     let roll = Math.random();
     for (let i = 0; i < pool.length; i++) { roll -= weights[i]; if (roll <= 0) return pool[i]; }
