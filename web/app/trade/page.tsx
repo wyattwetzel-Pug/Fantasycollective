@@ -1,3 +1,4 @@
+import { fixTiers } from "@/lib/tiers";
 import { Suspense } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -40,7 +41,7 @@ async function TradeView({ searchParams }: { searchParams: Promise<Record<string
     .order("position_in_list").limit(1000)
     .returns<Row[]>();
 
-  const players: P[] = (data ?? []).map((r) => ({
+  const players: P[] = fixTiers(data ?? []).map((r) => ({
     id: r.player_id, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "",
     team: r.players?.nfl_team ?? "", rank: r.position_in_list, tier: r.tier,
   }));

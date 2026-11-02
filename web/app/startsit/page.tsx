@@ -1,3 +1,4 @@
+import { fixTiers } from "@/lib/tiers";
 import { Suspense } from "react";
 import { PlayerLink } from "@/app/player-link";
 import Link from "next/link";
@@ -60,7 +61,7 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
     .match(combo).order("position_in_list").limit(1000)
     .returns<Row[]>();
 
-  const rows = all ?? [];
+  const rows = fixTiers(all ?? []);
   const posCount: Record<string, number> = {};
   const posRank = new Map<number, number>();
   rows.forEach((r) => { const k = r.players?.position ?? ""; posCount[k] = (posCount[k] ?? 0) + 1; posRank.set(r.player_id, posCount[k]); });

@@ -1,3 +1,4 @@
+import { fixTiers } from "@/lib/tiers";
 import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
 import { PlayerLink } from "@/app/player-link";
@@ -108,7 +109,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
       .returns<ConsensusRow[]>();
     if (error) loadError = error.message;
     stale = !!data?.length && data.every((r) => r.is_stale);
-    rows = (data ?? []).map((r) => ({
+    rows = fixTiers(data ?? []).map((r) => ({
       id: r.player_id, rank: r.position_in_list, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", posRank: 0,
       team: r.players?.nfl_team ?? "", tier: r.tier, a: String(r.consensus_rank), b: String(r.sources),
     }));

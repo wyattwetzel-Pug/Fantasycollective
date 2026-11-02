@@ -1,3 +1,4 @@
+import { fixTiers } from "@/lib/tiers";
 import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
 import { PlayerLink } from "@/app/player-link";
@@ -93,7 +94,7 @@ async function DynastyView({ searchParams }: { searchParams: Promise<Record<stri
     .order("position_in_list").limit(1000)
     .returns<Row[]>();
 
-  const all = data ?? [];
+  const all = fixTiers(data ?? []);
   const overall = all.map((r) => ({ rank: r.position_in_list, r }));
   const rookies = all.filter((r) => r.players?.is_rookie).map((r, i) => ({ rank: i + 1, r }));
   const stale = all.length > 0 && all.every((r) => r.is_stale);

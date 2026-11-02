@@ -1,3 +1,4 @@
+import { fixTiers } from "@/lib/tiers";
 import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
 import { PlayerLink } from "@/app/player-link";
@@ -69,7 +70,7 @@ async function DraftView({ searchParams }: { searchParams: Promise<Record<string
       .match({ format: params.format, scoring: params.scoring, qb_type: params.qb })
       .order("position_in_list").limit(30)
       .returns<Row[]>();
-    rows = res.data ?? [];
+    rows = fixTiers(res.data ?? []);
     error = res.error?.message ?? "";
   }
   let adpRows: AdpRow[] = [];

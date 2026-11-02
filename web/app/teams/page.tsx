@@ -1,3 +1,4 @@
+import { fixTiers } from "@/lib/tiers";
 import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
 import { PlayerLink } from "@/app/player-link";
@@ -65,7 +66,7 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
         .match({ format: chosen.format, scoring: chosen.scoring, qb_type: chosen.qb_type }).limit(1000).returns<ConsensusRow[]>(),
     ]);
     const info = new Map((playerRows ?? []).map((p) => [p.id, p]));
-    const rank = new Map((cons ?? []).map((c) => [c.player_id, c]));
+    const rank = new Map(fixTiers([...(cons ?? [])].sort((a, b) => a.position_in_list - b.position_in_list)).map((c) => [c.player_id, c]));
 
     const teams = new Map<string, { name: string; mine: boolean; rows: RosterRow[] }>();
     (rosterRows ?? []).forEach((r) => {

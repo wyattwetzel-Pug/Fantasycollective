@@ -1,3 +1,4 @@
+import { fixTiers } from "@/lib/tiers";
 import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
 import Link from "next/link";
@@ -90,8 +91,9 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
       .or(`player_a.eq.${id},player_b.eq.${id}`).order("created_at", { ascending: false }).limit(10).returns<CallRow[]>(),
   ]);
 
-  const mine = (consAll ?? []).find((c) => c.player_id === id);
-  const samePos = (consAll ?? []).filter((c) => c.players?.position === player.position);
+  const fixedCons = fixTiers(consAll ?? []);
+  const mine = fixedCons.find((c) => c.player_id === id);
+  const samePos = fixedCons.filter((c) => c.players?.position === player.position);
   const posRank = mine ? samePos.findIndex((c) => c.player_id === id) + 1 : 0;
 
   const setIds = (sets ?? []).map((s) => s.id);
