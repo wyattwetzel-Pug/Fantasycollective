@@ -3,10 +3,11 @@ import { PlayerLink } from "@/app/player-link";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { playerValue } from "@/lib/value";
-import { removeLeague, syncSleeper } from "./actions";
+import { removeLeague } from "./actions";
+import { SyncForm } from "./sync-form";
 
 type League = {
-  id: number; name: string | null; scoring: string; qb_type: string; format: string; synced_at: string | null;
+  id: number; name: string | null; platform: string; scoring: string; qb_type: string; format: string; synced_at: string | null;
   roster_settings: { total_rosters?: number } | null;
 };
 type RosterRow = { team_name: string; is_mine: boolean; player_id: number; slot: string };
@@ -14,6 +15,7 @@ type PlayerRow = { id: number; name: string; position: string; nfl_team: string 
 type ConsensusRow = { player_id: number; position_in_list: number; tier: string | null };
 
 const LABEL: Record<string, string> = { redraft: "Redraft", dynasty: "Dynasty", ppr: "PPR", half: "Half PPR", std: "Standard", "1qb": "1 QB", superflex: "Superflex" };
+const PLATFORM: Record<string, string> = { sleeper: "Sleeper", espn: "ESPN", fleaflicker: "Fleaflicker", mfl: "MyFantasyLeague" };
 const TABS = [["overview", "League Overview"], ["team", "My Team"], ["rankings", "League Rankings"]] as const;
 const TIER_COLORS: Record<string, string> = {
   S: "#D4AF37", A: "#22A722", B: "#9333EA", C: "#3B82F6", D: "#FACC15", E: "#F97316", F: "#EF4444",
@@ -41,14 +43,14 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
       <div className="space-y-4">
         {hero}
         <div className="gl-panel p-4 text-sm text-zinc-300">
-          <Link href="/login" className="underline" style={{ color: "#7dff6a" }}>Log in</Link> to sync your Sleeper leagues.
+          <Link href="/login" className="underline" style={{ color: "#7dff6a" }}>Log in</Link> to sync your leagues.
         </div>
       </div>
     );
   }
 
   const { data: leagueRows } = await supabase
-    .from("leagues").select("id, name, scoring, qb_type, format, synced_at, roster_settings").order("name").returns<League[]>();
+    .from("leagues").select("id, name, platform, scoring, qb_type, format, synced_at, roster_settings").order("name").returns<League[]>();
   const leagues = leagueRows ?? [];
   const chosen = leagues.find((l) => String(l.id) === str("league")) ?? null;
   const tab = TABS.find((t) => t[0] === str("tab"))?.[0] ?? "overview";
@@ -83,7 +85,7 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="mr-2 text-2xl font-bold">{chosen.name}</h3>
-          <span className="text-xs text-zinc-400">{LABEL[chosen.format]} · {LABEL[chosen.scoring]} · {LABEL[chosen.qb_type]} · {scored.length} teams</span>
+          <span className="text-xs text-zinc-400">{PLATFORM[chosen.platform] ?? chosen.platform} · {LABEL[chosen.format]} · {LABEL[chosen.scoring]} · {LABEL[chosen.qb_type]} · {scored.length} teams</span>
         </div>
         <div role="tablist" className="flex gap-6 border-b border-zinc-800 text-sm">
           {TABS.map(([v, l]) => (
@@ -162,12 +164,7 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
 
       <div className="gl-panel space-y-3 p-4">
         <h3 className="text-lg font-bold">⟳ Sync League</h3>
-        <form action={syncSleeper} className="flex flex-wrap gap-2">
-          <label htmlFor="sleeper-user" className="sr-only">Sleeper username</label>
-          <input id="sleeper-user" name="username" required placeholder="Your Sleeper username" className="gl-search max-w-xs" />
-          <button className="gl-pill on-o !px-5 !py-2.5">Sync from Sleeper</button>
-        </form>
-        <p className="text-xs text-zinc-500">Uses Sleeper&apos;s public data. We only read your leagues and rosters and never need your password. ESPN and Yahoo aren&apos;t supported yet.</p>
+        <SyncForm />
       </div>
 
       {leagues.length > 0 ? (
