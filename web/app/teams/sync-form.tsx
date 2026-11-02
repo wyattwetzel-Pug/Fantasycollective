@@ -8,7 +8,7 @@ const input = "gl-search max-w-xs";
 
 const HELP: Record<string, string> = {
   sleeper: "Uses Sleeper's public data. We only read your leagues and rosters and never need your password.",
-  espn: "Public ESPN leagues only need the league ID. For private leagues, also paste your espn_s2 and SWID cookies from espn.com (browser developer tools, Application, Cookies). They're used for this sync only and never saved.",
+  espn: "Public ESPN leagues only need the league ID. Type part of your team name so we know which roster is yours. For private leagues, also paste your espn_s2 and SWID cookies from espn.com (browser developer tools, Application, Cookies). They're used for this sync only and never saved.",
   fleaflicker: "Works for any league that's visible without logging in. Find the league ID in your league's web address (fleaflicker.com/nfl/leagues/123456). Fleaflicker doesn't share who's starting, so players show as bench.",
   mfl: "The league ID is the number after L= in your league's web address. The commissioner must allow public roster access. MyFantasyLeague doesn't share who's starting, so players show as bench.",
 };
