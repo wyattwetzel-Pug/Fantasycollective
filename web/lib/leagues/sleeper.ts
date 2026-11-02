@@ -11,6 +11,10 @@ type SUser = { user_id: string; display_name: string; metadata?: { team_name?: s
 
 const get = async <T>(path: string) => (await fetchJson<T>(`${API}${path}`)).data;
 
+// Starting slots only (no bench, IR or taxi), in our own names.
+const SLEEPER_SLOTS: Record<string, string> = { QB: "QB", RB: "RB", WR: "WR", TE: "TE", K: "K", DEF: "DEF", FLEX: "FLEX", SUPER_FLEX: "SUPERFLEX", REC_FLEX: "WRTE", WRRB_FLEX: "RBWR" };
+const sleeperLineup = (positions: string[]) => positions.map((p) => SLEEPER_SLOTS[p]).filter((p): p is string => !!p);
+
 export async function importSleeper(username: string): Promise<ImportedLeague[]> {
   if (!username) throw new ImportError("Enter your Sleeper username.");
   const user = await get<{ user_id: string }>(`/user/${encodeURIComponent(username)}`);
@@ -44,7 +48,7 @@ export async function importSleeper(username: string): Promise<ImportedLeague[]>
       scoring: rec >= 1 ? "ppr" : rec >= 0.5 ? "half" : "std",
       qbType: (lg.roster_positions ?? []).includes("SUPER_FLEX") ? "superflex" : "1qb",
       format: lg.settings?.type === 2 ? "dynasty" : "redraft",
-      settings: { positions: lg.roster_positions ?? [], sleeper_user_id: user.user_id, total_rosters: lg.total_rosters ?? rosters.length },
+      settings: { positions: lg.roster_positions ?? [], lineup: sleeperLineup(lg.roster_positions ?? []), sleeper_user_id: user.user_id, total_rosters: lg.total_rosters ?? rosters.length },
       teams,
     });
   }

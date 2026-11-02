@@ -20,6 +20,11 @@ type Resp = {
   teams?: Team[];
 };
 
+// ESPN's starting slot ids, in the order they appear in a lineup.
+const SLOT_NAMES: [number, string][] = [[0, "QB"], [2, "RB"], [4, "WR"], [6, "TE"], [3, "RBWR"], [5, "WRTE"], [23, "FLEX"], [7, "SUPERFLEX"], [17, "K"], [16, "DEF"]];
+const espnLineup = (counts: Record<string, number> | undefined) =>
+  SLOT_NAMES.flatMap(([id, name]) => Array<string>(Math.max(0, counts?.[String(id)] ?? 0)).fill(name));
+
 export async function importEspn(input: { leagueId: string; s2: string; swid: string; myTeam: string }): Promise<ImportedLeague[]> {
   const leagueId = input.leagueId.match(/\d{3,}/)?.[0];
   if (!leagueId) throw new ImportError("Enter your ESPN league ID (the number after leagueId= in your league's web address).");
@@ -49,7 +54,7 @@ export async function importEspn(input: { leagueId: string; s2: string; swid: st
     scoring: rec >= 1 ? "ppr" : rec >= 0.5 ? "half" : "std",
     qbType: (data.settings?.rosterSettings?.lineupSlotCounts?.[OP] ?? 0) > 0 ? "superflex" : "1qb",
     format: null,
-    settings: { total_rosters: data.teams.length },
+    settings: { total_rosters: data.teams.length, lineup: espnLineup(data.settings?.rosterSettings?.lineupSlotCounts) },
     teams: data.teams.map((t) => {
       const name = t.name || [t.location, t.nickname].filter(Boolean).join(" ") || `Team ${t.id}`;
       const owned = !!swidClean && (t.owners ?? []).some((o) => o.replace(/[{}]/g, "").toLowerCase() === swidClean);

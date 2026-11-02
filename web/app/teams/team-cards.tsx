@@ -16,9 +16,9 @@ export function TeamCards({ list, present, groupRank }: { list: TeamRow[]; prese
         <details key={t.name} open={t.mine} className="gl-panel group overflow-hidden">
           <summary className="cursor-pointer list-none p-4 sm:p-5">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2f2e2b] font-bold text-white">{i + 1}</span>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2f2e2b] font-bold text-[#fff]">{i + 1}</span>
               <span className="min-w-[10rem] flex-1">
-                <span className="block text-lg font-bold">{t.name}{t.mine && <span className="ml-2 rounded-full px-2 py-0.5 text-xs font-bold text-white" style={{ background: "var(--accent)" }}>You</span>}</span>
+                <span className="block text-lg font-bold">{t.name}{t.mine && <span className="ml-2 rounded-full px-2 py-0.5 text-xs font-bold text-[#fff]" style={{ background: "var(--accent)" }}>You</span>}</span>
                 <span className="block text-xs text-zinc-400">{t.players.length} players · roster value {t.total.toFixed(0)}</span>
               </span>
               <span className="hidden flex-wrap gap-1.5 md:flex">

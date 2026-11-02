@@ -12,6 +12,7 @@ const svg = (d: React.ReactNode) => (
 const MAIN: Item[] = [
   { label: "Home", href: "/", icon: svg(<><path d="M3 11l9-8 9 8" /><path d="M5 10v10h14V10" /></>) },
   { label: "My Teams", href: "/teams", icon: svg(<><circle cx="9" cy="8" r="3.2" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /><circle cx="17" cy="9" r="2.5" /><path d="M16 14.2c2.9.2 5 2.4 5 5.3" /></>) },
+  { label: "Lineup", href: "/lineup", icon: svg(<><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 8h8M8 12h8M8 16h5" /></>) },
   { label: "Rankings", href: "/rankings", icon: svg(<><path d="M5 20V10M10 20V4M15 20v-8M20 20v-5" /></>) },
   { label: "Start / Sit", href: "/startsit", icon: svg(<><path d="M4 8h14M14 4l4 4-4 4" /><path d="M20 16H6M10 12l-4 4 4 4" /></>) },
   { label: "Trade", href: "/trade", icon: svg(<><path d="M4 8h14M14 4l4 4-4 4" /><path d="M20 16H6M10 12l-4 4 4 4" /></>) },
