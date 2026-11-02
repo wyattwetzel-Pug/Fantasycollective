@@ -41,7 +41,7 @@ export function LineupBoard({
   );
 
   const srcLink = (v: string, label: string) => (
-    <Link href={`/lineup?league=${leagueId}&src=${v}`} className={`gl-pill ${source === v ? "on" : ""}`}>{label}</Link>
+    <Link href={`/teams?league=${leagueId}&tab=lineup&src=${v}`} className={`gl-pill ${source === v ? "on" : ""}`}>{label}</Link>
   );
 
   return (

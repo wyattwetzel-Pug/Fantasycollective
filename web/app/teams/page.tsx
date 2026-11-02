@@ -7,9 +7,11 @@ import { playerValue } from "@/lib/value";
 import { refreshLeague, removeLeague } from "./actions";
 import { SyncForm } from "./sync-form";
 import { TeamCards } from "./team-cards";
+import { LineupSection } from "./lineup-section";
 
 type League = {
   id: number; name: string | null; platform: string; scoring: string; qb_type: string; format: string; synced_at: string | null;
+  roster_settings: { lineup?: string[]; total_rosters?: number } | null;
 };
 type RosterRow = { team_name: string; is_mine: boolean; player_id: number; slot: string };
 type PlayerRow = { id: number; name: string; position: string; nfl_team: string | null };
@@ -56,15 +58,22 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
 
   const [{ data: me }, { data: leagueRows }] = await Promise.all([
     supabase.from("profiles").select("role").eq("id", user.id).single(),
-    supabase.from("leagues").select("id, name, platform, scoring, qb_type, format, synced_at").order("name").returns<League[]>(),
+    supabase.from("leagues").select("id, name, platform, scoring, qb_type, format, synced_at, roster_settings").order("name").returns<League[]>(),
   ]);
   const leagues = leagueRows ?? [];
   const chosen = leagues.find((l) => String(l.id) === str("league")) ?? leagues[0] ?? null;
   const isContributor = me?.role === "contributor";
-  const source = isContributor && str("src") !== "consensus" ? "mine" : "consensus";
+  const wanted = str("src");
+  const tab = str("tab") === "rankings" ? "rankings" : "lineup";
+  // The lineup can also be built from projections. League rankings only use your list or the consensus.
+  const lineupSource: "mine" | "consensus" | "proj" = wanted === "proj" ? "proj" : wanted === "consensus" || !isContributor ? "consensus" : "mine";
+  const source = isContributor && wanted !== "consensus" ? "mine" : "consensus";
 
-  let detail: React.ReactNode = null;
-  if (chosen) {
+  let content: React.ReactNode = null;
+  if (chosen && tab === "lineup") {
+    content = <LineupSection supabase={supabase} userId={user.id} chosen={chosen} isContributor={isContributor} source={lineupSource} />;
+  }
+  if (chosen && tab === "rankings") {
     const combo = { format: chosen.format, scoring: chosen.scoring, qb_type: chosen.qb_type };
     const [{ data: rosterRows }, { data: playerRows }, { data: cons }, { data: mySet }] = await Promise.all([
       supabase.from("league_rosters").select("team_name, is_mine, player_id, slot").eq("league_id", chosen.id).limit(1000).returns<RosterRow[]>(),
@@ -109,24 +118,13 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
       [...list].sort((a, b) => (b.group[pos] ?? 0) - (a.group[pos] ?? 0)).forEach((t, i) => groupRank.set(`${t.name}|${pos}`, i + 1));
     });
 
-    detail = (
+    content = (
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="min-w-[14rem] flex-1">
-            <h3 className="text-3xl">{chosen.name}</h3>
-            <p className="text-xs text-zinc-400">
-              {PLATFORM[chosen.platform] ?? chosen.platform} · {LABEL[chosen.format]} · {LABEL[chosen.scoring]} · {LABEL[chosen.qb_type]} · {list.length} teams · synced {ago(chosen.synced_at)}
-            </p>
-          </div>
-          <form action={refreshLeague}><input type="hidden" name="id" value={chosen.id} /><button className="gl-pill">⟳ Refresh</button></form>
-          <form action={removeLeague}><input type="hidden" name="id" value={chosen.id} /><button className="px-2 text-sm text-red-400">Remove</button></form>
-        </div>
-
         {isContributor && (
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <span className="font-bold">Ranked by</span>
-            <Link href={`/teams?league=${chosen.id}`} className={`gl-pill ${source === "mine" ? "on" : ""}`}>My rankings</Link>
-            <Link href={`/teams?league=${chosen.id}&src=consensus`} className={`gl-pill ${source === "consensus" ? "on" : ""}`}>Ball Knowers Consensus</Link>
+            <Link href={`/teams?league=${chosen.id}&tab=rankings`} className={`gl-pill ${source === "mine" ? "on" : ""}`}>My rankings</Link>
+            <Link href={`/teams?league=${chosen.id}&tab=rankings&src=consensus`} className={`gl-pill ${source === "consensus" ? "on" : ""}`}>Ball Knowers Consensus</Link>
           </div>
         )}
         {source === "mine" && !mySet && <p className="text-xs text-zinc-500">You don&apos;t have a list for {LABEL[chosen.format]} · {LABEL[chosen.scoring]} · {LABEL[chosen.qb_type]} yet, so this uses the consensus.</p>}
@@ -138,6 +136,27 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
       </div>
     );
   }
+
+  const teamCount = chosen?.roster_settings?.total_rosters;
+  const detail = chosen ? (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="min-w-[14rem] flex-1">
+          <h3 className="text-3xl">{chosen.name}</h3>
+          <p className="text-xs text-zinc-400">
+            {PLATFORM[chosen.platform] ?? chosen.platform} · {LABEL[chosen.format]} · {LABEL[chosen.scoring]} · {LABEL[chosen.qb_type]}{teamCount ? ` · ${teamCount} teams` : ""} · synced {ago(chosen.synced_at)}
+          </p>
+        </div>
+        <form action={refreshLeague}><input type="hidden" name="id" value={chosen.id} /><button className="gl-pill">⟳ Refresh</button></form>
+        <form action={removeLeague}><input type="hidden" name="id" value={chosen.id} /><button className="px-2 text-sm text-red-400">Remove</button></form>
+      </div>
+      <div role="tablist" aria-label="League sections" className="flex gap-2 border-b border-zinc-800 pb-3">
+        <Link role="tab" aria-selected={tab === "lineup"} href={`/teams?league=${chosen.id}&tab=lineup`} className={`gl-pill !px-5 ${tab === "lineup" ? "on" : ""}`}>Lineup</Link>
+        <Link role="tab" aria-selected={tab === "rankings"} href={`/teams?league=${chosen.id}&tab=rankings`} className={`gl-pill !px-5 ${tab === "rankings" ? "on" : ""}`}>League Rankings</Link>
+      </div>
+      {content}
+    </div>
+  ) : null;
 
   return (
     <div className="space-y-5">
