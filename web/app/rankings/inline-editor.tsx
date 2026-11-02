@@ -22,6 +22,7 @@ export function InlineEditor({
   const [dirty, setDirty] = useState(false);
   const [message, setMessage] = useState("");
   const [pending, start] = useTransition();
+  const [limit, setLimit] = useState(100);
 
   useEffect(() => {
     if (!dirty) return;
@@ -90,7 +91,7 @@ export function InlineEditor({
 
   // Runs of the same tier share one card.
   const runs: { tier: string; idx: number[] }[] = [];
-  items.forEach((it, i) => {
+  items.slice(0, Math.max(limit, 0)).forEach((it, i) => {
     const last = runs[runs.length - 1];
     if (last && last.tier === it.tier) last.idx.push(i); else runs.push({ tier: it.tier, idx: [i] });
   });
@@ -172,6 +173,11 @@ export function InlineEditor({
           );
         })}
       </div>
+      {items.length > limit && (
+        <button onClick={() => setLimit(limit + 100)} className="gl-pill block w-full !py-3 text-center">
+          Show {Math.min(100, items.length - limit)} more ({items.length - limit} left)
+        </button>
+      )}
     </div>
   );
 }

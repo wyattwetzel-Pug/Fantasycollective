@@ -1,6 +1,7 @@
 import { fixTiers } from "@/lib/tiers";
 import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
+import Link from "next/link";
 import { PlayerLink } from "@/app/player-link";
 import { createClient } from "@/lib/supabase/server";
 import { nowMs } from "@/lib/time";
@@ -33,11 +34,12 @@ const QBS = [["1qb", "1 QB"], ["superflex", "Superflex"]] as const;
 const POSITIONS = ["All", "QB", "RB", "WR", "TE", "K", "DEF"];
 const DAY = 24 * 60 * 60 * 1000;
 
-type Params = { format: string; scoring: string; qb: string; pos: string; ranker: string; q: string; proj: string; edit: string };
+type Params = { format: string; scoring: string; qb: string; pos: string; ranker: string; q: string; proj: string; edit: string; n: string };
 
 function href(current: Params, over: Partial<Params>) {
   const next = { ...current, ...over };
-  const defaults: Params = { format: "redraft", scoring: "ppr", qb: "1qb", pos: "All", ranker: "consensus", q: "", proj: "1", edit: "" };
+  if (!("n" in over)) next.n = "100";
+  const defaults: Params = { format: "redraft", scoring: "ppr", qb: "1qb", pos: "All", ranker: "consensus", q: "", proj: "1", edit: "", n: "100" };
   const qs = new URLSearchParams();
   (Object.keys(next) as (keyof Params)[]).forEach((k) => { if (next[k] !== defaults[k]) qs.set(k, next[k]); });
   const s = qs.toString();
@@ -64,6 +66,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
     q: typeof sp.q === "string" ? sp.q : "",
     proj: sp.proj === "0" ? "0" : "1",
     edit: sp.edit === "1" ? "1" : "",
+    n: String(Math.min(1000, Math.max(100, Math.round((Number(sp.n) || 100) / 100) * 100))),
   };
 
   const supabase = await createClient();
@@ -124,7 +127,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
   rows.forEach((r) => { counts[r.position] = (counts[r.position] ?? 0) + 1; r.posRank = counts[r.position]; });
   const q = params.q.trim().toLowerCase();
   const shown = rows.filter((r) => (params.pos === "All" || r.position === params.pos) && (!q || r.name.toLowerCase().includes(q)));
-  const lines = await seasonLines(supabase, params.scoring);
+  const lines = new Map(Object.entries(await seasonLines(params.scoring)).map(([k, v]) => [Number(k), v]));
   const showProj = params.proj !== "0";
   const settings = `${FORMATS.find((f) => f[0] === params.format)?.[1]} · ${SCORING.find((f) => f[0] === params.scoring)?.[1]} · ${QBS.find((f) => f[0] === params.qb)?.[1]}`;
 
@@ -165,9 +168,13 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
     }
   }
 
+  // Only the first chunk is drawn, so the page stays light. "Show more" adds another hundred.
+  const limit = Number(params.n);
+  const visible = shown.slice(0, limit);
+
   // Consecutive players with the same tier share one box.
   const runs: { tier: string | null; rows: Row[] }[] = [];
-  shown.forEach((r) => {
+  visible.forEach((r) => {
     const last = runs[runs.length - 1];
     if (last && last.tier === r.tier) last.rows.push(r); else runs.push({ tier: r.tier, rows: [r] });
   });
@@ -182,7 +189,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
         <h2 id="h-rank" className="gl-title text-5xl sm:text-7xl">Rankings</h2>
         <p className="mt-2 text-base text-zinc-300">{editing ? "Editing your own list. Pick the settings on the right to switch which list you are editing." : "Expert player rankings, projections, and tiers."}</p>
         <div role="group" aria-label="Position filter" className="mt-5 flex flex-wrap gap-2">
-          {!editing && POSITIONS.map((p) => <a key={p} href={href(params, { pos: p })} className={`gl-pill !px-5 ${params.pos === p ? "on" : ""}`}>{p === "All" ? "Overall" : p === "DEF" ? "DST" : p}</a>)}
+          {!editing && POSITIONS.map((p) => <Link key={p} href={href(params, { pos: p })} className={`gl-pill !px-5 ${params.pos === p ? "on" : ""}`}>{p === "All" ? "Overall" : p === "DEF" ? "DST" : p}</Link>)}
           <span className="flex-1" />
           <span className="self-center text-xs text-zinc-400">{rows.length} players · {fresh.length} contributor{fresh.length === 1 ? "" : "s"} · {season}</span>
           {canEdit && !editing && (
@@ -263,6 +270,11 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
               );
             })}
           </div>
+          {shown.length > limit && (
+            <Link href={href(params, { n: String(limit + 100) })} scroll={false} className="gl-pill block !py-3 text-center">
+              Show {Math.min(100, shown.length - limit)} more ({shown.length - limit} left)
+            </Link>
+          )}
           </>}
         </div>
 
@@ -272,43 +284,43 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
             <div>
               <p className="mb-2 font-bold">League Type</p>
               <div className="gl-seg">
-                {FORMATS.map(([v, label]) => <a key={v} href={href(params, { format: v })} className={params.format === v ? "on" : ""}>{label}</a>)}
+                {FORMATS.map(([v, label]) => <Link key={v} href={href(params, { format: v })} className={params.format === v ? "on" : ""}>{label}</Link>)}
               </div>
             </div>
             <div>
               <p className="mb-2 font-bold">QB Format</p>
               <div className="gl-seg">
-                {QBS.map(([v, label]) => <a key={v} href={href(params, { qb: v })} className={params.qb === v ? "on" : ""}>{v === "1qb" ? "Standard" : label}</a>)}
+                {QBS.map(([v, label]) => <Link key={v} href={href(params, { qb: v })} className={params.qb === v ? "on" : ""}>{v === "1qb" ? "Standard" : label}</Link>)}
               </div>
             </div>
             <div>
               <p className="mb-2 font-bold">Scoring</p>
               <div className="gl-seg">
-                {SCORING.map(([v, label]) => <a key={v} href={href(params, { scoring: v })} className={params.scoring === v ? "on" : ""}>{label}</a>)}
+                {SCORING.map(([v, label]) => <Link key={v} href={href(params, { scoring: v })} className={params.scoring === v ? "on" : ""}>{label}</Link>)}
               </div>
             </div>
-            <a href={href(params, { proj: showProj ? "0" : "1" })} className="flex items-center justify-between border-t border-zinc-800 pt-4 font-bold" role="switch" aria-checked={showProj}>
+            <Link href={href(params, { proj: showProj ? "0" : "1" })} className="flex items-center justify-between border-t border-zinc-800 pt-4 font-bold" role="switch" aria-checked={showProj}>
               Show Projections <span className={`gl-toggle ${showProj ? "on" : ""}`} aria-hidden="true" />
-            </a>
+            </Link>
           </div>
 
           <div className="gl-panel p-5">
             <h3 className="mb-3 text-2xl">Expert Sources</h3>
             <div className="grid grid-cols-3 gap-2 text-center text-xs">
-              <a href={href(params, { ranker: "consensus" })} className={`rounded-xl p-2 ${!chosen ? "gl-src-on" : ""}`}>
+              <Link href={href(params, { ranker: "consensus" })} className={`rounded-xl p-2 ${!chosen ? "gl-src-on" : ""}`}>
                 <span className="mx-auto mb-1 flex h-10 w-10 items-center justify-center rounded-full bg-zinc-700 text-sm font-bold">∑</span>
                 Ball Knowers Consensus
-              </a>
+              </Link>
               {sources.map((s) => {
                 const name = s.contributors?.profiles?.display_name ?? "Contributor";
                 const slug = s.contributors!.slug;
                 const isStale = nowMs() - new Date(s.updated_at).getTime() >= 7 * DAY;
                 return (
-                  <a key={s.id} href={href(params, { ranker: slug })} className={`rounded-xl p-2 ${chosen?.id === s.id ? "gl-src-on" : ""}`}>
+                  <Link key={s.id} href={href(params, { ranker: slug })} className={`rounded-xl p-2 ${chosen?.id === s.id ? "gl-src-on" : ""}`}>
                     <span className="mx-auto mb-1 flex h-10 w-10 items-center justify-center rounded-full bg-zinc-700 text-sm font-bold">{name.slice(0, 1).toUpperCase()}</span>
                     {name}
                     <span className={`block text-[10px] ${isStale ? "text-yellow-400" : "text-zinc-500"}`}>{isStale ? "stale" : ago(s.updated_at)}</span>
-                  </a>
+                  </Link>
                 );
               })}
             </div>

@@ -1,4 +1,5 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { cacheLife } from "next/cache";
 
 export type SeasonLine = { played: number; points: number; snapPct: number | null; posFinish: number | null; proj: number | null };
 
@@ -6,7 +7,7 @@ type StatRow = { player_id: number; season: number; week: number; pts: number | 
 
 // Everything the Rankings table shows beyond the rank: games played, snap share, finish among
 // players at the position (by total points this season) and the latest weekly projection.
-export async function seasonLines(db: SupabaseClient, scoring: string): Promise<Map<number, SeasonLine>> {
+async function compute(db: SupabaseClient, scoring: string): Promise<Map<number, SeasonLine>> {
   const col = scoring === "ppr" ? "pts_ppr" : scoring === "half" ? "pts_half" : "pts_std";
 
   const { data: latest } = await db.from("player_stats").select("season").order("season", { ascending: false }).limit(1);
@@ -58,4 +59,13 @@ export async function seasonLines(db: SupabaseClient, scoring: string): Promise<
   }
   for (const [id, p] of projOf) if (!out.has(id)) out.set(id, { played: 0, points: 0, snapPct: null, posFinish: null, proj: p });
   return out;
+}
+
+// Stats and projections are public and change a few times a day, so this is cached for a few minutes.
+// Switching a position or setting on Rankings then doesn't reload the whole season from the database.
+export async function seasonLines(scoring: string): Promise<Record<number, SeasonLine>> {
+  "use cache";
+  cacheLife("minutes");
+  const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false } });
+  return Object.fromEntries(await compute(db, scoring));
 }
