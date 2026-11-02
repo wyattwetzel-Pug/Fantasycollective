@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { runSync } from "@/lib/sync";
 
 // Every action below also fails at the database level for non-admins (row-level security).
 async function requireAdmin() {
@@ -42,4 +43,11 @@ export async function removeContributor(formData: FormData) {
   await supabase.from("ranking_sets").update({ published: false }).eq("contributor_id", id);
   await supabase.from("profiles").update({ role: "user" }).eq("id", id);
   revalidatePath("/admin");
+}
+
+// Runs the Sleeper stats, schedule and projections sync now. "backfill" loads every week of the season.
+export async function syncStats(formData: FormData) {
+  await requireAdmin();
+  const result = await runSync({ backfill: formData.get("mode") === "backfill" });
+  redirect(`/admin?sync=${encodeURIComponent((result.ok ? "OK. " : "Problem. ") + result.log.join(" "))}`);
 }

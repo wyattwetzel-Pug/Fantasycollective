@@ -1,7 +1,9 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { inviteContributor, removeContributor, revokeInvite } from "./actions";
+import { inviteContributor, removeContributor, revokeInvite, syncStats } from "./actions";
+
+export const maxDuration = 60;
 
 type ContributorRow = {
   profile_id: string;
@@ -9,7 +11,9 @@ type ContributorRow = {
   profiles: { display_name: string; role: string; is_admin: boolean } | null;
 };
 
-async function AdminPanel() {
+async function AdminPanel({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const sp = await searchParams;
+  const syncMsg = typeof sp.sync === "string" ? sp.sync : "";
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -33,6 +37,16 @@ async function AdminPanel() {
         <p className="mt-2 text-xs text-zinc-400">
           Existing accounts are promoted immediately. Otherwise they become a contributor when they sign up with this email (invite lasts 30 days).
         </p>
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-xl font-bold">Stats and schedule</h2>
+        {syncMsg && <p className="mb-3 rounded border border-zinc-700 p-3 text-sm text-zinc-200">{syncMsg}</p>}
+        <div className="flex flex-wrap gap-2">
+          <form action={syncStats}><input type="hidden" name="mode" value="recent" /><button className="rounded bg-green-500 px-4 py-2 text-sm font-semibold text-black">Sync this week</button></form>
+          <form action={syncStats}><input type="hidden" name="mode" value="backfill" /><button className="rounded border border-zinc-600 px-4 py-2 text-sm">Load the whole season</button></form>
+        </div>
+        <p className="mt-2 text-xs text-zinc-400">Pulls schedule, weekly stats and projections from Sleeper. It also runs by itself once a day on the live site. Loading the whole season can take up to a minute.</p>
       </section>
 
       <section>
@@ -75,12 +89,12 @@ async function AdminPanel() {
   );
 }
 
-export default function AdminPage() {
+export default function AdminPage(props: PageProps<"/admin">) {
   return (
     <main className="mx-auto w-full max-w-3xl p-6">
       <h1 className="mb-6 text-3xl font-bold">Admin</h1>
       <Suspense fallback={<p className="text-zinc-400">Loading...</p>}>
-        <AdminPanel />
+        <AdminPanel searchParams={props.searchParams} />
       </Suspense>
     </main>
   );

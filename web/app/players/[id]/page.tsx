@@ -13,6 +13,8 @@ type SetRow = { id: number; updated_at: string; contributors: { profiles: { disp
 type RankRow = { set_id: number; rank: number; tier: string | null; note: string | null };
 type AdpRow = { season: number; source: string; format: string; scoring: string; qb_type: string; adp: number; high: number | null; low: number | null; times_drafted: number | null; teams: number };
 type NewsRow = { id: number; headline: string; body: string | null; published_at: string };
+type StatRow = { week: number; season: number; stats: Record<string, number>; pts_ppr: number | null; pts_half: number | null; pts_std: number | null };
+type GameRow = { week: number; home: string; away: string; status: string | null };
 type CallRow = {
   id: number; week: number; season: number; player_a: number; player_b: number; pick: number; reason: string | null;
   contributors: { profiles: { display_name: string } | null } | null;
@@ -21,7 +23,7 @@ type CallRow = {
 const FORMATS = [["redraft", "Redraft"], ["dynasty", "Dynasty"]] as const;
 const SCORING = [["ppr", "PPR"], ["half", "Half PPR"], ["std", "Standard"]] as const;
 const QBS = [["1qb", "1 QB"], ["superflex", "Superflex"]] as const;
-const TABS = [["overview", "Overview"], ["adp", "ADP"], ["news", "News"]] as const;
+const TABS = [["overview", "Overview"], ["log", "Game Log"], ["adp", "ADP"], ["news", "News"]] as const;
 const LABEL: Record<string, string> = { redraft: "Redraft", dynasty: "Dynasty", ppr: "PPR", half: "Half PPR", std: "Standard", "1qb": "1 QB", superflex: "Superflex" };
 const TIER_COLORS: Record<string, string> = {
   S: "#D4AF37", A: "#22A722", B: "#9333EA", C: "#3B82F6", D: "#FACC15", E: "#F97316", F: "#EF4444",
@@ -29,6 +31,20 @@ const TIER_COLORS: Record<string, string> = {
 const DAY = 24 * 60 * 60 * 1000;
 
 type Params = { tab: string; format: string; scoring: string; qb: string };
+
+const n = (v: number | undefined) => Math.round(v ?? 0);
+// A short, position-aware stat line for one game.
+function statLine(pos: string, s: Record<string, number>) {
+  const rush = s.rush_att ? `${n(s.rush_att)} car, ${n(s.rush_yd)} yds${s.rush_td ? `, ${n(s.rush_td)} TD` : ""}` : "";
+  const rec = s.rec_tgt || s.rec ? `${n(s.rec)}/${n(s.rec_tgt)} rec, ${n(s.rec_yd)} yds${s.rec_td ? `, ${n(s.rec_td)} TD` : ""}` : "";
+  if (pos === "QB") {
+    const pass = `${n(s.pass_cmp)}/${n(s.pass_att)}, ${n(s.pass_yd)} yds, ${n(s.pass_td)} TD${s.pass_int ? `, ${n(s.pass_int)} INT` : ""}`;
+    return [pass, rush].filter(Boolean).join(" · ");
+  }
+  if (pos === "K") return `${n(s.fgm)}/${n(s.fga)} FG, ${n(s.xpm)}/${n(s.xpa)} XP`;
+  if (pos === "DEF") return `${n(s.sack)} sacks, ${n(s.int)} INT, ${n(s.fum_rec)} FR, ${n(s.pts_allow)} pts allowed`;
+  return [rush, rec].filter(Boolean).join(" · ") || "–";
+}
 
 function TierBadge({ tier }: { tier: string | null | undefined }) {
   if (!tier) return <span className="text-zinc-500">–</span>;
@@ -59,7 +75,9 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
   if (!player) notFound();
 
   const combo = { format: params.format, scoring: params.scoring, qb_type: params.qb };
-  const [{ data: consAll }, { data: everyCombo }, { data: sets }, { data: adpRows }, { data: news }, { data: calls }] = await Promise.all([
+  const [{ data: statRows }, { data: projRows }, { data: consAll }, { data: everyCombo }, { data: sets }, { data: adpRows }, { data: news }, { data: calls }] = await Promise.all([
+    supabase.from("player_stats").select("week, season, stats, pts_ppr, pts_half, pts_std").eq("player_id", id).order("season", { ascending: false }).order("week").returns<StatRow[]>(),
+    supabase.from("projections").select("week, season, points").eq("player_id", id).eq("scoring", params.scoring).order("season", { ascending: false }).order("week", { ascending: false }).limit(2),
     supabase.from("consensus_current").select("player_id, position_in_list, consensus_rank, sources, tier, is_stale, players(position)").match(combo).order("position_in_list").limit(1000).returns<Cons[]>(),
     supabase.from("consensus_current").select("format, scoring, qb_type, position_in_list, tier").eq("player_id", id).returns<AllCons[]>(),
     supabase.from("ranking_sets").select("id, updated_at, contributors(profiles!contributors_profile_id_fkey(display_name))").match(combo).eq("published", true).returns<SetRow[]>(),
@@ -79,6 +97,20 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
     ? await supabase.from("rankings").select("set_id, rank, tier, note").eq("player_id", id).in("set_id", setIds).eq("needs_ranking", false).returns<RankRow[]>()
     : { data: [] as RankRow[] };
   const contributorRows = (sets ?? []).map((s) => ({ s, r: (theirRanks ?? []).find((r) => r.set_id === s.id) })).filter((x) => x.r);
+
+  // Game log for the newest season we have stats for.
+  const logSeason = statRows?.[0]?.season;
+  const log = (statRows ?? []).filter((r) => r.season === logSeason);
+  const pts = (r: StatRow) => Number((params.scoring === "ppr" ? r.pts_ppr : params.scoring === "half" ? r.pts_half : r.pts_std) ?? 0);
+  const total = log.reduce((sum, r) => sum + pts(r), 0);
+  const ppg = log.length ? total / log.length : null;
+  const best = log.length ? Math.max(...log.map(pts)) : null;
+  const { data: games } = player.nfl_team && logSeason
+    ? await supabase.from("games").select("week, home, away, status").eq("season", logSeason).or(`home.eq.${player.nfl_team},away.eq.${player.nfl_team}`).order("week").returns<GameRow[]>()
+    : { data: [] as GameRow[] };
+  const oppFor = (g: GameRow) => (g.home === player.nfl_team ? `vs ${g.away}` : `@ ${g.home}`);
+  const next = (games ?? []).find((g) => g.status !== "complete" && g.status !== "in_progress");
+  const proj = projRows?.[0];
 
   const adpHere = (adpRows ?? []).find((a) => a.format === params.format && a.scoring === params.scoring && a.qb_type === params.qb);
 
@@ -110,6 +142,8 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
           <div className="gl-stat"><span className="text-2xl font-extrabold italic"><TierBadge tier={mine?.tier} /></span><span className="text-xs text-zinc-400">Tier</span></div>
           {stat("ADP", adpHere ? pickLabel(adpHere.adp, adpHere.teams) : "–", adpHere ? String(adpHere.season) : undefined)}
           {stat("Trade value", mine ? playerValue(mine.position_in_list).toFixed(1) : "–")}
+          {stat("Pts / game", ppg === null ? "–" : ppg.toFixed(1), log.length ? `${log.length} games` : undefined)}
+          {proj && stat("Projected", Number(proj.points).toFixed(1), `week ${proj.week}`)}
         </div>
       </div>
 
@@ -198,6 +232,41 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
             ) : <p className="text-sm text-zinc-400">No calls involve {player.name} yet.</p>}
             <Link href={`/startsit?p=${id}`} className="mt-3 inline-block text-xs" style={{ color: "#39ff14" }}>Compare in Start/Sit →</Link>
           </div>
+        </div>
+      )}
+
+      {params.tab === "log" && (
+        <div className="gl-panel p-4">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="font-bold">Game Log{logSeason ? ` · ${logSeason}` : ""}</h3>
+            {next && <span className="text-xs text-zinc-300">Next: {oppFor(next)} (week {next.week})</span>}
+          </div>
+          {log.length ? (
+            <div className="overflow-x-auto">
+              <table className="gl-table min-w-[34rem]">
+                <thead><tr><th scope="col">WK</th><th scope="col">OPP</th><th scope="col" className="!text-left">LINE</th><th scope="col">{LABEL[params.scoring].toUpperCase()} PTS</th></tr></thead>
+                <tbody>
+                  {log.map((r) => {
+                    const g = (games ?? []).find((x) => x.week === r.week);
+                    const p = pts(r);
+                    return (
+                      <tr key={r.week}>
+                        <td>{r.week}</td>
+                        <td>{g ? oppFor(g) : "–"}</td>
+                        <td className="!text-left text-zinc-200">{statLine(player.position, r.stats)}</td>
+                        <td className="font-semibold" style={{ color: best !== null && p === best ? "#39ff14" : undefined }}>{p.toFixed(1)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t border-zinc-700"><td /><td /><td className="!text-left font-semibold">Total · {log.length} games</td><td className="font-semibold">{total.toFixed(1)}</td></tr>
+                </tfoot>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-zinc-400">No game stats are loaded for {player.name} yet. The admin can load them from the Admin page (Stats and schedule).</p>
+          )}
         </div>
       )}
 
