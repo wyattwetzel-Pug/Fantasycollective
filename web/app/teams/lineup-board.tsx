@@ -25,7 +25,7 @@ export function LineupBoard({
   changes: number; curProj: number; recProj: number;
 }) {
   const card = (p: P | null, slot: string, tag?: string) => (
-    <div className="w-[7.2rem] shrink-0 text-center">
+    <div className="min-w-0 text-center">
       <p className="mb-1 rounded-t-lg bg-[#2f2e2b] py-0.5 text-xs font-bold tracking-wider text-[#fff]">{slotLabel(slot)}</p>
       <div className="gl-panel flex flex-col items-center gap-1 !rounded-t-none p-2">
         {p ? (
@@ -50,7 +50,7 @@ export function LineupBoard({
       <div className="gl-panel space-y-3 p-5">
         <h3 className="text-2xl">Current Lineup</h3>
         {starters.length ? (
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(6.4rem,1fr))" }}>
             {current.map((c, i) => <div key={i}>{card(c.player, c.slot)}</div>)}
             {extras.map((p) => <div key={p.id}>{card(p, "EXTRA")}</div>)}
           </div>
@@ -58,7 +58,7 @@ export function LineupBoard({
         {bench.length > 0 && (
           <>
             <p className="pt-2 text-sm font-bold">Bench</p>
-            <div className="flex gap-2 overflow-x-auto pb-1">{bench.map((p) => <div key={p.id}>{card(p, "BN")}</div>)}</div>
+            <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(6.4rem,1fr))" }}>{bench.map((p) => <div key={p.id}>{card(p, "BN")}</div>)}</div>
           </>
         )}
       </div>
