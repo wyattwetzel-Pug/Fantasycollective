@@ -51,3 +51,40 @@ export async function syncStats(formData: FormData) {
   const result = await runSync({ backfill: formData.get("mode") === "backfill" });
   redirect(`/admin?sync=${encodeURIComponent((result.ok ? "OK. " : "Problem. ") + result.log.join(" "))}`);
 }
+
+// CFB prospects (Dynasty hub, CFB Rankings tab).
+export async function addProspect(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const text = (k: string) => String(formData.get(k) ?? "").trim();
+  const name = text("name"), position = text("position").toUpperCase(), school = text("school");
+  if (!name || !position || !school) return;
+  const { data: last } = await supabase.from("prospects").select("rank").order("rank", { ascending: false }).limit(1);
+  const draft = Number(text("draft_year"));
+  await supabase.from("prospects").insert({
+    name, position, school, class_year: text("class_year") || null, note: text("note") || null,
+    draft_year: Number.isInteger(draft) && draft > 2000 ? draft : null, rank: (last?.[0]?.rank ?? 0) + 1,
+  });
+  revalidatePath("/admin");
+  revalidatePath("/dynasty");
+}
+
+export async function moveProspect(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const id = Number(formData.get("id"));
+  const dir = formData.get("dir") === "up" ? -1 : 1;
+  const { data } = await supabase.from("prospects").select("id").order("rank").order("id");
+  const ids = (data ?? []).map((r) => r.id as number);
+  const i = ids.indexOf(id), j = i + dir;
+  if (i < 0 || j < 0 || j >= ids.length) return;
+  [ids[i], ids[j]] = [ids[j], ids[i]];
+  await Promise.all(ids.map((pid, k) => supabase.from("prospects").update({ rank: k + 1 }).eq("id", pid)));
+  revalidatePath("/admin");
+  revalidatePath("/dynasty");
+}
+
+export async function deleteProspect(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  await supabase.from("prospects").delete().eq("id", Number(formData.get("id")));
+  revalidatePath("/admin");
+  revalidatePath("/dynasty");
+}

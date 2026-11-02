@@ -10,10 +10,12 @@ type Row = {
   players: { name: string; position: string; nfl_team: string | null; age: number | null; is_rookie: boolean } | null;
 };
 
+type Prospect = { id: number; name: string; position: string; school: string; class_year: string | null; draft_year: number | null; note: string | null };
+
 const TIER_COLORS: Record<string, string> = {
   S: "#D4AF37", A: "#22A722", B: "#9333EA", C: "#3B82F6", D: "#FACC15", E: "#F97316", F: "#EF4444",
 };
-const TABS = [["overview", "Overview"], ["rookies", "Rookie Rankings"], ["breakouts", "Breakouts"], ["strategy", "Strategy"]] as const;
+const TABS = [["overview", "Overview"], ["cfb", "CFB Rankings"], ["breakouts", "Breakouts"], ["strategy", "Strategy"]] as const;
 const SCORING = [["ppr", "PPR"], ["half", "Half PPR"], ["std", "Standard"]] as const;
 const QBS = [["1qb", "1 QB"], ["superflex", "Superflex"]] as const;
 
@@ -62,6 +64,42 @@ function PlayerTable({ rows, ranked }: { rows: { rank: number; r: Row }[]; ranke
   );
 }
 
+function ProspectTable({ rows }: { rows: { rank: number; p: Prospect }[] }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="gl-table min-w-[30rem]">
+        <thead>
+          <tr>
+            <th scope="col" className="w-8">#</th>
+            <th scope="col" className="!text-left">PLAYER</th>
+            <th scope="col">POS</th>
+            <th scope="col" className="!text-left">SCHOOL</th>
+            <th scope="col">CLASS</th>
+            <th scope="col">DRAFT</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(({ rank, p }) => (
+            <tr key={p.id}>
+              <td>{rank}</td>
+              <td className="!text-left">
+                <span className="flex items-center gap-2">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-xs text-zinc-300" aria-hidden="true">{p.name.split(/\s+/).slice(0, 2).map((w) => w[0]).join("")}</span>
+                  <span><span className="pn block">{p.name}</span>{p.note && <span className="block text-xs text-zinc-400">{p.note}</span>}</span>
+                </span>
+              </td>
+              <td><span className={`bd ${p.position}`}>{p.position}</span></td>
+              <td className="!text-left">{p.school}</td>
+              <td>{p.class_year ?? "–"}</td>
+              <td>{p.draft_year ?? "–"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function Panel({ title, sub, more, children }: { title: string; sub?: string; more?: { href: string; label: string }; children: React.ReactNode }) {
   return (
     <div className="gl-panel p-4">
@@ -94,9 +132,13 @@ async function DynastyView({ searchParams }: { searchParams: Promise<Record<stri
     .order("position_in_list").limit(1000)
     .returns<Row[]>();
 
+  const { data: prospectRows } = await supabase
+    .from("prospects").select("id, name, position, school, class_year, draft_year, note").order("rank").order("id")
+    .returns<Prospect[]>();
+  const prospects = (prospectRows ?? []).map((p, i) => ({ rank: i + 1, p }));
+
   const all = fixTiers(data ?? []);
   const overall = all.map((r) => ({ rank: r.position_in_list, r }));
-  const rookies = all.filter((r) => r.players?.is_rookie).map((r, i) => ({ rank: i + 1, r }));
   const stale = all.length > 0 && all.every((r) => r.is_stale);
   const pill = (on: boolean) => `gl-pill text-xs ${on ? "on" : ""}`;
 
@@ -113,7 +155,7 @@ async function DynastyView({ searchParams }: { searchParams: Promise<Record<stri
           <span className="hidden text-6xl sm:block" style={{ color: "#39ff14" }} aria-hidden="true">♛</span>
           <div>
             <h2 id="h-dyn" className="gl-title text-4xl sm:text-6xl">DYNASTY <span style={{ color: "#39ff14" }}>HUB</span></h2>
-            <p className="mt-2 text-sm text-zinc-200">Long-term value, rookie insights, and dynasty strategy, all in one place.</p>
+            <p className="mt-2 text-sm text-zinc-200">Long-term value, college prospects, and dynasty strategy, all in one place.</p>
           </div>
         </div>
       </div>
@@ -125,12 +167,14 @@ async function DynastyView({ searchParams }: { searchParams: Promise<Record<stri
           ))}
         </div>
         <div className="flex-1" />
+        {params.tab !== "cfb" && <>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Scoring">
           {SCORING.map(([v, label]) => <Link key={v} href={href(params, { scoring: v })} className={pill(params.scoring === v)}>{label}</Link>)}
         </div>
         <div className="flex flex-wrap gap-2" role="group" aria-label="QB slots">
           {QBS.map(([v, label]) => <Link key={v} href={href(params, { qb: v })} className={pill(params.qb === v)}>{label}</Link>)}
         </div>
+        </>}
       </div>
 
       {error && <p className="rounded border border-red-900 bg-red-950/30 p-3 text-sm text-red-300">Could not load rankings: {error.message}</p>}
@@ -145,15 +189,15 @@ async function DynastyView({ searchParams }: { searchParams: Promise<Record<stri
           <Panel title="▮ Dynasty Rankings" sub="Ball Knowers Consensus · top 10" more={{ href: "/rankings?format=dynasty", label: "View All →" }}>
             {overall.length ? <PlayerTable rows={overall.slice(0, 10)} /> : empty}
           </Panel>
-          <Panel title="🎓 Rookie Rankings" sub="Ball Knowers Consensus · top 5" more={{ href: href(params, { tab: "rookies" }), label: "View Class →" }}>
-            {rookies.length ? <PlayerTable rows={rookies.slice(0, 5)} ranked /> : <p className="text-sm text-zinc-400">No ranked rookies yet for these settings.</p>}
+          <Panel title="🎓 CFB Rankings" sub="Top college prospects · top 5" more={{ href: href(params, { tab: "cfb" }), label: "View All →" }}>
+            {prospects.length ? <ProspectTable rows={prospects.slice(0, 5)} /> : <p className="text-sm text-zinc-400">No college prospects ranked yet.</p>}
           </Panel>
           <Panel title="↗ Breakout Candidates" more={{ href: href(params, { tab: "breakouts" }), label: "View All →" }}>
             <p className="text-sm text-zinc-400">Breakout scores need usage and target data, which isn&apos;t loaded yet.</p>
           </Panel>
           <Panel title="🛠 Dynasty Tools">
             <div className="space-y-2">
-              <Link href={href(params, { tab: "rookies" })} className="gl-row"><span className="flex-1">Rookie Rankings</span><span aria-hidden="true">›</span></Link>
+              <Link href={href(params, { tab: "cfb" })} className="gl-row"><span className="flex-1">CFB Rankings</span><span aria-hidden="true">›</span></Link>
               <Link href={href(params, { tab: "breakouts" })} className="gl-row"><span className="flex-1">Breakout Finder</span><span aria-hidden="true">›</span></Link>
               <Link href="/trade?format=dynasty" className="gl-row"><span className="flex-1">Trade Calculator</span><span aria-hidden="true">›</span></Link>
             </div>
@@ -161,9 +205,9 @@ async function DynastyView({ searchParams }: { searchParams: Promise<Record<stri
         </div>
       )}
 
-      {params.tab === "rookies" && (
-        <Panel title="🎓 Rookie Rankings" sub="Ball Knowers Consensus · full class">
-          {rookies.length ? <PlayerTable rows={rookies} ranked /> : <p className="text-sm text-zinc-400">No ranked rookies yet for these settings.</p>}
+      {params.tab === "cfb" && (
+        <Panel title="🎓 CFB Rankings" sub="Top fantasy prospects in college football who are headed to the NFL">
+          {prospects.length ? <ProspectTable rows={prospects} /> : <p className="text-sm text-zinc-400">No college prospects ranked yet.</p>}
         </Panel>
       )}
 

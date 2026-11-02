@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { inviteContributor, removeContributor, revokeInvite, syncStats } from "./actions";
+import { addProspect, deleteProspect, inviteContributor, moveProspect, removeContributor, revokeInvite, syncStats } from "./actions";
 
 export const maxDuration = 60;
 
@@ -24,6 +24,8 @@ async function AdminPanel({ searchParams }: { searchParams: Promise<Record<strin
     .from("invites").select("id, email, expires_at, accepted_at").is("accepted_at", null).order("created_at", { ascending: false });
   const { data: contributors } = await supabase
     .from("contributors").select("profile_id, slug, profiles!contributors_profile_id_fkey(display_name, role, is_admin)").returns<ContributorRow[]>();
+  const { data: prospects, error: prospectErr } = await supabase
+    .from("prospects").select("id, name, position, school, class_year, draft_year, note").order("rank").order("id");
   const active = (contributors ?? []).filter((c) => c.profiles?.role === "contributor");
 
   return (
@@ -47,6 +49,36 @@ async function AdminPanel({ searchParams }: { searchParams: Promise<Record<strin
           <form action={syncStats}><input type="hidden" name="mode" value="backfill" /><button className="rounded border border-zinc-600 px-4 py-2 text-sm">Load the whole season</button></form>
         </div>
         <p className="mt-2 text-xs text-zinc-400">Pulls schedule, weekly stats and projections from Sleeper. It also runs by itself once a day on the live site. Loading the whole season can take up to a minute.</p>
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-xl font-bold">CFB prospects</h2>
+        <p className="mb-3 text-xs text-zinc-400">The list on Dynasty, CFB Rankings tab. Top of this list is rank 1. New players are added at the bottom; use the arrows to move them.</p>
+        {prospectErr && <p className="mb-3 rounded border border-red-900 bg-red-950/30 p-3 text-sm text-red-300">Couldn&apos;t load prospects: {prospectErr.message}. Has the prospects table been created in Supabase?</p>}
+        <form action={addProspect} className="mb-4 grid gap-2 sm:grid-cols-[1fr_5rem_1fr]">
+          <input name="name" required placeholder="Player name" aria-label="Player name" className="rounded border border-zinc-700 bg-zinc-900 px-3 py-2" />
+          <input name="position" required placeholder="Pos" aria-label="Position" maxLength={3} className="rounded border border-zinc-700 bg-zinc-900 px-3 py-2" />
+          <input name="school" required placeholder="School" aria-label="School" className="rounded border border-zinc-700 bg-zinc-900 px-3 py-2" />
+          <input name="class_year" placeholder="Class (Junior)" aria-label="Class year" className="rounded border border-zinc-700 bg-zinc-900 px-3 py-2 sm:col-span-1" />
+          <input name="draft_year" type="number" placeholder="Draft" aria-label="Draft year" className="rounded border border-zinc-700 bg-zinc-900 px-3 py-2" />
+          <input name="note" placeholder="Note (optional)" aria-label="Note" className="rounded border border-zinc-700 bg-zinc-900 px-3 py-2" />
+          <button className="rounded bg-green-500 px-4 py-2 font-semibold text-black sm:col-span-3">Add prospect</button>
+        </form>
+        {prospects?.length ? (
+          <ol className="space-y-2">
+            {prospects.map((p, i) => (
+              <li key={p.id} className="flex items-center gap-3 rounded border border-zinc-800 p-3">
+                <span className="w-6 text-center font-bold">{i + 1}</span>
+                <span className="flex-1">
+                  {p.name} <span className="text-xs text-zinc-400">{p.position} · {p.school}{p.class_year ? ` · ${p.class_year}` : ""}{p.draft_year ? ` · ${p.draft_year}` : ""}</span>
+                </span>
+                <form action={moveProspect}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="dir" value="up" /><button className="px-2 text-zinc-300" aria-label={`Move ${p.name} up`} disabled={i === 0}>▲</button></form>
+                <form action={moveProspect}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="dir" value="down" /><button className="px-2 text-zinc-300" aria-label={`Move ${p.name} down`} disabled={i === prospects.length - 1}>▼</button></form>
+                <form action={deleteProspect}><input type="hidden" name="id" value={p.id} /><button className="text-sm text-red-400">Remove</button></form>
+              </li>
+            ))}
+          </ol>
+        ) : <p className="text-zinc-400">No prospects yet.</p>}
       </section>
 
       <section>
