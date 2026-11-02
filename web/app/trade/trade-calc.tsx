@@ -1,5 +1,6 @@
 "use client";
 
+import { Avatar } from "@/app/avatar";
 import { useMemo, useState } from "react";
 import { PlayerLink } from "@/app/player-link";
 
@@ -56,7 +57,7 @@ function SideList({ title, hint, list, players, taken, onAdd, onRemove }: {
       <div><p className="font-semibold">{title}</p><p className="text-xs text-zinc-400">{hint}</p></div>
       {list.map((p) => (
         <div key={p.id} className="gl-row">
-          <span className="h-11 w-11 shrink-0 rounded-full bg-zinc-700" aria-hidden="true" />
+          <Avatar id={p.id} name={p.name} size={44} />
           <span className="flex-1">
             <PlayerLink id={p.id} name={p.name} className="block text-sm" />
             <span className="block text-xs text-zinc-400">{p.position} - {p.team} · rank {p.rank}</span>

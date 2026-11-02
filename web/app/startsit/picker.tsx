@@ -1,5 +1,6 @@
 "use client";
 
+import { Avatar } from "@/app/avatar";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -32,7 +33,7 @@ export function Picker({ players, selected, base }: { players: PickerPlayer[]; s
           return (
             <div key={id} className="relative flex min-h-[5.5rem] items-center gap-3 rounded-xl border p-3" style={{ borderColor: "#39ff14", background: "#0a140a", boxShadow: "0 0 10px #39ff1433" }}>
               <button className="absolute right-2 top-2 h-5 w-5 rounded-full bg-zinc-700 text-[10px] leading-5" aria-label={`Remove ${p.name}`} onClick={() => go(selected.filter((x) => x !== id))}>✕</button>
-              <span className="h-12 w-12 shrink-0 rounded-full bg-zinc-700" aria-hidden="true" />
+              <Avatar id={id} name={p.name} size={48} />
               <span className="min-w-0 flex-1 pt-3">
                 <span className="pn block text-sm leading-tight">{p.name}</span>
                 <span className="block text-xs text-zinc-400">{p.position} - {p.team}</span>

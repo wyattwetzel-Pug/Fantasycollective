@@ -1,3 +1,4 @@
+import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
 import { PlayerLink } from "@/app/player-link";
 import Link from "next/link";
@@ -129,7 +130,7 @@ async function DraftView({ searchParams }: { searchParams: Promise<Record<string
                     return (
                       <tr key={r.position_in_list}>
                         <td className="text-sm font-bold">{r.position_in_list}</td>
-                        <td className="!text-left"><span className="flex items-center gap-1.5"><span className="h-6 w-6 shrink-0 rounded-full bg-zinc-700" aria-hidden="true" /><PlayerLink id={r.player_id} name={r.players?.name} className="text-xs" /></span></td>
+                        <td className="!text-left"><span className="flex items-center gap-1.5"><Avatar id={r.player_id} name={r.players?.name} size={24} /><PlayerLink id={r.player_id} name={r.players?.name} className="text-xs" /></span></td>
                         <td><span className={`bd ${r.players?.position}`}>{r.players?.position}</span></td>
                         <td>{r.players?.nfl_team}</td>
                         <td>{r.tier ? <span className="inline-block rounded-full border px-2 text-[11px]" style={{ color: c, borderColor: c }}>{r.tier}</span> : ""}</td>
@@ -191,7 +192,7 @@ async function DraftView({ searchParams }: { searchParams: Promise<Record<string
                       return (
                         <tr key={r.player_id}>
                           <td className="text-sm font-bold">{i + 1}</td>
-                          <td className="!text-left"><span className="flex items-center gap-2"><span className="h-8 w-8 shrink-0 rounded-full bg-zinc-700" aria-hidden="true" /><PlayerLink id={r.player_id} name={r.players?.name} /></span></td>
+                          <td className="!text-left"><span className="flex items-center gap-2"><Avatar id={r.player_id} name={r.players?.name} size={32} /><PlayerLink id={r.player_id} name={r.players?.name} /></span></td>
                           <td><span className={`bd ${r.players?.position}`}>{r.players?.position}</span></td>
                           <td>{r.players?.nfl_team}</td>
                           <td><span className="inline-block rounded-full border px-3 py-0.5 text-xs font-semibold" style={{ background: "#0c2a0c", color: "#7dff6a", borderColor: "#39ff14" }}>{pickLabel(r.adp, r.teams)}</span></td>

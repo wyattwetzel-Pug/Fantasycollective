@@ -1,3 +1,4 @@
+import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
 import { PlayerLink } from "@/app/player-link";
 import Link from "next/link";
@@ -76,7 +77,7 @@ async function HomeView() {
               {top.map((r) => (
                 <li key={r.position_in_list} className="flex items-center gap-3 text-sm">
                   <span className="h-7 w-7 rounded bg-zinc-800 text-center text-xs leading-7">{r.position_in_list}</span>
-                  <span className="h-8 w-8 shrink-0 rounded-full bg-zinc-700" aria-hidden="true" />
+                  <Avatar id={r.player_id} name={r.players?.name} size={32} />
                   <span className="flex-1"><PlayerLink id={r.player_id} name={r.players?.name} /></span>
                   <span className={`bd ${r.players?.position}`}>{r.players?.position}</span>
                 </li>

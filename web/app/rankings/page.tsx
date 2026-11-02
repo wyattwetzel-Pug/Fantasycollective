@@ -1,3 +1,4 @@
+import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
 import { PlayerLink } from "@/app/player-link";
 import { createClient } from "@/lib/supabase/server";
@@ -210,7 +211,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
                       {run.rows.map((r) => (
                         <tr key={`${r.rank}-${r.name}`}>
                           <td>{r.rank}</td>
-                          <td className="!text-left"><span className="flex items-center gap-2"><span className="h-8 w-8 shrink-0 rounded-full bg-zinc-700" aria-hidden="true" /><PlayerLink id={r.id} name={r.name} /></span></td>
+                          <td className="!text-left"><span className="flex items-center gap-2"><Avatar id={r.id} name={r.name} size={32} /><PlayerLink id={r.id} name={r.name} /></span></td>
                           <td><span className={`bd ${r.position}`}>{r.position} {r.posRank}</span></td>
                           <td>{r.team}</td>
                           <td>{r.a}</td>

@@ -1,3 +1,4 @@
+import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
 import { PlayerLink } from "@/app/player-link";
 import Link from "next/link";
@@ -46,7 +47,7 @@ function PlayerTable({ rows, ranked }: { rows: { rank: number; r: Row }[]; ranke
           return (
             <tr key={r.position_in_list}>
               <td>{rank}</td>
-              <td className="!text-left"><span className="flex items-center gap-2"><span className="h-8 w-8 shrink-0 rounded-full bg-zinc-700" aria-hidden="true" /><PlayerLink id={r.player_id} name={r.players?.name} /></span></td>
+              <td className="!text-left"><span className="flex items-center gap-2"><Avatar id={r.player_id} name={r.players?.name} size={32} /><PlayerLink id={r.player_id} name={r.players?.name} /></span></td>
               <td><span className={`bd ${r.players?.position}`}>{r.players?.position}</span></td>
               <td>{r.players?.nfl_team}</td>
               <td>{r.players?.age ?? ""}</td>

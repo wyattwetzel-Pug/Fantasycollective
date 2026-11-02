@@ -1,3 +1,4 @@
+import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -134,7 +135,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
   return (
     <div className="space-y-4">
       <div className="gl-hero flex flex-wrap items-center gap-5 p-5 sm:p-6">
-        <span className="h-20 w-20 shrink-0 rounded-full bg-zinc-700" aria-hidden="true" />
+        <Avatar id={player.id} name={player.name} size={80} />
         <div className="min-w-0 flex-1">
           <h2 className="gl-title text-3xl sm:text-5xl">{player.name}</h2>
           <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-300">
