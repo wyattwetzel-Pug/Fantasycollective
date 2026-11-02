@@ -96,8 +96,8 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
   const gap = best.length >= 2 ? best[1].position_in_list - best[0].position_in_list : 0;
   const closeCall = best.length >= 2 && gap <= 3;
   const lowest = (vals: (number | undefined)[]) => Math.min(...vals.filter((v): v is number => v !== undefined));
-  const cell = (v: number | undefined, lo: number, text?: string) => (
-    <td className="px-2 py-2 text-center" style={v !== undefined && v === lo && chosen.length > 1 ? { color: "#7dff6a", fontWeight: 700 } : undefined}>{v === undefined ? "–" : text ?? v}</td>
+  const cell = (key: number, v: number | undefined, lo: number, text?: string) => (
+    <td key={key} className="px-2 py-2 text-center" style={v !== undefined && v === lo && chosen.length > 1 ? { color: "#7dff6a", fontWeight: 700 } : undefined}>{v === undefined ? "–" : text ?? v}</td>
   );
   const pill = (on: boolean) => `gl-pill !rounded-full text-xs ${on ? "on-o" : ""}`;
   const pair = chosen.length === 2 ? chosen : null;
@@ -126,7 +126,7 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
             return (
               <tr key={label as string} className="border-t border-zinc-800">
                 <td className="px-2 py-2 text-xs text-zinc-400">{label as string}</td>
-                {v.map((x) => cell(x, lo, x === undefined ? undefined : (f as (n: number) => string)(x)))}
+                {v.map((x, i) => cell(i, x, lo, x === undefined ? undefined : (f as (n: number) => string)(x)))}
               </tr>
             );
           })}
@@ -147,7 +147,7 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
             return (
               <tr key={c.name} className="border-t border-zinc-800">
                 <td className="px-2 py-2 text-xs text-zinc-400">{c.name}&apos;s rank</td>
-                {v.map((x) => cell(x, lo, x === undefined ? undefined : `#${x}`))}
+                {v.map((x, i) => cell(i, x, lo, x === undefined ? undefined : `#${x}`))}
               </tr>
             );
           })}
