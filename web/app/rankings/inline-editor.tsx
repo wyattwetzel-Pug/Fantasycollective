@@ -23,6 +23,8 @@ export function InlineEditor({
   const [message, setMessage] = useState("");
   const [pending, start] = useTransition();
   const [limit, setLimit] = useState(100);
+  const [dragId, setDragId] = useState<number | null>(null);
+  const [over, setOver] = useState<{ id: number; after: boolean } | { card: string } | null>(null);
 
   useEffect(() => {
     if (!dirty) return;
@@ -77,6 +79,43 @@ export function InlineEditor({
     });
   }
 
+  // Drag and drop: drop on a row to put the player before or after it (taking that row's tier),
+  // or on a tier's header or empty card to put them at the top of that tier.
+  function dropOnRow(targetId: number, after: boolean) {
+    if (dragId === null || dragId === targetId) return;
+    change((prev) => {
+      const from = prev.findIndex((i) => i.player_id === dragId);
+      const target = prev.find((i) => i.player_id === targetId);
+      if (from < 0 || !target) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      const at = next.findIndex((i) => i.player_id === targetId) + (after ? 1 : 0);
+      next.splice(at, 0, { ...moved, tier: target.tier, placed: true });
+      return next;
+    });
+  }
+
+  function dropOnTier(tier: string) {
+    if (dragId === null) return;
+    change((prev) => {
+      const from = prev.findIndex((i) => i.player_id === dragId);
+      if (from < 0) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      let at = next.findIndex((i) => i.tier === tier);
+      if (at < 0) {
+        // Empty tier: it sits right after the last player in an earlier tier.
+        const ti = tier ? ORDER.indexOf(tier) : ORDER.length;
+        at = 0;
+        next.forEach((i, k) => { if (i.tier && ORDER.indexOf(i.tier) < ti) at = k + 1; });
+      }
+      next.splice(at, 0, { ...moved, tier, placed: true });
+      return next;
+    });
+  }
+
+  function endDrag() { setDragId(null); setOver(null); }
+
   function save(publish: boolean) {
     start(async () => {
       const res = await saveList(
@@ -124,7 +163,7 @@ export function InlineEditor({
       <div className="gl-panel flex flex-wrap items-center gap-3 p-4">
         <div className="min-w-[14rem] flex-1">
           <p className="font-bold">Editing your list</p>
-          <p className="text-xs text-zinc-400">{settings}. Use ▲ and ▼ to move a player. At the edge of a tier they move the player into the next tier. ⇈ and ⇊ jump a player straight to the next tier.</p>
+          <p className="text-xs text-zinc-400">{settings}. Drag players (⠿) to where you want them, or use ▲ and ▼. At the edge of a tier the arrows move a player into the next tier; ⇈ and ⇊ jump a player straight to the next tier.</p>
         </div>
         {message && <span className={`text-sm ${message.startsWith("Could not") ? "text-red-400" : "text-green-400"}`}>{message}</span>}
         {dirty && !message && <span className="text-sm text-yellow-400">Unsaved changes</span>}
@@ -142,7 +181,11 @@ export function InlineEditor({
         {cards.map((run, ri) => {
           const c = run.tier ? COLORS[run.tier] : "#8b8576";
           return (
-            <div key={ri} className="gl-tierbox min-w-[44rem]">
+            <div
+              key={ri} className={`gl-tierbox min-w-[44rem] ${over && "card" in over && over.card === run.tier ? "drop-card" : ""}`}
+              onDragOver={(e) => { if (dragId === null) return; e.preventDefault(); if (!over || !("card" in over) || over.card !== run.tier) setOver({ card: run.tier }); }}
+              onDrop={(e) => { e.preventDefault(); dropOnTier(run.tier); endDrag(); }}
+            >
               <table className="gl-table dark">
                 <thead>
                   <tr>
@@ -166,8 +209,34 @@ export function InlineEditor({
                     const it = items[i];
                     const l = lines[it.player_id];
                     return (
-                      <tr key={it.player_id} style={it.placed ? undefined : { background: "#fcf1cc" }}>
-                        <td className="w-10 font-semibold">{i + 1}</td>
+                      <tr
+                        key={it.player_id}
+                        className={`${dragId === it.player_id ? "dragging" : ""} ${over && "id" in over && over.id === it.player_id ? (over.after ? "drop-after" : "drop-before") : ""}`}
+                        style={it.placed ? undefined : { background: "#fcf1cc" }}
+                        onDragOver={(e) => {
+                          if (dragId === null) return;
+                          e.preventDefault(); e.stopPropagation();
+                          const r = e.currentTarget.getBoundingClientRect();
+                          const after = e.clientY > r.top + r.height / 2;
+                          if (!over || !("id" in over) || over.id !== it.player_id || over.after !== after) setOver({ id: it.player_id, after });
+                        }}
+                        onDrop={(e) => { e.preventDefault(); e.stopPropagation(); if (over && "id" in over) dropOnRow(over.id, over.after); endDrag(); }}
+                      >
+                        <td className="w-16 font-semibold whitespace-nowrap">
+                          <span
+                            draggable aria-label={`Drag ${it.name}`} title="Drag to move"
+                            className="mr-1 inline-block cursor-grab select-none px-1 text-zinc-500 active:cursor-grabbing"
+                            onDragStart={(e) => {
+                              e.dataTransfer.effectAllowed = "move";
+                              e.dataTransfer.setData("text/plain", String(it.player_id));
+                              const row = e.currentTarget.closest("tr");
+                              if (row) e.dataTransfer.setDragImage(row, 20, 20);
+                              setDragId(it.player_id);
+                            }}
+                            onDragEnd={endDrag}
+                          >⠿</span>
+                          {i + 1}
+                        </td>
                         <td className="!text-left">
                           <span className="flex items-center gap-3">
                             <Avatar id={it.player_id} name={it.name} size={40} />
