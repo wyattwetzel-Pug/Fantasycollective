@@ -108,7 +108,7 @@ function Panel({ title, sub, more, children }: { title: string; sub?: string; mo
           <h3 className="text-lg font-bold">{title}</h3>
           {sub && <p className="text-xs text-zinc-500">{sub}</p>}
         </div>
-        {more && <Link href={more.href} className="text-xs" style={{ color: "#39ff14" }}>{more.label}</Link>}
+        {more && <Link href={more.href} className="text-xs" style={{ color: "var(--accent)" }}>{more.label}</Link>}
       </div>
       {children}
     </div>
@@ -152,9 +152,9 @@ async function DynastyView({ searchParams }: { searchParams: Promise<Record<stri
     <div className="space-y-4">
       <div className="gl-hero grid items-center gap-4 p-6 sm:p-8">
         <div className="flex items-center gap-4">
-          <span className="hidden text-6xl sm:block" style={{ color: "#39ff14" }} aria-hidden="true">♛</span>
+          <span className="hidden text-6xl sm:block" style={{ color: "var(--accent)" }} aria-hidden="true">♛</span>
           <div>
-            <h2 id="h-dyn" className="gl-title text-4xl sm:text-6xl">DYNASTY <span style={{ color: "#39ff14" }}>HUB</span></h2>
+            <h2 id="h-dyn" className="gl-title text-4xl sm:text-6xl">Dynasty <span style={{ color: "var(--accent)" }}>Hub</span></h2>
             <p className="mt-2 text-sm text-zinc-200">Long-term value, college prospects, and dynasty strategy, all in one place.</p>
           </div>
         </div>

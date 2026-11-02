@@ -31,7 +31,7 @@ export function Picker({ players, selected, base }: { players: PickerPlayer[]; s
           const p = byId.get(id);
           if (!p) return null;
           return (
-            <div key={id} className="relative flex min-h-[5.5rem] items-center gap-3 rounded-xl border p-3" style={{ borderColor: "#39ff14", background: "#0a140a", boxShadow: "0 0 10px #39ff1433" }}>
+            <div key={id} className="relative flex min-h-[5.5rem] items-center gap-3 rounded-xl border p-3" style={{ borderColor: "var(--accent)", background: "#eef7e6", boxShadow: "0 1px 4px #3c321418" }}>
               <button className="absolute right-2 top-2 h-5 w-5 rounded-full bg-zinc-700 text-[10px] leading-5" aria-label={`Remove ${p.name}`} onClick={() => go(selected.filter((x) => x !== id))}>✕</button>
               <Avatar id={id} name={p.name} size={48} />
               <span className="min-w-0 flex-1 pt-3">

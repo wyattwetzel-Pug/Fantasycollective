@@ -1,47 +1,97 @@
 @import "tailwindcss";
 
-:root { color-scheme: dark; }
+/* Light "cream" theme. The Tailwind grey and white tokens are remapped so existing utility classes
+   (text-zinc-400, border-zinc-800, bg-black, text-white...) read correctly on a light page. */
+:root {
+  color-scheme: light;
+  --ink: #1d1c19;
+  --paper: #f4efe6;
+  --card: #fbf8f1;
+  --card-line: #ebe5d8;
+  --bar: #2f2e2b;
+  --accent: #1b8a35;
+  --hilite: #e4f0d8;
+
+  --color-white: #1d1c19;
+  --color-black: #fffdf8;
+  --color-zinc-950: #fbf8f1;
+  --color-zinc-900: #f6f1e7;
+  --color-zinc-800: #e6dfd1;
+  --color-zinc-700: #d6cdbd;
+  --color-zinc-600: #b9b0a0;
+  --color-zinc-500: #8b8576;
+  --color-zinc-400: #6e6a5f;
+  --color-zinc-300: #4f4c44;
+  --color-zinc-200: #38362f;
+  --color-zinc-100: #2a2825;
+  --color-red-300: #b42318;
+  --color-red-400: #d92d20;
+  --color-red-900: #f4b4ad;
+  --color-red-950: #fde4e1;
+  --color-green-300: #157f3b;
+  --color-green-400: #1b8a35;
+  --color-green-500: #1b8a35;
+  --color-green-600: #15702b;
+  --color-green-900: #b9deb9;
+  --color-green-950: #e3f3e1;
+  --color-yellow-300: #8a5a06;
+  --color-yellow-400: #9a6400;
+  --color-yellow-900: #e6d08c;
+  --color-yellow-950: #fcf1cc;
+}
 
 body {
-  background: #000;
-  color: #fff;
+  background: var(--paper);
+  color: var(--ink);
   font-family: var(--font-inter), system-ui, sans-serif;
 }
 
-/* Type system: Inter body, Barlow Condensed headings, Roboto Condensed for names, stats and controls */
-h1, h2, h3, h4 { font-family: var(--font-barlow), sans-serif; font-weight: 800; }
-.gl-title { font-family: var(--font-barlow), sans-serif; font-weight: 700; font-style: italic; letter-spacing: -0.01em; line-height: .95; }
-.pn { font-family: var(--font-roboto), sans-serif; font-weight: 700; }
-table td, table th, dd, .gl-stat, .tabular-nums, .bd { font-family: var(--font-roboto), sans-serif; font-weight: 400; }
+/* Type: serif italic headings, Inter for everything else */
+h1, h2, h3 { font-family: var(--font-serif), Georgia, serif; font-weight: 800; font-style: italic; }
+h4 { font-weight: 700; }
+.gl-title { font-family: var(--font-serif), Georgia, serif; font-weight: 800; font-style: italic; letter-spacing: -0.01em; line-height: 1; }
+.pn { font-weight: 600; }
 .gl-stat span:first-child { font-weight: 700; }
-button, nav, [role="tab"], .gl-nav, .gl-pill { font-family: var(--font-roboto), sans-serif; font-weight: 500; }
-input, select, textarea { font-family: var(--font-inter), system-ui, sans-serif; background: #000; color: #fff; }
-::placeholder { color: #71717a; }
+button, nav, [role="tab"], .gl-nav, .gl-pill { font-weight: 600; }
+input, select, textarea { font-family: var(--font-inter), system-ui, sans-serif; background: #fffdf8; color: var(--ink); }
+::placeholder { color: #8b8576; }
 
-/* Dark panels with neon-green accents */
-.gl-panel { background: linear-gradient(180deg,#0b120b,#050805); border: 1px solid #1d3a1d; border-radius: 14px; }
-.gl-hero { position: relative; overflow: hidden; border: 1px solid #1d3a1d; border-radius: 14px; background: radial-gradient(ellipse at 65% 40%,#0f4a0f66,transparent 60%),#050805; }
-.gl-stat { display: flex; flex-direction: column; justify-content: center; gap: .2rem; padding: .9rem 1.1rem; min-width: 8rem; border: 1px solid #1d3a1d; border-radius: 12px; background: #0a100a; }
-.gl-search { width: 100%; padding: .6rem 1rem; border-radius: .6rem; background: #050805 !important; border: 1px solid #1d3a1d; font-size: .85rem; }
-.gl-pill { display: inline-block; padding: .45rem .9rem; border-radius: .6rem; background: #111611; border: 1px solid #1d2a1d; color: #e5e5e5; font-size: .8rem; }
-.gl-pill.on { background: #3dea1f; color: #04120a; font-weight: 700; border-color: #3dea1f; }
-.gl-pill.on-o { border-color: #39ff14; color: #fff; box-shadow: 0 0 0 1px #39ff1444 inset; }
-.gl-src-on { border: 1px solid #39ff14; background: #0f2a0f; }
-.gl-tierbox { border: 1px solid; border-radius: 12px; overflow: hidden; background: #050805; }
-.gl-tier { display: flex; align-items: center; height: 2.6rem; }
-.gl-tier .letter { height: 100%; width: 4.2rem; display: flex; align-items: center; justify-content: center; font-style: italic; font-weight: 900; font-size: 1.5rem; clip-path: polygon(0 0,100% 0,80% 100%,0 100%); }
-.gl-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
-.gl-table th { font-size: .65rem; letter-spacing: .05em; color: #bbb; padding: .4rem .5rem; text-align: center; font-weight: 600; }
-.gl-table td { padding: .35rem .5rem; text-align: center; border-top: 1px solid #0e1a0e; }
-.gl-nav { display: flex; align-items: center; gap: .5rem; width: 100%; padding: .75rem .4rem; border-radius: 12px; border: 1px solid #262626; background: linear-gradient(180deg,#121212,#060606); color: #fff; font-style: italic; font-weight: 500; font-size: 1.05rem; text-align: left; }
-.gl-nav-ico { width: 2rem; text-align: center; font-size: 1.5rem; line-height: 1; filter: grayscale(1); flex-shrink: 0; }
-.gl-nav-sep { width: 1px; align-self: stretch; min-height: 1.8rem; background: #3a3a3a; flex-shrink: 0; }
-.gl-nav.on { border-color: #39ff14; border-left-width: 4px; box-shadow: 0 0 14px #39ff1466, inset 0 0 14px #39ff1422; }
-.gl-nav.on .gl-nav-ico { filter: grayscale(1) sepia(1) hue-rotate(60deg) saturate(5); }
+.gl-panel { background: var(--card); border: 1px solid var(--card-line); border-radius: 18px; box-shadow: 0 1px 2px #3c32140a, 0 10px 28px #3c321410; }
+.gl-hero { position: relative; overflow: hidden; border-radius: 22px; background: radial-gradient(ellipse at 88% 20%, #d8d1c3aa, transparent 55%), linear-gradient(90deg, #f4efe6, #ece6da); }
+.gl-stat { display: flex; flex-direction: column; justify-content: center; gap: .2rem; padding: .9rem 1.1rem; min-width: 8rem; border: 1px solid var(--card-line); border-radius: 14px; background: var(--card); }
+.gl-search { width: 100%; padding: .65rem 1.1rem; border-radius: 999px; background: #fffdf8 !important; border: 1px solid #e6dfd1; font-size: .85rem; box-shadow: 0 1px 2px #3c32140a; }
+.gl-pill { display: inline-block; white-space: nowrap; padding: .5rem 1.1rem; border-radius: 999px; background: #fffdf8; border: 1px solid #e6dfd1; color: var(--ink); font-size: .82rem; }
+.gl-pill:hover { background: #f0eadc; }
+.gl-pill.on, .gl-pill.on-o { background: var(--bar); color: #fff; border-color: var(--bar); }
+.gl-src-on { border: 2px solid var(--accent); background: #eaf5df; }
+
+/* Tier cards: a dark header bar carries the tier chip and the column labels */
+.gl-tierbox { border-radius: 18px; overflow: hidden; background: var(--card); box-shadow: 0 1px 2px #3c32140a, 0 10px 28px #3c321412; }
+.gl-tier { display: flex; align-items: center; height: 2.8rem; background: var(--bar); color: #fff; }
+.gl-tier .letter { height: 100%; width: 4.2rem; display: flex; align-items: center; justify-content: center; font-style: italic; font-weight: 900; font-size: 1.5rem; color: #fff; }
+.gl-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.gl-table th { font-size: .72rem; letter-spacing: .02em; color: #6e6a5f; padding: .45rem .5rem; text-align: center; font-weight: 600; }
+.gl-table td { padding: .4rem .5rem; text-align: center; border-top: 1px solid #efe9dc; }
+.gl-table.dark thead th { background: var(--bar); color: #fff; font-size: .8rem; padding: .55rem .5rem; height: 2.8rem; }
+.gl-table .hl { background: var(--hilite); }
+.tier-chip { display: inline-flex; align-items: center; justify-content: center; min-width: 3.2rem; height: 2rem; padding: 0 .9rem; border-radius: 10px; font-style: italic; font-weight: 900; font-size: 1.2rem; color: #fff; margin-right: .6rem; }
+
+.gl-nav { display: flex; align-items: center; gap: .75rem; width: 100%; padding: .7rem 1rem; border-radius: 999px; color: var(--ink); font-size: .95rem; text-align: left; }
+.gl-nav:hover { background: #e7e0d0; }
+.gl-nav-ico { width: 1.4rem; height: 1.4rem; flex-shrink: 0; }
+.gl-nav.on { background: var(--bar); color: #fff; }
 .gl-nav.soon { opacity: .4; cursor: not-allowed; }
-.gl-field { position: relative; height: 11rem; flex-shrink: 0; background: radial-gradient(ellipse at 85% 105%, #39ff14cc, transparent 55%), repeating-linear-gradient(100deg, transparent 0 22px, #ffffff14 22px 24px), linear-gradient(180deg, transparent, #0b2a0b 90%); }
-.gl-field::after { content: "50"; position: absolute; bottom: .2rem; left: 0; right: 0; text-align: center; font-weight: 900; font-size: 1.8rem; letter-spacing: .3em; color: #ffffff30; }
-.bd { padding: .1rem .5rem; border-radius: .3rem; font-size: .7rem; font-weight: 700; color: #fff; background: #52525b; }
-.bd.RB { background: #1d6ff2; } .bd.WR { background: #8b2fe0; } .bd.QB { background: #d6246e; } .bd.TE { background: #e0791a; }
-.bd.K { background: #0e8f7a; } .bd.DEF { background: #6b7280; }
-.gl-row { display: flex; align-items: center; gap: .75rem; padding: .55rem .75rem; border-radius: 10px; background: #101410; border: 1px solid #1a2a1a; }
+
+.bd { display: inline-block; padding: .15rem .6rem; border-radius: .5rem; font-size: .78rem; font-weight: 700; color: #1d1c19; background: #cfc9bc; }
+.bd.RB { background: #5db4ff; } .bd.WR { background: #ff74b4; } .bd.QB { background: #b99aff; } .bd.TE { background: #ffb457; }
+.bd.K { background: #63d6bc; } .bd.DEF { background: #c9c4b8; }
+.gl-row { display: flex; align-items: center; gap: .75rem; padding: .55rem .75rem; border-radius: 12px; background: #fffdf8; border: 1px solid var(--card-line); }
+
+/* Toggle switch */
+.gl-toggle { display: inline-flex; align-items: center; width: 3.1rem; height: 1.8rem; border-radius: 999px; padding: .2rem; background: #cfc9bc; transition: background .15s; }
+.gl-toggle::after { content: ""; width: 1.4rem; height: 1.4rem; border-radius: 999px; background: #fff; box-shadow: 0 1px 3px #0003; }
+.gl-toggle.on { background: var(--bar); justify-content: flex-end; }
+/* Segmented control */
+.gl-seg { display: flex; padding: .25rem; gap: .15rem; border-radius: 999px; background: #fffdf8; border: 1px solid #e6dfd1; }
+.gl-seg a { flex: 1; text-align: center; padding: .45rem .6rem; border-radius: 999px; font-size: .82rem; font-weight: 600; color: var(--ink); }
+.gl-seg a.on { background: var(--bar); color: #fff; }

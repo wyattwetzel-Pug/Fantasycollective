@@ -38,13 +38,13 @@ export async function defenseVsPosition(db: SupabaseClient, season: number): Pro
 export type Grade = { label: string; color: string };
 // Plain-English read on a defense: rank 1 is the friendliest matchup.
 export function matchupGrade(a: Allowed | undefined): Grade {
-  if (!a || a.of < 2) return { label: "No data", color: "#a1a1aa" };
+  if (!a || a.of < 2) return { label: "No data", color: "#8b8576" };
   const pct = (a.rank - 1) / (a.of - 1);
-  if (pct <= 0.2) return { label: "Great", color: "#39ff14" };
-  if (pct <= 0.4) return { label: "Good", color: "#7dff6a" };
-  if (pct <= 0.6) return { label: "Neutral", color: "#FACC15" };
-  if (pct <= 0.8) return { label: "Tough", color: "#F97316" };
-  return { label: "Very tough", color: "#EF4444" };
+  if (pct <= 0.2) return { label: "Great", color: "#1b8a35" };
+  if (pct <= 0.4) return { label: "Good", color: "#4a9d2f" };
+  if (pct <= 0.6) return { label: "Neutral", color: "#a87a00" };
+  if (pct <= 0.8) return { label: "Tough", color: "#d9660f" };
+  return { label: "Very tough", color: "#d92d20" };
 }
 
 export const ordinal = (n: number) => {

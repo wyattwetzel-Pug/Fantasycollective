@@ -52,7 +52,7 @@ async function TradeView({ searchParams }: { searchParams: Promise<Record<string
       <div className="gl-hero grid items-center gap-4 p-6 sm:p-8">
         <div>
           <p className="mb-1 text-xs tracking-[0.4em] text-zinc-400">FANTASY FOOTBALL</p>
-          <h2 id="h-trade" className="gl-title text-4xl sm:text-5xl">TRADE <span style={{ color: "#39ff14" }}>CALCULATOR</span></h2>
+          <h2 id="h-trade" className="gl-title text-4xl sm:text-5xl">Trade <span style={{ color: "var(--accent)" }}>Calculator</span></h2>
           <p className="mt-3 text-sm text-zinc-200">Compare trades, analyze value, and make smarter moves.</p>
           <p className="mt-2 text-xs text-zinc-500">Values come from the Ball Knowers Consensus for the settings on the right.</p>
         </div>
@@ -69,7 +69,7 @@ async function TradeView({ searchParams }: { searchParams: Promise<Record<string
         )}
 
         <div className="gl-panel space-y-3 p-4">
-          <h3 className="font-bold"><span style={{ color: "#39ff14" }} aria-hidden="true">⚙</span> League Settings</h3>
+          <h3 className="font-bold"><span style={{ color: "var(--accent)" }} aria-hidden="true">⚙</span> League Settings</h3>
           <div>
             <p className="mb-1 text-sm">League Type</p>
             <div className="grid grid-cols-2 gap-2">{FORMATS.map(([v, l]) => <Link key={v} href={href(params, { format: v })} className={`${pill(params.format === v)} text-center`}>{l}</Link>)}</div>

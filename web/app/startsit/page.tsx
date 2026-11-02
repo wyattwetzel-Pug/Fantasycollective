@@ -159,7 +159,7 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
   const topInfo = best.length >= 2 ? infoOf(best[0].player_id) : undefined;
   const lowest = (vals: (number | undefined)[]) => Math.min(...vals.filter((v): v is number => v !== undefined));
   const cell = (key: number, v: number | undefined, lo: number, text?: string) => (
-    <td key={key} className="px-2 py-2 text-center" style={v !== undefined && v === lo && chosen.length > 1 ? { color: "#7dff6a", fontWeight: 700 } : undefined}>{v === undefined ? "–" : text ?? v}</td>
+    <td key={key} className="px-2 py-2 text-center" style={v !== undefined && v === lo && chosen.length > 1 ? { color: "var(--accent)", fontWeight: 700 } : undefined}>{v === undefined ? "–" : text ?? v}</td>
   );
   const pill = (on: boolean) => `gl-pill !rounded-full text-xs ${on ? "on-o" : ""}`;
   const pair = chosen.length === 2 ? chosen : null;
@@ -188,7 +188,7 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
                 <td className="px-2 py-2 text-xs text-zinc-400">{label}</td>
                 {infos.map((i) => {
                   const v = num?.(i);
-                  return <td key={i.id} className="px-2 py-2 text-center" style={lead !== null && v === lead ? { color: "#7dff6a", fontWeight: 700 } : undefined}>{render(i)}</td>;
+                  return <td key={i.id} className="px-2 py-2 text-center" style={lead !== null && v === lead ? { color: "var(--accent)", fontWeight: 700 } : undefined}>{render(i)}</td>;
                 })}
               </tr>
             );
@@ -222,7 +222,7 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
         ["Trend", (i) => {
           if (i.recent === null || i.ppg === null) return "–";
           const d = i.recent - i.ppg;
-          return <span style={{ color: d > 0.5 ? "#7dff6a" : d < -0.5 ? "#EF4444" : undefined }}>{d > 0.5 ? "▲" : d < -0.5 ? "▼" : "▬"} {d >= 0 ? "+" : ""}{d.toFixed(1)}</span>;
+          return <span style={{ color: d > 0.5 ? "var(--accent)" : d < -0.5 ? "#EF4444" : undefined }}>{d > 0.5 ? "▲" : d < -0.5 ? "▼" : "▬"} {d >= 0 ? "+" : ""}{d.toFixed(1)}</span>;
         }, (i) => (i.recent !== null && i.ppg !== null ? i.recent - i.ppg : null)],
       ])}
       <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(11rem,1fr))" }}>
@@ -234,7 +234,7 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
                 {i.pts.slice(-6).map((x, k) => (
                   <div key={k} className="flex flex-1 flex-col items-center justify-end gap-1">
                     <span className="text-[10px] text-zinc-400">{x.toFixed(0)}</span>
-                    <div className="w-full rounded-t" style={{ height: `${Math.max(4, (x / maxPts) * 64)}px`, background: "#39ff14" }} />
+                    <div className="w-full rounded-t" style={{ height: `${Math.max(4, (x / maxPts) * 64)}px`, background: "var(--accent)" }} />
                   </div>
                 ))}
               </div>
@@ -316,7 +316,7 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
     <div className="space-y-4">
       <div className="gl-hero grid items-center gap-4 p-6 sm:p-8">
         <div>
-          <h2 id="h-ss" className="gl-title text-4xl sm:text-5xl">START <span style={{ color: "#39ff14" }}>/</span> SIT CALCULATOR</h2>
+          <h2 id="h-ss" className="gl-title text-4xl sm:text-5xl">Start <span style={{ color: "var(--accent)" }}>/</span> Sit Calculator</h2>
           <p className="mt-3 text-sm italic tracking-[0.3em] text-zinc-300">COMPARE PLAYERS. GET A CLEAR ANSWER.</p>
         </div>
       </div>
@@ -325,7 +325,7 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
         <div className="min-w-0 space-y-4">
           <div className="gl-panel space-y-4 p-4">
             <div className="flex items-center gap-3">
-              <span className="text-2xl" style={{ color: "#39ff14" }} aria-hidden="true">⇄</span>
+              <span className="text-2xl" style={{ color: "var(--accent)" }} aria-hidden="true">⇄</span>
               <div>
                 <h3 className="text-lg font-bold">Compare Players</h3>
                 <p className="text-xs text-zinc-400">Add 2-4 players to see who you should start.</p>
@@ -337,7 +337,7 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
           </div>
 
           <div className="gl-panel space-y-3 p-4">
-            <h3 className="text-lg font-bold"><span style={{ color: "#39ff14" }} aria-hidden="true">▮</span> Comparison</h3>
+            <h3 className="text-lg font-bold"><span style={{ color: "var(--accent)" }} aria-hidden="true">▮</span> Comparison</h3>
             {comparison}
           </div>
 
@@ -348,7 +348,7 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
                 {calls.map((c) => (
                   <li key={c.id} className="gl-row !items-start">
                     <span className="flex-1 text-sm">
-                      <span className="pn">{c.contributors?.profiles?.display_name ?? "Contributor"}</span> starts <span className="pn" style={{ color: "#7dff6a" }}>{nameOf(c.pick)}</span> over {nameOf(c.pick === c.player_a ? c.player_b : c.player_a)}
+                      <span className="pn">{c.contributors?.profiles?.display_name ?? "Contributor"}</span> starts <span className="pn" style={{ color: "var(--accent)" }}>{nameOf(c.pick)}</span> over {nameOf(c.pick === c.player_a ? c.player_b : c.player_a)}
                       <span className="block text-xs text-zinc-500">Week {c.week}, {c.season}</span>
                       {c.reason && <span className="mt-1 block text-zinc-300">{c.reason}</span>}
                     </span>
@@ -380,11 +380,11 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
         </div>
 
         <div className="space-y-4">
-          <div className="gl-panel space-y-2 p-4" style={{ borderColor: "#39ff14" }}>
+          <div className="gl-panel space-y-2 p-4" style={{ borderColor: "var(--accent)" }}>
             <h3 className="font-bold">Recommendation</h3>
             {best.length >= 2 ? (
               <>
-                <p className="text-2xl font-extrabold italic" style={{ color: "#7dff6a" }}>START {best[0].players?.name}</p>
+                <p className="text-2xl font-extrabold italic" style={{ color: "var(--accent)" }}>START {best[0].players?.name}</p>
                 <p className="text-sm text-zinc-300">
                   Ranked #{best[0].position_in_list} overall ({best[0].players?.position} {posRank.get(best[0].player_id)})
                   {usePoints && topInfo?.expected != null && <>, expected around {topInfo.expected.toFixed(1)} points</>}
@@ -399,7 +399,7 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
           </div>
 
           <div className="gl-panel space-y-3 p-4">
-            <h3 className="font-bold"><span style={{ color: "#39ff14" }} aria-hidden="true">⚙</span> League Settings</h3>
+            <h3 className="font-bold"><span style={{ color: "var(--accent)" }} aria-hidden="true">⚙</span> League Settings</h3>
             <div>
               <p className="mb-1 text-sm">League Type</p>
               <div className="grid grid-cols-2 gap-2">{FORMATS.map(([v, l]) => <Link key={v} href={href(params, { format: v }, chosenIds)} className={`${pill(params.format === v)} text-center`}>{l}</Link>)}</div>

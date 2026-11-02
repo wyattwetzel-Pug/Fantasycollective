@@ -62,7 +62,7 @@ function SideList({ title, hint, list, players, taken, onAdd, onRemove }: {
             <PlayerLink id={p.id} name={p.name} className="block text-sm" />
             <span className="block text-xs text-zinc-400">{p.position} - {p.team} · rank {p.rank}</span>
           </span>
-          <span className="font-bold" style={{ color: "#7dff6a" }}>{fmt(value(p.rank))}</span>
+          <span className="font-bold" style={{ color: "var(--accent)" }}>{fmt(value(p.rank))}</span>
           <button className="h-6 w-6 rounded-full bg-zinc-800 text-xs" aria-label={`Remove ${p.name}`} onClick={() => onRemove(p.id)}>✕</button>
         </div>
       ))}
@@ -82,7 +82,7 @@ export function TradeCalc({ players }: { players: P[] }) {
   const net = youGet - youGive;
   const pct = net / Math.max(youGet, youGive, 1);
   const fair = Math.abs(pct) < 0.1;
-  const tone = !ready ? "#71717a" : fair ? "#FACC15" : net > 0 ? "#39ff14" : "#ef4444";
+  const tone = !ready ? "#b9b0a0" : fair ? "#FACC15" : net > 0 ? "var(--accent)" : "#ef4444";
   const verdict = !ready ? "ADD PLAYERS" : fair ? "FAIR TRADE" : net > 0 ? "GOOD TRADE" : "BAD TRADE";
   const favours = !ready ? "Add players to both sides" : fair ? "Close to even" : net > 0 ? "Favours your team" : "Favours their team";
 
@@ -95,7 +95,7 @@ export function TradeCalc({ players }: { players: P[] }) {
     <div className="min-w-0 space-y-4">
       <div className="gl-panel space-y-3 p-4">
         <div className="flex items-center gap-3">
-          <span className="text-2xl" style={{ color: "#39ff14" }} aria-hidden="true">⇄</span>
+          <span className="text-2xl" style={{ color: "var(--accent)" }} aria-hidden="true">⇄</span>
           <div>
             <h3 className="text-lg font-bold leading-tight">Build Your Trade</h3>
             <p className="text-xs text-zinc-400">Add the players on each side. Search by name.</p>
@@ -104,7 +104,7 @@ export function TradeCalc({ players }: { players: P[] }) {
         <div className="grid items-start gap-3 md:grid-cols-[1fr_auto_1fr]">
           <SideList title="You give" hint="Players you send away" list={give} players={players} taken={taken}
             onAdd={(p) => setGive((l) => [...l, p])} onRemove={(id) => setGive((l) => l.filter((p) => p.id !== id))} />
-          <button className="mx-auto h-12 w-12 self-center rounded-lg border text-xl" style={{ borderColor: "#39ff14", color: "#39ff14", background: "#0c2a0c" }}
+          <button className="mx-auto h-12 w-12 self-center rounded-lg border text-xl" style={{ borderColor: "var(--accent)", color: "var(--accent)", background: "#e4f0d8" }}
             aria-label="Swap sides" onClick={() => { setGive(get); setGet(give); }}>⇄</button>
           <SideList title="You get" hint="Players you receive" list={get} players={players} taken={taken}
             onAdd={(p) => setGet((l) => [...l, p])} onRemove={(id) => setGet((l) => l.filter((p) => p.id !== id))} />
@@ -136,7 +136,7 @@ export function TradeCalc({ players }: { players: P[] }) {
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="gl-panel p-4">
-          <h3 className="mb-2 text-lg font-bold"><span style={{ color: "#39ff14" }} aria-hidden="true">▤</span> Trade Summary</h3>
+          <h3 className="mb-2 text-lg font-bold"><span style={{ color: "var(--accent)" }} aria-hidden="true">▤</span> Trade Summary</h3>
           {ready ? (
             <p className="text-sm leading-relaxed text-zinc-200">
               You give {fmtPos(give)} worth {fmt(youGive)} and get {fmtPos(get)} worth {fmt(youGet)}.
@@ -146,13 +146,13 @@ export function TradeCalc({ players }: { players: P[] }) {
           ) : <p className="text-sm text-zinc-400">Add at least one player to each side to see a summary.</p>}
         </div>
         <div className="gl-panel p-4">
-          <h3 className="mb-3 text-lg font-bold"><span style={{ color: "#39ff14" }} aria-hidden="true">▮</span> Value Breakdown</h3>
+          <h3 className="mb-3 text-lg font-bold"><span style={{ color: "var(--accent)" }} aria-hidden="true">▮</span> Value Breakdown</h3>
           {all.length ? (
             <ul className="space-y-3 text-sm">
               {all.map(({ p, mine }) => (
                 <li key={p.id} className="flex items-center gap-3">
                   <span className="pn w-28 shrink-0 truncate">{p.name}</span>
-                  <span className="h-3 flex-1 rounded bg-zinc-800"><span className="block h-3 rounded" style={{ width: `${(value(p.rank) / top) * 100}%`, background: mine ? "#3dea1f" : "#71717a" }} /></span>
+                  <span className="h-3 flex-1 rounded bg-zinc-800"><span className="block h-3 rounded" style={{ width: `${(value(p.rank) / top) * 100}%`, background: mine ? "#43b02a" : "#b9b0a0" }} /></span>
                   <span className="w-10 text-right">{fmt(value(p.rank))}</span>
                 </li>
               ))}

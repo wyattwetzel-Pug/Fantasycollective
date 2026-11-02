@@ -34,7 +34,7 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
   const hero = (
     <div className="gl-hero grid items-center gap-4 p-6 sm:p-8">
       <div>
-        <h2 id="h-teams" className="gl-title text-4xl sm:text-6xl">MY <span style={{ color: "#39ff14" }}>TEAMS</span></h2>
+        <h2 id="h-teams" className="gl-title text-4xl sm:text-6xl">My <span style={{ color: "var(--accent)" }}>Teams</span></h2>
         <p className="mt-2 text-sm text-zinc-200">Sync your leagues, see your roster, and see how your team stacks up.</p>
       </div>
     </div>
@@ -45,7 +45,7 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
       <div className="space-y-4">
         {hero}
         <div className="gl-panel p-4 text-sm text-zinc-300">
-          <Link href="/login" className="underline" style={{ color: "#7dff6a" }}>Log in</Link> to sync your leagues.
+          <Link href="/login" className="underline" style={{ color: "var(--accent)" }}>Log in</Link> to sync your leagues.
         </div>
       </div>
     );
@@ -91,7 +91,7 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
         </div>
         <div role="tablist" className="flex gap-6 border-b border-zinc-800 text-sm">
           {TABS.map(([v, l]) => (
-            <Link key={v} role="tab" aria-selected={tab === v} href={`${base}&tab=${v}`} className={`px-1 pb-2 ${tab === v ? "border-b-2 text-white" : "text-zinc-400"}`} style={tab === v ? { borderColor: "#39ff14" } : undefined}>{l}</Link>
+            <Link key={v} role="tab" aria-selected={tab === v} href={`${base}&tab=${v}`} className={`px-1 pb-2 ${tab === v ? "border-b-2 text-white" : "text-zinc-400"}`} style={tab === v ? { borderColor: "var(--accent)" } : undefined}>{l}</Link>
           ))}
         </div>
 
@@ -144,10 +144,10 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
             <p className="mb-3 text-xs text-zinc-500">Teams ordered by total roster value, from the Ball Knowers Consensus. Unranked players count as zero.</p>
             <ul className="space-y-2">
               {scored.map((t, i) => (
-                <li key={t.name} className="gl-row" style={t.mine ? { borderColor: "#39ff14" } : undefined}>
+                <li key={t.name} className="gl-row" style={t.mine ? { borderColor: "var(--accent)" } : undefined}>
                   <span className="w-6 text-center font-bold">{i + 1}</span>
-                  <span className="pn w-48 truncate">{t.name}{t.mine && <span className="ml-2 text-xs" style={{ color: "#39ff14" }}>You</span>}</span>
-                  <span className="h-3 flex-1 rounded bg-zinc-800"><span className="block h-3 rounded" style={{ width: `${(t.value / top) * 100}%`, background: t.mine ? "#3dea1f" : "#71717a" }} /></span>
+                  <span className="pn w-48 truncate">{t.name}{t.mine && <span className="ml-2 text-xs" style={{ color: "var(--accent)" }}>You</span>}</span>
+                  <span className="h-3 flex-1 rounded bg-zinc-800"><span className="block h-3 rounded" style={{ width: `${(t.value / top) * 100}%`, background: t.mine ? "#43b02a" : "#b9b0a0" }} /></span>
                   <span className="w-14 text-right">{t.value.toFixed(0)}</span>
                 </li>
               ))}

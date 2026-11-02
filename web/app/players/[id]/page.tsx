@@ -138,7 +138,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
     <div className="space-y-4">
       <div className="gl-hero flex flex-wrap items-center gap-5 p-5 sm:p-6">
         <Avatar id={player.id} name={player.name} size={80} />
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[16rem] flex-1">
           <h2 className="gl-title text-3xl sm:text-5xl">{player.name}</h2>
           <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-300">
             <span className={`bd ${player.position}`}>{player.position}</span>
@@ -148,7 +148,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
             {player.is_rookie && <span className="rounded bg-green-900 px-2 text-xs text-green-300">Rookie</span>}
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex w-full flex-wrap gap-3 xl:w-auto">
           {stat("Consensus rank", mine ? `#${mine.position_in_list}` : "–", mine && posRank ? `${player.position} ${posRank}` : undefined)}
           <div className="gl-stat"><span className="text-2xl font-extrabold italic"><TierBadge tier={mine?.tier} /></span><span className="text-xs text-zinc-400">Tier</span></div>
           {stat("ADP", adpHere ? pickLabel(adpHere.adp, adpHere.teams) : "–", adpHere ? String(adpHere.season) : undefined)}
@@ -234,14 +234,14 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
                 {(calls ?? []).map((c) => (
                   <li key={c.id}>
                     <span className="pn">{c.contributors?.profiles?.display_name ?? "Contributor"}</span> starts{" "}
-                    <span className="pn" style={{ color: "#7dff6a" }}>{nameOf(c.pick)}</span> over {nameOf(c.pick === c.player_a ? c.player_b : c.player_a)}
+                    <span className="pn" style={{ color: "var(--accent)" }}>{nameOf(c.pick)}</span> over {nameOf(c.pick === c.player_a ? c.player_b : c.player_a)}
                     <span className="block text-xs text-zinc-500">Week {c.week}, {c.season}</span>
                     {c.reason && <span className="block text-zinc-300">{c.reason}</span>}
                   </li>
                 ))}
               </ul>
             ) : <p className="text-sm text-zinc-400">No calls involve {player.name} yet.</p>}
-            <Link href={`/startsit?p=${id}`} className="mt-3 inline-block text-xs" style={{ color: "#39ff14" }}>Compare in Start/Sit →</Link>
+            <Link href={`/startsit?p=${id}`} className="mt-3 inline-block text-xs" style={{ color: "var(--accent)" }}>Compare in Start/Sit →</Link>
           </div>
         </div>
       )}
@@ -265,7 +265,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
                         <td>{r.week}</td>
                         <td>{g ? oppFor(g) : "–"}</td>
                         <td className="!text-left text-zinc-200">{statLine(player.position, r.stats)}</td>
-                        <td className="font-semibold" style={{ color: best !== null && p === best ? "#39ff14" : undefined }}>{p.toFixed(1)}</td>
+                        <td className="font-semibold" style={{ color: best !== null && p === best ? "var(--accent)" : undefined }}>{p.toFixed(1)}</td>
                       </tr>
                     );
                   })}
@@ -349,7 +349,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
                     <tr key={`${a.season}${a.source}${a.format}${a.scoring}${a.qb_type}`}>
                       <td className="!text-left">{LABEL[a.format]} · {LABEL[a.scoring]} · {LABEL[a.qb_type]}</td>
                       <td>{a.season}</td>
-                      <td><span className="inline-block rounded-full border px-3 py-0.5 text-xs font-semibold" style={{ background: "#0c2a0c", color: "#7dff6a", borderColor: "#39ff14" }}>{pickLabel(a.adp, a.teams)}</span></td>
+                      <td><span className="inline-block rounded-full border px-3 py-0.5 text-xs font-semibold" style={{ background: "#e4f0d8", color: "#1b6e2c", borderColor: "#1b8a35" }}>{pickLabel(a.adp, a.teams)}</span></td>
                       <td>{a.high ?? "–"}-{a.low ?? "–"}</td>
                       <td>{a.times_drafted ?? "–"}</td>
                       <td className="!text-left text-zinc-400">{a.source}</td>

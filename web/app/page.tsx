@@ -41,18 +41,15 @@ async function HomeView() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <form action="/rankings" className="min-w-[12rem] flex-1">
-          <label htmlFor="hsearch" className="sr-only">Search players</label>
-          <input id="hsearch" name="q" type="search" placeholder="Search players..." className="gl-search" />
-        </form>
+        <span className="flex-1" />
         <Link href="/teams" className="gl-pill on-o !px-5 !py-2.5">⟳ Sync League</Link>
       </div>
 
       <div className="gl-hero grid min-h-[15rem] items-center gap-4 p-6 sm:p-8">
         <div>
-          <h2 id="h-home" className="gl-title text-5xl sm:text-6xl">FANTASY FOOTBALL</h2>
+          <h2 id="h-home" className="gl-title text-5xl sm:text-6xl">Fantasy Football</h2>
           <p className="mt-4 text-sm italic tracking-[0.3em] text-zinc-300">RESEARCH. RANKINGS. ADVANTAGE.</p>
-          <div className="mt-3 h-1 w-56 rounded" style={{ background: "linear-gradient(90deg,#39ff14,transparent)" }} />
+          <div className="mt-3 h-1 w-56 rounded" style={{ background: "linear-gradient(90deg,#1b8a35,transparent)" }} />
         </div>
       </div>
 
@@ -70,7 +67,7 @@ async function HomeView() {
               <h3 className="font-bold">🏆 Top Ranked Players</h3>
               <p className="text-xs text-zinc-500">{season} Season · Redraft · PPR · 1 QB</p>
             </div>
-            <Link href="/rankings" className="text-xs" style={{ color: "#39ff14" }}>View All →</Link>
+            <Link href="/rankings" className="text-xs" style={{ color: "var(--accent)" }}>View All →</Link>
           </div>
           {top?.length ? (
             <ol className="space-y-2">

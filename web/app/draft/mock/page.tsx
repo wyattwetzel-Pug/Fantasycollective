@@ -56,7 +56,7 @@ async function Room({ searchParams }: { searchParams: Promise<Record<string, str
         <p className="text-zinc-300">
           A {teams}-team, {rounds}-round draft needs at least {teams * rounds} ranked players, but only {players.length} are ranked for these settings.
         </p>
-        <Link href={`/draft?${back}`} style={{ color: "#7dff6a" }}>← Back to Draft setup</Link>
+        <Link href={`/draft?${back}`} style={{ color: "var(--accent)" }}>← Back to Draft setup</Link>
       </div>
     );
   }
@@ -66,7 +66,7 @@ async function Room({ searchParams }: { searchParams: Promise<Record<string, str
 export default function MockPage(props: PageProps<"/draft/mock">) {
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-5 md:px-10 md:py-8">
-      <h1 className="gl-title mb-4 text-4xl">MOCK <span style={{ color: "#39ff14" }}>DRAFT</span></h1>
+      <h1 className="gl-title mb-4 text-4xl">Mock <span style={{ color: "var(--accent)" }}>Draft</span></h1>
       <Suspense fallback={<p className="text-zinc-400">Loading...</p>}>
         <Room searchParams={props.searchParams} />
       </Suspense>

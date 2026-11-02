@@ -82,9 +82,9 @@ export function MockRoom({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Link href={backHref} className="text-sm" style={{ color: "#7dff6a" }}>← Back to Draft setup</Link>
+        <Link href={backHref} className="text-sm" style={{ color: "var(--accent)" }}>← Back to Draft setup</Link>
         <p className="text-sm text-zinc-300">
-          {done ? "Draft complete" : <>Pick {overall + 1} of {total} · Round {Math.floor(overall / teams) + 1} · {myTurn ? <strong style={{ color: "#39ff14" }}>You&apos;re on the clock</strong> : `Team ${onClock} is picking...`}</>}
+          {done ? "Draft complete" : <>Pick {overall + 1} of {total} · Round {Math.floor(overall / teams) + 1} · {myTurn ? <strong style={{ color: "var(--accent)" }}>You&apos;re on the clock</strong> : `Team ${onClock} is picking...`}</>}
         </p>
         <button onClick={() => setPicks([])} className="gl-pill text-xs">⟳ Restart</button>
       </div>
@@ -103,7 +103,7 @@ export function MockRoom({
                 const current = idx === overall && !done;
                 return (
                   <div key={`${r}-${t}`} className="min-h-[3.2rem] rounded p-1 text-[11px]"
-                       style={{ border: `1px solid ${current ? "#39ff14" : t + 1 === slot ? "#2a8a1a" : "#1a2a1a"}`, background: current ? "#0f2a0f" : "#0a100a" }}>
+                       style={{ border: `1px solid ${current ? "#1b8a35" : t + 1 === slot ? "#7fbf8a" : "#e6dfd1"}`, background: current ? "#eaf5df" : "#fffdf8" }}>
                     <span className="block text-[9px] text-zinc-500">{r + 1}.{String((r % 2 === 0 ? t : teams - 1 - t) + 1).padStart(2, "0")}</span>
                     {pl && <><span className="pn block truncate">{pl.name}</span><span className={`bd !px-1 !text-[9px] ${pl.position}`}>{pl.position}</span></>}
                   </div>

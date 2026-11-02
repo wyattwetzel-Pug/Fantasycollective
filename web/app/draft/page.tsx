@@ -100,9 +100,9 @@ async function DraftView({ searchParams }: { searchParams: Promise<Record<string
   return (
     <div className="space-y-4">
       <div className="gl-hero flex min-h-[8rem] items-center gap-4 p-5 sm:p-6">
-        <span className="hidden h-20 w-16 items-center justify-center rounded-lg text-4xl sm:flex" style={{ border: "3px solid #39ff14", color: "#39ff14" }} aria-hidden="true">☑</span>
+        <span className="hidden h-20 w-16 items-center justify-center rounded-lg text-4xl sm:flex" style={{ border: "3px solid #1b8a35", color: "var(--accent)" }} aria-hidden="true">☑</span>
         <div>
-          <h2 id="h-draft" className="gl-title text-4xl sm:text-6xl">DRAFT <span style={{ color: "#39ff14" }}>GUIDE</span></h2>
+          <h2 id="h-draft" className="gl-title text-4xl sm:text-6xl">Draft <span style={{ color: "var(--accent)" }}>Guide</span></h2>
           <p className="mt-2 text-sm text-zinc-200">Rankings, ADP, and draft tools to help you build a championship roster.</p>
         </div>
       </div>
@@ -117,7 +117,7 @@ async function DraftView({ searchParams }: { searchParams: Promise<Record<string
         <div className="grid items-start gap-4 lg:grid-cols-[1fr_0.8fr]">
           <div className="gl-panel min-w-0 p-4">
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-xl font-bold"><span style={{ color: "#39ff14" }} aria-hidden="true">▮</span> Draft Rankings</h3>
+              <h3 className="text-xl font-bold"><span style={{ color: "var(--accent)" }} aria-hidden="true">▮</span> Draft Rankings</h3>
               <span className="text-xs text-zinc-400">Ball Knowers Consensus</span>
             </div>
             {error && <p className="rounded border border-red-900 bg-red-950/30 p-3 text-sm text-red-300">Could not load rankings: {error}</p>}
@@ -146,7 +146,7 @@ async function DraftView({ searchParams }: { searchParams: Promise<Record<string
           </div>
 
           <div className="gl-panel space-y-4 p-4">
-            <h3 className="text-xl font-bold"><span style={{ color: "#39ff14" }} aria-hidden="true">⚙</span> Draft Settings</h3>
+            <h3 className="text-xl font-bold"><span style={{ color: "var(--accent)" }} aria-hidden="true">⚙</span> Draft Settings</h3>
             <div>
               <p className="mb-1 text-sm">League Format</p>
               <div className="flex flex-wrap gap-2">{FORMATS.map(([v, l]) => <Link key={v} href={href(params, { format: v })} className={pill(params.format === v)}>{l}</Link>)}</div>
@@ -168,7 +168,7 @@ async function DraftView({ searchParams }: { searchParams: Promise<Record<string
         <div className="grid items-start gap-4 lg:grid-cols-[1fr_0.5fr]">
           <div className="gl-panel min-w-0 p-4">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-xl font-bold"><span style={{ color: "#39ff14" }} aria-hidden="true">▮</span> Average Draft Position (ADP)</h3>
+              <h3 className="text-xl font-bold"><span style={{ color: "var(--accent)" }} aria-hidden="true">▮</span> Average Draft Position (ADP)</h3>
               {adpRows.length > 0 && (
                 <p className="text-xs text-zinc-300">
                   {adpRows[0].season} preseason · {adpRows[0].teams}-team drafts · Source:{" "}
@@ -196,11 +196,11 @@ async function DraftView({ searchParams }: { searchParams: Promise<Record<string
                           <td className="!text-left"><span className="flex items-center gap-2"><Avatar id={r.player_id} name={r.players?.name} size={32} /><PlayerLink id={r.player_id} name={r.players?.name} /></span></td>
                           <td><span className={`bd ${r.players?.position}`}>{r.players?.position}</span></td>
                           <td>{r.players?.nfl_team}</td>
-                          <td><span className="inline-block rounded-full border px-3 py-0.5 text-xs font-semibold" style={{ background: "#0c2a0c", color: "#7dff6a", borderColor: "#39ff14" }}>{pickLabel(r.adp, r.teams)}</span></td>
+                          <td><span className="inline-block rounded-full border px-3 py-0.5 text-xs font-semibold" style={{ background: "#e4f0d8", color: "#1b6e2c", borderColor: "#1b8a35" }}>{pickLabel(r.adp, r.teams)}</span></td>
                           <td>{r.high ?? "–"}-{r.low ?? "–"}</td>
                           <td>{r.times_drafted ?? "–"}</td>
                           <td>{ours === undefined ? <span className="text-zinc-500">–</span> : `#${ours}`}</td>
-                          <td className="font-semibold" style={{ color: diff === null || diff === 0 ? undefined : diff > 0 ? "#39ff14" : "#ef4444" }}>
+                          <td className="font-semibold" style={{ color: diff === null || diff === 0 ? undefined : diff > 0 ? "var(--accent)" : "#ef4444" }}>
                             {diff === null ? "–" : diff === 0 ? "even" : `${diff > 0 ? "▲" : "▼"} ${Math.abs(diff)}`}
                           </td>
                         </tr>
@@ -223,7 +223,7 @@ async function DraftView({ searchParams }: { searchParams: Promise<Record<string
           </div>
 
           <div className="gl-panel space-y-4 p-4">
-            <h3 className="text-xl font-bold"><span style={{ color: "#39ff14" }} aria-hidden="true">⚙</span> Settings</h3>
+            <h3 className="text-xl font-bold"><span style={{ color: "var(--accent)" }} aria-hidden="true">⚙</span> Settings</h3>
             <div>
               <p className="mb-1 text-sm">League Format</p>
               <div className="flex flex-wrap gap-2">{FORMATS.map(([v, l]) => <Link key={v} href={href(params, { format: v })} className={pill(params.format === v)}>{l}</Link>)}</div>
@@ -243,7 +243,7 @@ async function DraftView({ searchParams }: { searchParams: Promise<Record<string
       {params.tab === "mock" && (
         <form action="/draft/mock" className="grid items-start gap-4 lg:grid-cols-[1fr_0.8fr]">
           <div className="gl-panel space-y-4 p-4">
-            <h3 className="text-xl font-bold"><span style={{ color: "#39ff14" }} aria-hidden="true">⚙</span> League Settings</h3>
+            <h3 className="text-xl font-bold"><span style={{ color: "var(--accent)" }} aria-hidden="true">⚙</span> League Settings</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="text-sm">League Format
                 <select name="format" defaultValue={params.format} className={field}>{FORMATS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
@@ -276,10 +276,10 @@ async function DraftView({ searchParams }: { searchParams: Promise<Record<string
             </div>
             <p className="text-xs text-zinc-500">A draft needs enough ranked players: teams × rounds. Rounds equal starters plus bench.</p>
           </div>
-          <div className="gl-panel space-y-3 p-4" style={{ borderColor: "#2a8a1a" }}>
-            <h3 className="text-lg font-bold"><span style={{ color: "#39ff14" }} aria-hidden="true">▷</span> Mock Draft</h3>
+          <div className="gl-panel space-y-3 p-4" style={{ borderColor: "#7fbf8a" }}>
+            <h3 className="text-lg font-bold"><span style={{ color: "var(--accent)" }} aria-hidden="true">▷</span> Mock Draft</h3>
             <p className="text-sm text-zinc-300">Draft against computer teams that pick from the Ball Knowers Consensus. It&apos;s a snake draft, and nothing is saved.</p>
-            <button className="rounded-full px-5 py-2 text-sm font-bold" style={{ background: "#3dea1f", color: "#04120a" }}>Start Mock Draft →</button>
+            <button className="rounded-full px-5 py-2 text-sm font-bold" style={{ background: "#2f2e2b", color: "#fff" }}>Start Mock Draft →</button>
           </div>
         </form>
       )}
