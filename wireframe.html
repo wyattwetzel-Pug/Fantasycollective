@@ -1,0 +1,2149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wireframe | Your Fantasy Football Rankings Site</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,800;1,700&family=Inter:wght@400;500;600&family=Roboto+Condensed:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>
+    [x-cloak]{display:none !important}
+    /* Type system: Inter body, Barlow Condensed headings, Roboto Condensed for names, stats and controls */
+    body { font-family: "Inter", system-ui, sans-serif; }
+    h1, h2, h3, h4 { font-family: "Barlow Condensed", sans-serif; font-weight: 800 !important; }
+    .gl-title { font-family: "Barlow Condensed", sans-serif !important; font-weight: 700 !important; font-style: italic !important; }
+    .pn { font-family: "Roboto Condensed", sans-serif !important; font-weight: 700 !important; }
+    table td, table th, dd, .gl-stat, .tabular-nums, .bd { font-family: "Roboto Condensed", sans-serif; font-weight: 400; }
+    .gl-stat span:first-child { font-weight: 700; }
+    button, nav, [role="tab"], .gl-nav, .gl-pill, .gl-add { font-family: "Roboto Condensed", sans-serif; font-weight: 500; }
+    input, select, textarea { font-family: "Inter", system-ui, sans-serif; }
+    /* Dark theme: white writing on a black base */
+    :root { color-scheme: dark; }
+    body { background:#000 !important; color:#fff !important; }
+    .bg-white { background:#000 !important; }
+    .bg-zinc-50 { background:#111113 !important; }
+    .bg-zinc-100 { background:#18181b !important; }
+    .bg-zinc-200 { background:#27272a !important; }
+    .bg-zinc-300 { background:#3f3f46 !important; }
+    .bg-zinc-800 { background:#3f3f46 !important; }
+    .text-zinc-100, .text-zinc-800, .text-zinc-900, .text-white { color:#fff !important; }
+    .text-zinc-400, .text-zinc-500, .text-zinc-600 { color:#a1a1aa !important; }
+    .border-zinc-200 { border-color:#27272a !important; }
+    .border-zinc-300 { border-color:#3f3f46 !important; }
+    .border-zinc-400, .border-zinc-500 { border-color:#71717a !important; }
+    .border-zinc-900, .ring-zinc-900 { border-color:#fff !important; --tw-ring-color:#fff !important; }
+    .divide-zinc-200 > :not([hidden]) ~ :not([hidden]) { border-color:#27272a !important; }
+    .hover\:bg-zinc-50:hover { background:#18181b !important; }
+    /* solid buttons and active pills flip to white fill with black text */
+    .bg-zinc-900 { background:#fff !important; color:#000 !important; }
+    .bg-zinc-900.text-white, .bg-zinc-900.text-zinc-100 { color:#000 !important; }
+    input, select, textarea { background:#000; color:#fff; }
+    ::placeholder { color:#71717a; }
+    /* Rankings page: dark with neon-green accents */
+    .gl-panel { background:linear-gradient(180deg,#0b120b,#050805); border:1px solid #1d3a1d; border-radius:14px; }
+    .gl-hero { position:relative; overflow:hidden; border:1px solid #1d3a1d; border-radius:14px; background:radial-gradient(ellipse at 65% 40%,#0f4a0f66,transparent 60%),#050805; }
+    .gl-title { font-style:italic; font-weight:700; letter-spacing:-0.01em; line-height:.95; }
+    .gl-stat { display:flex; flex-direction:column; justify-content:center; gap:.2rem; padding:.9rem 1.1rem; min-width:8rem; border:1px solid #1d3a1d; border-radius:12px; background:#0a100a; }
+    .gl-search { width:100%; padding:.6rem 1rem; border-radius:.6rem; background:#050805 !important; border:1px solid #1d3a1d; font-size:.85rem; }
+    .gl-pill { padding:.45rem .9rem; border-radius:.6rem; background:#111611; border:1px solid #1d2a1d; color:#e5e5e5; font-size:.8rem; }
+    .gl-pill.on { background:#3dea1f; color:#04120a; font-weight:700; border-color:#3dea1f; }
+    .gl-pill.on-o { border-color:#39ff14; color:#fff; box-shadow:0 0 0 1px #39ff1444 inset; }
+    .gl-tab-on { color:#fff; border-bottom:2px solid #39ff14; }
+    .gl-src-on { border:1px solid #39ff14; background:#0f2a0f; }
+    .gl-tierbox { border:1px solid; border-radius:12px; overflow:hidden; background:#050805; }
+    .gl-tier { display:flex; align-items:center; height:2.6rem; }
+    .gl-tier .letter { height:100%; width:4.2rem; display:flex; align-items:center; justify-content:center; font-style:italic; font-weight:900; font-size:1.5rem; clip-path:polygon(0 0,100% 0,80% 100%,0 100%); }
+    .gl-table { width:100%; border-collapse:collapse; font-size:.85rem; }
+    .gl-table th { font-size:.65rem; letter-spacing:.05em; color:#bbb; padding:.4rem .5rem; text-align:center; font-weight:600; }
+    .gl-table td { padding:.35rem .5rem; text-align:center; border-top:1px solid #0e1a0e; }
+    .gl-table td.g { background:#0f3a12; color:#7dff6a; }
+    .gl-table td.o { background:#3a2208; color:#ffa43a; }
+    .gl-table td.r { background:#4a0d0d; color:#ff5a5a; }
+    .gl-quick { display:flex; align-items:center; gap:.75rem; padding:1rem 1.1rem; border-radius:12px; border:1px solid #2a2a2a; background:linear-gradient(180deg,#121212,#070707); font-weight:600; }
+    .gl-quick.on { border-color:#39ff14; box-shadow:0 0 14px #39ff1455; background:#0c2a0c; }
+    .gl-slot { position:relative; display:flex; align-items:center; gap:.75rem; padding:.9rem; min-height:5.5rem; border-radius:12px; border:1px solid #39ff14; background:#0a140a; box-shadow:0 0 10px #39ff1433; }
+    .gl-table td.gt { color:#7dff6a; }
+    .gl-table td.rt { color:#ff7a3a; }
+    .gl-row { display:flex; align-items:center; gap:.75rem; padding:.55rem .75rem; border-radius:10px; background:#101410; border:1px solid #1a2a1a; }
+    .gl-add { width:100%; padding:.8rem; border-radius:10px; border:1px dashed #52525b; color:#d4d4d8; font-size:.9rem; }
+    .gl-nav { display:flex; align-items:center; gap:.5rem; width:100%; padding:.75rem .4rem; border-radius:12px; border:1px solid #262626; background:linear-gradient(180deg,#121212,#060606); color:#fff; font-style:italic; font-weight:500; font-size:1.05rem; text-align:left; }
+    .gl-nav-ico { width:2rem; text-align:center; font-size:1.5rem; line-height:1; filter:grayscale(1); flex-shrink:0; }
+    .gl-nav-sep { width:1px; align-self:stretch; min-height:1.8rem; background:#3a3a3a; flex-shrink:0; }
+    .gl-nav.on { border-color:#39ff14; border-left-width:4px; box-shadow:0 0 14px #39ff1466, inset 0 0 14px #39ff1422; }
+    .gl-nav.on .gl-nav-ico { filter:grayscale(1) sepia(1) hue-rotate(60deg) saturate(5); }
+    .gl-field { position:relative; height:11rem; flex-shrink:0; background:radial-gradient(ellipse at 85% 105%, #39ff14cc, transparent 55%), repeating-linear-gradient(100deg, transparent 0 22px, #ffffff14 22px 24px), linear-gradient(180deg, transparent, #0b2a0b 90%); }
+    .gl-field::after { content:"50"; position:absolute; bottom:.2rem; left:0; right:0; text-align:center; font-weight:900; font-size:1.8rem; letter-spacing:.3em; color:#ffffff30; }
+    .bd { padding:.1rem .5rem; border-radius:.3rem; font-size:.7rem; font-weight:700; color:#fff; }
+    .bd.RB { background:#1d6ff2; } .bd.WR { background:#8b2fe0; } .bd.QB { background:#d6246e; } .bd.TE { background:#e0791a; }
+  </style>
+</head>
+<body class="bg-zinc-200 text-zinc-800 antialiased" x-data="{
+  screen: 'home',
+  syncOpen: false,
+  profileOpen: false,
+  mock: { format:'Standard', type:'Snake', size:12, qb:'1 QB', pos:{QB:1,RB:2,WR:2,TE:1,FLEX:1,SUPERFLEX:0,K:1,DEF:1}, bench:6, pick:5, mode:'choose' },
+  ord(n){ const s=['th','st','nd','rd'], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]) },
+  synced: false,
+  ranker: 'ball',
+  scoring: 'ppr',
+  tradeResult: false,
+  go(s){ this.screen = s; window.scrollTo(0,0) }
+}">
+
+  <!-- Page-level note -->
+  <div class="bg-zinc-900 text-zinc-100 text-xs text-center py-2 pl-16 sm:pl-48 pr-4">
+    Wireframe, display only. All values are <strong>sample data</strong>. Nothing saves or calculates yet.
+    <a href="index.html" class="underline ml-2">Brief page</a>
+    <button class="underline ml-2" @click="go('notes')">Data model notes</button>
+  </div>
+
+  <!-- Phone-width app frame -->
+  <div class="mx-auto max-w-7xl min-h-screen bg-white border-x border-zinc-300 flex flex-col relative pl-16 sm:pl-48">
+
+    <header class="border-b border-zinc-300 px-4 md:px-10 py-3 flex items-center justify-between gap-4">
+      <div>
+        <p class="text-xs uppercase tracking-widest text-zinc-500">Logo placeholder</p>
+        <h1 class="text-lg font-bold leading-tight">Your Fantasy Football Rankings Site</h1>
+        <p class="text-xs text-zinc-500">Your rankings and tools, applied to your league.</p>
+      </div>
+      <button class="border border-zinc-900 rounded-full px-4 py-1.5 text-sm shrink-0" @click="go('login')">Log in</button>
+    </header>
+
+    <main class="flex-1 px-4 md:px-10 py-5 md:py-8 pb-10 w-full mx-auto" :class="(screen==='rankings' || screen==='home' || screen==='startsit' || screen==='trade' || screen==='dynasty' || screen==='breakouts' || screen==='rookies' || screen==='draft' || screen==='teams' || screen==='mock') ? 'max-w-7xl' : 'max-w-3xl'">
+
+      <!-- ============ HOME ============ -->
+      <section x-show="screen==='home'" aria-labelledby="h-home" class="space-y-4">
+
+        <!-- Search + Sync League (top right) -->
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="flex-1 min-w-[12rem]">
+            <label for="hsearch" class="sr-only">Search players, teams, or stats</label>
+            <input id="hsearch" type="search" placeholder="Search players, teams, or stats..." class="gl-search">
+          </div>
+          <button x-show="synced" x-cloak class="text-xs underline" @click="synced=false">Disconnect (sample)</button>
+          <button class="gl-pill on-o !px-5 !py-2.5" @click="syncOpen=true" title="We'll wire this up later" x-text="synced ? 'Sync another league' : '⟳ Sync League'"></button>
+        </div>
+
+        <!-- Synced league strip -->
+        <div x-show="synced" x-cloak class="gl-panel p-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+          <span class="font-semibold">League Name Placeholder</span>
+          <span class="text-zinc-400">Sleeper · 12 teams · PPR · Superflex · Redraft</span>
+          <span class="text-zinc-400">Team Name Placeholder</span>
+          <span class="text-xs text-zinc-500">Sample data</span>
+        </div>
+
+        <!-- Hero -->
+        <div class="gl-hero p-6 sm:p-8 grid md:grid-cols-[1fr_auto] gap-4 items-center min-h-[15rem]">
+          <div>
+            <p class="text-xs tracking-[0.4em] text-zinc-400 mb-2">SITE NAME PLACEHOLDER</p>
+            <h2 id="h-home" class="gl-title text-5xl sm:text-6xl">FANTASY FOOTBALL</h2>
+            <p class="text-sm tracking-[0.3em] text-zinc-300 mt-4 italic">RESEARCH. RANKINGS. ADVANTAGE.</p>
+            <div class="mt-3 h-1 w-56 rounded" style="background:linear-gradient(90deg,#39ff14,transparent)"></div>
+          </div>
+          <div class="hidden md:flex w-56 h-44 items-center justify-center text-[10px] text-zinc-500 border border-dashed border-zinc-600 rounded-lg">Image placeholder</div>
+        </div>
+
+        <!-- Quick links -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <button class="gl-quick on" @click="go('rankings')"><span aria-hidden="true">▮</span><span class="flex-1 text-left">Player Rankings</span><span aria-hidden="true">›</span></button>
+          <button class="gl-quick" @click="go('startsit')"><span aria-hidden="true">▷</span><span class="flex-1 text-left">Start / Sit</span><span aria-hidden="true">›</span></button>
+          <button class="gl-quick" @click="go('trade')"><span aria-hidden="true">⇄</span><span class="flex-1 text-left">Trade Calculator</span><span aria-hidden="true">›</span></button>
+          <button class="gl-quick" @click="syncOpen=true"><span aria-hidden="true">⟳</span><span class="flex-1 text-left">Sync League</span><span aria-hidden="true">›</span></button>
+        </div>
+
+        <!-- Three panels -->
+        <div class="grid lg:grid-cols-3 gap-4">
+
+          <div class="gl-panel p-4">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h3 class="font-bold">🏆 Top Ranked Players</h3>
+                <p class="text-xs text-zinc-500">2026 Season · sample data</p>
+              </div>
+              <button class="text-xs" style="color:#39ff14" @click="go('rankings')">View All →</button>
+            </div>
+            <ol class="space-y-2">
+              <template x-for="r in 5">
+                <li class="flex items-center gap-3 text-sm cursor-pointer" tabindex="0" title="Open player profile" @click="profileOpen=true" @keydown.enter="profileOpen=true">
+                  <span class="h-7 w-7 rounded bg-zinc-800 text-center leading-7 text-xs" x-text="r"></span>
+                  <span class="h-8 w-8 rounded-full bg-zinc-700 shrink-0" aria-hidden="true"></span>
+                  <span class="flex-1">Player Name</span>
+                  <span class="bd" :class="['RB','RB','WR','RB','WR'][r-1]" x-text="['RB','RB','WR','RB','WR'][r-1]"></span>
+                  <span class="w-12 text-right tabular-nums" style="color:#7dff6a">00.00</span>
+                </li>
+              </template>
+            </ol>
+          </div>
+
+          <div class="gl-panel p-4">
+            <div class="mb-3">
+              <h3 class="font-bold">↗ Biggest Movers</h3>
+              <p class="text-xs text-zinc-500">Since last week · sample data</p>
+            </div>
+            <ul class="space-y-2">
+              <template x-for="m in [['+6','WR'],['+4','WR'],['+3','RB'],['-4','WR'],['-5','RB']]">
+                <li class="flex items-center gap-3 text-sm">
+                  <span class="w-12 font-semibold" :style="m[0].startsWith('+') ? 'color:#39ff14' : 'color:#ef4444'" x-text="(m[0].startsWith('+') ? '▲ ' : '▼ ') + m[0]"></span>
+                  <span class="flex-1">Player Name</span>
+                  <span class="bd" :class="m[1]" x-text="m[1]"></span>
+                </li>
+              </template>
+            </ul>
+          </div>
+
+          <div class="gl-panel p-4" x-data="{ n:0 }">
+            <div class="flex items-start justify-between mb-3">
+              <h3 class="font-bold">▤ Latest News</h3>
+              <button class="text-xs" style="color:#39ff14">View All →</button>
+            </div>
+            <div class="flex gap-3">
+              <div class="w-28 h-28 shrink-0 flex items-center justify-center text-[10px] text-zinc-500 border border-dashed border-zinc-600 rounded-lg">Image placeholder</div>
+              <div>
+                <p class="font-semibold leading-snug">News headline placeholder goes here</p>
+                <p class="text-xs text-zinc-400 mt-2">Placeholder summary text for the news item. Sample data.</p>
+              </div>
+            </div>
+            <div class="flex justify-center gap-2 mt-4" role="group" aria-label="News slides">
+              <template x-for="i in 3">
+                <button class="h-2.5 w-2.5 rounded-full" :style="n===i-1 ? 'background:#39ff14' : 'background:#52525b'" :aria-label="'Slide '+i" @click="n=i-1"></button>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stat tiles -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div class="gl-stat"><span class="text-2xl font-extrabold italic">350+</span><span class="text-sm">Player Rankings</span></div>
+          <div class="gl-stat"><span class="text-2xl font-extrabold italic">5</span><span class="text-sm">Expert Sources</span></div>
+          <div class="gl-stat"><span class="text-2xl font-extrabold italic">2026</span><span class="text-sm">Season</span></div>
+          <div class="gl-stat"><span class="text-2xl font-extrabold">Weekly</span><span class="text-sm">Updates</span></div>
+          <div class="gl-stat"><span class="text-2xl font-extrabold">Real-Time</span><span class="text-sm">News &amp; Analysis</span></div>
+        </div>
+
+        <p class="text-xs text-zinc-500 text-center">Publish your own rankings? <button class="underline" @click="go('contrib')">Developer log in</button></p>
+      </section>
+
+      <!-- ============ RANKINGS ============ -->
+      <section x-show="screen==='rankings'" x-cloak aria-labelledby="h-rank" class="space-y-4"
+               x-data="{ fmt:'2026', pos:'ALL', tab:'rankings', teams:12, qbs:'1 QB', open:null,
+                 P:['RB','RB','WR','WR','RB','WR','WR','TE','QB'],
+                 pp(r){ return this.P[r % this.P.length] },
+                 heat(r,c){ const v=(r*7+c*3)%11; return v<7 ? 'g' : (v<10 ? 'o' : 'r') } }">
+
+        <!-- Search -->
+        <div>
+          <label for="gsearch" class="sr-only">Search players, teams, or stats</label>
+          <input id="gsearch" type="search" placeholder="Search players, teams, or stats..." class="gl-search">
+        </div>
+
+        <!-- Hero -->
+        <div class="gl-hero grid md:grid-cols-[1fr_auto] gap-4 p-5 items-center">
+          <div>
+            <p class="text-[11px] tracking-[0.4em] text-zinc-400">FANTASY FOOTBALL</p>
+            <h2 id="h-rank" class="gl-title text-5xl sm:text-6xl">RANKINGS</h2>
+            <p class="text-sm text-zinc-400 mt-3">Rest-of-season fantasy rankings with expert insight.</p>
+          </div>
+          <div class="flex gap-3 items-stretch">
+            <div class="hidden lg:flex w-40 items-center justify-center text-[10px] text-zinc-500 border border-dashed border-zinc-600 rounded-lg">Image placeholder</div>
+            <div class="gl-stat"><span class="text-2xl font-extrabold italic">350+</span><span class="text-xs text-zinc-400">Player Rankings</span></div>
+            <div class="gl-stat"><span class="text-2xl font-extrabold italic">5</span><span class="text-xs text-zinc-400">Expert Sources</span></div>
+            <div class="gl-stat"><span class="text-2xl font-extrabold italic">2026</span><span class="text-xs text-zinc-400">Season</span></div>
+          </div>
+        </div>
+
+        <!-- Toolbar: format + position + export -->
+        <div class="gl-panel p-3 flex flex-wrap items-center gap-3">
+          <div role="group" aria-label="League format" class="flex flex-wrap gap-2">
+            <template x-for="f in ['Week 8','2026','2026 SF','Dyn SF','Dyn 1QB']">
+              <button class="gl-pill" :class="fmt===f ? 'on' : ''" :aria-pressed="fmt===f" @click="fmt=f" x-text="f"></button>
+            </template>
+          </div>
+          <span class="hidden sm:block h-6 w-px bg-zinc-700" aria-hidden="true"></span>
+          <div role="group" aria-label="Position filter" class="flex flex-wrap gap-2">
+            <template x-for="p in ['All','QB','RB','WR','TE','K','D']">
+              <button class="gl-pill" :class="pos===p ? 'on-o' : ''" :aria-pressed="pos===p" @click="pos=p" x-text="p"></button>
+            </template>
+          </div>
+          <div class="flex-1"></div>
+          <button class="gl-pill" aria-label="Grid view">▦</button>
+          <button class="gl-pill on-o" title="We'll wire this up later">⭳ Export</button>
+        </div>
+
+        <!-- Main: rankings left, panels right -->
+        <div class="grid lg:grid-cols-[1fr_21rem] gap-4 items-start">
+
+          <!-- LEFT: tabs + tiers -->
+          <div class="min-w-0 space-y-4">
+            <div role="tablist" class="flex gap-6 border-b border-zinc-800 text-sm">
+              <button role="tab" class="pb-2 px-1" :class="tab==='rankings' ? 'gl-tab-on' : 'text-zinc-400'" :aria-selected="tab==='rankings'" @click="tab='rankings'">▮ Rankings</button>
+              <button role="tab" class="pb-2 px-1" :class="tab==='display' ? 'gl-tab-on' : 'text-zinc-400'" :aria-selected="tab==='display'" @click="tab='display'">Display Data</button>
+            </div>
+            <p class="text-xs text-zinc-500">Showing <span x-text="{ball:'Ball Knowers Consensus',you:'Your rankings',f1:'Friend 1',f2:'Friend 2'}[ranker]"></span> · <span x-text="scoring.toUpperCase()"></span> · <span x-text="teams"></span> teams · <span x-text="qbs"></span> · sample data</p>
+
+            <div class="overflow-x-auto space-y-4">
+              <template x-for="tier in [
+                {n:'S', c:'#D4AF37', rows:[1,2,3]},
+                {n:'A', c:'#22A722', rows:[4,5,6,7,8,9]},
+                {n:'B', c:'#9333EA', rows:[10,11,12,13]},
+                {n:'C', c:'#3B82F6', rows:[14,15,16,17]},
+                {n:'D', c:'#FACC15', rows:[18,19,20,21]},
+                {n:'E', c:'#F97316', rows:[22,23,24,25]},
+                {n:'F', c:'#EF4444', rows:[26,27,28,29]}
+              ]">
+                <div class="gl-tierbox min-w-[40rem]" :style="`border-color:${tier.c}66`">
+                  <div class="gl-tier" :style="`background:linear-gradient(90deg,${tier.c}55,${tier.c}10 60%,transparent)`">
+                    <span class="letter" :style="`background:${tier.c}99;color:#fff`" x-text="tier.n"></span>
+                    <span class="font-extrabold italic text-xl ml-3">TIER</span>
+                  </div>
+                  <table class="gl-table">
+                    <thead>
+                      <tr>
+                        <th scope="col" class="w-8">#</th>
+                        <th scope="col" class="!text-left">PLAYER</th>
+                        <th scope="col">POS</th>
+                        <th scope="col">FPTS ▾</th>
+                        <th scope="col">TEAM</th>
+                        <th scope="col">PLAYED</th>
+                        <th scope="col">SNAP %</th>
+                        <th scope="col">POS FINISH</th>
+                        <th scope="col">OVR</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <template x-for="r in tier.rows">
+                        <tr class="cursor-pointer" tabindex="0" title="Open player profile" @click="profileOpen=true" @keydown.enter="profileOpen=true">
+                          <td x-text="r"></td>
+                          <td class="!text-left"><span class="flex items-center gap-2"><span class="h-8 w-8 rounded-full bg-zinc-700 shrink-0" aria-hidden="true"></span>Player Name</span></td>
+                          <td><span class="bd" :class="pp(r)" x-text="pp(r)+' '+(r%4+1)"></span></td>
+                          <td :class="heat(r,1)">00.00</td>
+                          <td>TM</td>
+                          <td :class="heat(r,2)">0</td>
+                          <td :class="heat(r,3)">00.00</td>
+                          <td :class="heat(r,4)">0</td>
+                          <td></td>
+                        </tr>
+                      </template>
+                    </tbody>
+                  </table>
+                </div>
+              </template>
+            </div>
+            <p class="text-xs text-zinc-500 text-center">Sample data. Tiers and stat columns are placeholders.</p>
+          </div>
+
+          <!-- RIGHT: filters, sources, league, settings -->
+          <div class="space-y-4 lg:sticky lg:top-4">
+
+            <div class="gl-panel p-3 space-y-3">
+              <h3 class="font-semibold">League settings</h3>
+              <div>
+                <p id="lbl-scoring" class="text-xs text-zinc-400 mb-1">Scoring</p>
+                <div role="group" aria-labelledby="lbl-scoring" class="flex flex-wrap gap-2">
+                  <template x-for="o in [['ppr','PPR'],['half','Half PPR'],['std','Standard']]">
+                    <button class="gl-pill text-xs" :class="scoring===o[0] ? 'on' : ''" :aria-pressed="scoring===o[0]" @click="scoring=o[0]" x-text="o[1]"></button>
+                  </template>
+                </div>
+              </div>
+              <div>
+                <p id="lbl-teams" class="text-xs text-zinc-400 mb-1">Teams</p>
+                <div role="group" aria-labelledby="lbl-teams" class="flex flex-wrap gap-2">
+                  <template x-for="t in [8,10,12,14,16]">
+                    <button class="gl-pill text-xs" :class="teams===t ? 'on' : ''" :aria-pressed="teams===t" @click="teams=t" x-text="t"></button>
+                  </template>
+                </div>
+              </div>
+              <div>
+                <p id="lbl-qb" class="text-xs text-zinc-400 mb-1">QB slots</p>
+                <div role="group" aria-labelledby="lbl-qb" class="flex flex-wrap gap-2">
+                  <template x-for="q in ['1 QB','Superflex']">
+                    <button class="gl-pill text-xs" :class="qbs===q ? 'on' : ''" :aria-pressed="qbs===q" @click="qbs=q" x-text="q"></button>
+                  </template>
+                </div>
+              </div>
+              <div>
+                <label for="budget" class="block text-xs text-zinc-400 mb-1">Auction budget</label>
+                <input id="budget" type="text" placeholder="$200" class="gl-search !py-1.5 !text-xs w-28">
+              </div>
+              <p class="text-xs text-zinc-500" x-text="synced ? 'Settings pulled from your synced league.' : 'Not synced. Adjust settings manually.'"></p>
+            </div>
+
+            <div class="gl-panel p-3">
+              <h3 class="font-semibold mb-3">👥 Expert Sources</h3>
+              <div role="group" aria-label="Ranker view" class="grid grid-cols-4 gap-2 text-center text-xs">
+                <button class="rounded-lg p-2" :class="ranker==='ball' ? 'gl-src-on' : ''" :aria-pressed="ranker==='ball'" @click="ranker='ball'"><span class="block h-10 w-10 rounded-full bg-zinc-700 mx-auto mb-1"></span>Ball Knowers Consensus</button>
+                <button class="rounded-lg p-2" :class="ranker==='you' ? 'gl-src-on' : ''" :aria-pressed="ranker==='you'" @click="ranker='you'"><span class="block h-10 w-10 rounded-full bg-zinc-700 mx-auto mb-1"></span>You<span class="block text-[10px] text-zinc-500">just now</span></button>
+                <button class="rounded-lg p-2" :class="ranker==='f1' ? 'gl-src-on' : ''" :aria-pressed="ranker==='f1'" @click="ranker='f1'"><span class="block h-10 w-10 rounded-full bg-zinc-700 mx-auto mb-1"></span>Friend 1<span class="block text-[10px] text-zinc-500">4d ago</span></button>
+                <button class="rounded-lg p-2" :class="ranker==='f2' ? 'gl-src-on' : ''" :aria-pressed="ranker==='f2'" @click="ranker='f2'"><span class="block h-10 w-10 rounded-full bg-zinc-700 mx-auto mb-1"></span>Friend 2<span class="block text-[10px] text-zinc-500">2d ago</span></button>
+              </div>
+            </div>
+
+            <div class="gl-panel p-3">
+              <h3 class="font-semibold mb-2">◈ League</h3>
+              <div role="radiogroup" aria-label="League view" class="space-y-1 text-sm">
+                <template x-for="f in ['Week 8','2026','2026 SF','Dyn SF']">
+                  <button role="radio" class="flex items-center gap-3 w-full py-1" :aria-checked="fmt===f" @click="fmt=f">
+                    <span class="h-4 w-4 rounded-full border border-zinc-500 flex items-center justify-center"><span class="h-2 w-2 rounded-full" :style="fmt===f ? 'background:#39ff14' : ''"></span></span>
+                    <span x-text="f"></span>
+                  </button>
+                </template>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ TRADE ============ -->
+      <section x-show="screen==='trade'" x-cloak aria-labelledby="h-trade" class="space-y-4"
+               x-data="{ mine:[1,2], theirs:[1,2], lg:'Redraft', teams:12, lineup:'1 QB, 2 RB, 2 WR, 1 TE, 1 FLEX',
+                         yp:[{n:'2026 1st (Own)', d:'Top 3 Protected'},{n:'2027 2nd (Own)', d:'No Protection'}],
+                         tp:[{n:'2026 1st (Projected)', d:'Top 5 Protected'},{n:'2028 1st (Own)', d:'No Protection'}] }">
+
+        <div>
+          <label for="trsearch" class="sr-only">Search players, teams, or stats</label>
+          <input id="trsearch" type="search" placeholder="Search players, teams, or stats..." class="gl-search">
+        </div>
+
+        <!-- Hero -->
+        <div class="gl-hero p-6 sm:p-8 grid md:grid-cols-[1fr_auto] gap-4 items-center">
+          <div>
+            <p class="text-xs tracking-[0.4em] text-zinc-400 mb-1">FANTASY FOOTBALL</p>
+            <h2 id="h-trade" class="gl-title text-4xl sm:text-5xl">TRADE <span style="color:#39ff14">CALCULATOR</span></h2>
+            <p class="text-sm text-zinc-200 mt-3">Compare trades, analyze value, and make smarter moves.</p>
+            <p class="text-xs text-zinc-500 mt-2">Uses the ranker selected in Rankings: <span x-text="{ball:'Expert Average',you:'Your rankings',f1:'Friend 1',f2:'Friend 2'}[ranker]"></span> · <span x-text="synced ? 'synced league' : 'no league synced'"></span></p>
+          </div>
+          <div class="hidden md:flex w-48 h-32 items-center justify-center text-[10px] text-zinc-500 border border-dashed border-zinc-600 rounded-lg">Image placeholder</div>
+        </div>
+
+        <div class="grid lg:grid-cols-[1fr_21rem] gap-4 items-start">
+
+          <!-- LEFT -->
+          <div class="min-w-0 space-y-4">
+
+            <!-- Build your trade -->
+            <div class="gl-panel p-4 space-y-3">
+              <div class="flex items-center gap-3">
+                <span class="text-2xl" style="color:#39ff14" aria-hidden="true">⇄</span>
+                <div>
+                  <h3 class="font-bold text-lg leading-tight">Build Your Trade</h3>
+                  <p class="text-xs text-zinc-400">Add the players (and picks) involved in the trade.</p>
+                </div>
+              </div>
+              <div class="grid md:grid-cols-[1fr_auto_1fr] gap-3 items-center">
+                <div class="space-y-2">
+                  <template x-for="(p,i) in mine">
+                    <div class="gl-row cursor-pointer" tabindex="0" title="Open player profile" @click="profileOpen=true" @keydown.enter="profileOpen=true">
+                      <span class="h-11 w-11 rounded-full bg-zinc-700 shrink-0" aria-hidden="true"></span>
+                      <span class="flex-1"><span class="block font-semibold text-sm">Player Name</span><span class="block text-xs text-zinc-400">POS - TM</span></span>
+                      <span class="font-bold" style="color:#7dff6a">00.0</span>
+                      <button class="h-6 w-6 rounded-full bg-zinc-800 text-xs" :aria-label="'Remove your player '+(i+1)" @click.stop="mine.splice(i,1)">✕</button>
+                    </div>
+                  </template>
+                  <button class="gl-add" x-show="mine.length<4" @click="mine.push(mine.length+1)">+ Add Player or Draft Pick</button>
+                </div>
+
+                <button class="mx-auto h-12 w-12 rounded-lg border text-xl" style="border-color:#39ff14;color:#39ff14;background:#0c2a0c" aria-label="Swap sides" @click="[mine,theirs]=[theirs,mine]">⇄</button>
+
+                <div class="space-y-2">
+                  <template x-for="(p,i) in theirs">
+                    <div class="gl-row cursor-pointer" tabindex="0" title="Open player profile" @click="profileOpen=true" @keydown.enter="profileOpen=true">
+                      <span class="h-11 w-11 rounded-full bg-zinc-700 shrink-0" aria-hidden="true"></span>
+                      <span class="flex-1"><span class="block font-semibold text-sm">Player Name</span><span class="block text-xs text-zinc-400">POS - TM</span></span>
+                      <span class="font-bold" style="color:#7dff6a">00.0</span>
+                      <button class="h-6 w-6 rounded-full bg-zinc-800 text-xs" :aria-label="'Remove their player '+(i+1)" @click.stop="theirs.splice(i,1)">✕</button>
+                    </div>
+                  </template>
+                  <button class="gl-add" x-show="theirs.length<4" @click="theirs.push(theirs.length+1)">+ Add Player or Draft Pick</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Trade analysis -->
+            <div class="gl-panel p-4" style="border-color:#39ff14;box-shadow:0 0 18px #39ff1433" aria-live="polite">
+              <p class="text-center text-xs tracking-[0.45em] text-zinc-300 mb-3">TRADE ANALYSIS</p>
+              <div class="grid md:grid-cols-[1fr_auto_1fr] gap-4 items-center text-center">
+                <div>
+                  <p class="text-lg">Your Return</p>
+                  <p class="text-4xl font-extrabold italic">00.0 <span class="align-middle text-sm not-italic font-bold rounded-full px-3 py-1" style="background:#0f3a12;color:#7dff6a;border:1px solid #1faa0a">+00.0</span></p>
+                </div>
+                <div>
+                  <div class="rounded-full px-8 py-3 text-2xl font-extrabold italic" style="border:2px solid #39ff14;background:#0c2a0c;color:#7dff6a" title="We'll wire this up later">✔ GOOD TRADE</div>
+                  <p class="mt-2 text-lg" style="color:#7dff6a">Favours Your Team</p>
+                </div>
+                <div>
+                  <p class="text-lg">Their Return</p>
+                  <p class="text-4xl font-extrabold italic">00.0</p>
+                </div>
+              </div>
+              <p class="text-xs text-zinc-500 text-center mt-2">Sample result.</p>
+            </div>
+
+            <!-- Summary + breakdown -->
+            <div class="grid md:grid-cols-2 gap-4">
+              <div class="gl-panel p-4">
+                <h3 class="font-bold text-lg mb-2"><span style="color:#39ff14" aria-hidden="true">▤</span> Trade Summary</h3>
+                <p class="text-sm leading-relaxed text-zinc-200">Placeholder summary text. This will explain the value gained or lost, which positions are upgraded or downgraded, and how the trade fits team needs. Sample data.</p>
+              </div>
+              <div class="gl-panel p-4">
+                <h3 class="font-bold text-lg mb-3"><span style="color:#39ff14" aria-hidden="true">▮</span> Value Breakdown</h3>
+                <ul class="space-y-3 text-sm">
+                  <template x-for="v in [100,80,76,60]">
+                    <li class="flex items-center gap-3"><span class="w-24 shrink-0">Player Name</span><span class="flex-1 h-3 rounded bg-zinc-800"><span class="block h-3 rounded" :style="`width:${v}%;background:#3dea1f`"></span></span><span class="w-10 text-right">00.0</span></li>
+                  </template>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT -->
+          <div class="space-y-4">
+
+            <div class="gl-panel p-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <h3 class="font-bold"><span style="color:#39ff14" aria-hidden="true">⚙</span> League Settings</h3>
+                <button class="text-xs" style="color:#39ff14">Edit</button>
+              </div>
+              <div>
+                <p id="lbl-lt" class="text-sm mb-1">League Type</p>
+                <div role="group" aria-labelledby="lbl-lt" class="grid grid-cols-2 gap-2">
+                  <template x-for="t in ['Redraft','Dynasty']">
+                    <button class="gl-pill !rounded-full" :class="lg===t ? 'on-o' : ''" :aria-pressed="lg===t" @click="lg=t" x-text="t"></button>
+                  </template>
+                </div>
+              </div>
+              <div>
+                <p id="lbl-sf" class="text-sm mb-1">Scoring Format</p>
+                <div role="group" aria-labelledby="lbl-sf" class="grid grid-cols-3 gap-2">
+                  <template x-for="o in [['ppr','PPR'],['half','Half PPR'],['std','Standard']]">
+                    <button class="gl-pill !rounded-full text-xs" :class="scoring===o[0] ? 'on-o' : ''" :aria-pressed="scoring===o[0]" @click="scoring=o[0]" x-text="o[1]"></button>
+                  </template>
+                </div>
+              </div>
+              <div>
+                <p id="lbl-rs" class="text-sm mb-1">Roster Size</p>
+                <div role="group" aria-labelledby="lbl-rs" class="flex flex-wrap gap-2">
+                  <template x-for="t in [8,10,12,14,16]">
+                    <button class="gl-pill !rounded-full text-xs" :class="teams===t ? 'on-o' : ''" :aria-pressed="teams===t" @click="teams=t" x-text="t+' Teams'"></button>
+                  </template>
+                </div>
+              </div>
+              <div>
+                <p id="lbl-sl" class="text-sm mb-1">Starting Lineup</p>
+                <div role="group" aria-labelledby="lbl-sl" class="flex flex-col gap-2">
+                  <template x-for="l in ['1 QB, 2 RB, 2 WR, 1 TE, 1 FLEX','1 QB, 2 RB, 3 WR, 1 TE, 1 FLEX','2 QB, 2 RB, 2 WR, 1 TE, 1 FLEX']">
+                    <button class="gl-pill !rounded-lg text-xs text-left" :class="lineup===l ? 'on-o' : ''" :aria-pressed="lineup===l" @click="lineup=l" x-text="l"></button>
+                  </template>
+                </div>
+              </div>
+              <p class="text-xs text-zinc-500" x-text="synced ? 'Settings pulled from your synced league.' : 'Not synced. Adjust settings manually.'"></p>
+            </div>
+
+            <div class="gl-panel p-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <h3 class="font-bold"><span style="color:#39ff14" aria-hidden="true">▦</span> Draft Picks / Future Assets</h3>
+                <button class="text-xs" style="color:#39ff14">Edit</button>
+              </div>
+              <div>
+                <p class="font-semibold mb-2">Your Picks</p>
+                <ul class="space-y-2">
+                  <template x-for="(k,i) in yp">
+                    <li class="gl-row !py-2"><span aria-hidden="true">⛨</span><span class="flex-1"><span class="block text-sm" x-text="k.n"></span><span class="block text-xs text-zinc-400" x-text="k.d"></span></span><button class="h-6 w-6 rounded-full bg-zinc-800 text-xs" :aria-label="'Remove pick '+(i+1)" @click="yp.splice(i,1)">✕</button></li>
+                  </template>
+                </ul>
+                <button class="mt-2 text-sm" style="color:#7dff6a" @click="yp.push({n:'20XX Round (Own)', d:'No Protection'})">+ Add Pick</button>
+              </div>
+              <div class="border-t border-zinc-800 pt-3">
+                <p class="font-semibold mb-2">Their Picks</p>
+                <ul class="space-y-2">
+                  <template x-for="(k,i) in tp">
+                    <li class="gl-row !py-2"><span aria-hidden="true">⛨</span><span class="flex-1"><span class="block text-sm" x-text="k.n"></span><span class="block text-xs text-zinc-400" x-text="k.d"></span></span><button class="h-6 w-6 rounded-full bg-zinc-800 text-xs" :aria-label="'Remove their pick '+(i+1)" @click="tp.splice(i,1)">✕</button></li>
+                  </template>
+                </ul>
+                <button class="mt-2 text-sm" style="color:#7dff6a" @click="tp.push({n:'20XX Round (Own)', d:'No Protection'})">+ Add Pick</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ START/SIT ============ -->
+      <section x-show="screen==='startsit'" x-cloak aria-labelledby="h-ss" class="space-y-4"
+               x-data="{ n:3, cmp:'Season', rows:['Projection','Ranking (POS)','Matchup','Avg. PPG','Ceiling','Floor','Start %'] }">
+
+        <div>
+          <label for="sssearch" class="sr-only">Search players, teams, or stats</label>
+          <input id="sssearch" type="search" placeholder="Search players, teams, or stats..." class="gl-search">
+        </div>
+
+        <!-- Hero -->
+        <div class="gl-hero p-6 sm:p-8 grid md:grid-cols-[1fr_auto] gap-4 items-center">
+          <div>
+            <h2 id="h-ss" class="gl-title text-4xl sm:text-5xl">START <span style="color:#39ff14">/</span> SIT CALCULATOR</h2>
+            <p class="text-sm tracking-[0.3em] text-zinc-300 mt-3 italic">COMPARE PLAYERS. GET A CLEAR ANSWER.</p>
+            <p class="text-xs text-zinc-500 mt-2" x-text="synced ? 'Pick from your synced roster or search any player.' : 'Sync your league to pick from your roster, or search any player.'"></p>
+          </div>
+          <div class="hidden md:flex w-48 h-32 items-center justify-center text-[10px] text-zinc-500 border border-dashed border-zinc-600 rounded-lg">Image placeholder</div>
+        </div>
+
+        <div class="grid lg:grid-cols-[1fr_21rem] gap-4 items-start">
+
+          <!-- LEFT -->
+          <div class="min-w-0 space-y-4">
+
+            <!-- Compare players -->
+            <div class="gl-panel p-4 space-y-4">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <span class="text-2xl" aria-hidden="true" style="color:#39ff14">⇄</span>
+                  <div>
+                    <h3 class="font-bold text-lg">Compare Players</h3>
+                    <p class="text-xs text-zinc-400">Add 2-4 players to see who you should start.</p>
+                  </div>
+                </div>
+                <div role="group" aria-label="Number of players" class="flex gap-1 rounded-lg p-1" style="background:#000">
+                  <template x-for="c in [2,3,4]">
+                    <button class="gl-pill text-xs !border-0" :class="n===c ? 'on' : ''" :style="n===c ? 'color:#fff' : ''" :aria-pressed="n===c" @click="n=c" x-text="c+' Players'"></button>
+                  </template>
+                </div>
+              </div>
+
+              <div class="grid gap-3" style="grid-template-columns:repeat(auto-fit,minmax(12rem,1fr))">
+                <template x-for="i in n">
+                  <div class="gl-slot cursor-pointer" tabindex="0" title="Open player profile" @click="profileOpen=true" @keydown.enter="profileOpen=true">
+                    <button class="absolute top-2 right-2 h-5 w-5 rounded-full bg-zinc-700 text-[10px] leading-5" :aria-label="'Remove player '+i" @click.stop="if(n>2) n--">✕</button>
+                    <span class="h-12 w-12 rounded-full bg-zinc-700 shrink-0" aria-hidden="true"></span>
+                    <span class="min-w-0 flex-1 pt-3">
+                      <span class="block font-semibold text-sm leading-tight">Player Name</span>
+                      <span class="block text-xs text-zinc-400">POS - TM</span>
+                    </span>
+                    <span class="absolute bottom-2 right-2 text-xs" aria-hidden="true">⌄</span>
+                  </div>
+                </template>
+                <button x-show="n<4" class="gl-slot !border-dashed !border-zinc-600 justify-center flex-col !gap-1 text-sm text-zinc-300" @click="n++">
+                  <span class="h-7 w-7 rounded-full border border-zinc-400 leading-6 text-center" aria-hidden="true">+</span>Add Player
+                </button>
+              </div>
+
+              <div class="flex justify-center">
+                <button class="w-full max-w-md rounded-lg py-3 font-bold" style="background:#3dea1f;color:#04120a" title="We'll wire this up later">⚡ Calculate Start / Sit</button>
+              </div>
+            </div>
+
+            <!-- Comparison -->
+            <div class="gl-panel p-4 space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <h3 class="font-bold text-lg"><span style="color:#39ff14" aria-hidden="true">▮</span> Comparison</h3>
+                <div role="tablist" aria-label="Comparison view" class="flex flex-wrap gap-2">
+                  <template x-for="t in ['Season','Matchup','Trends']">
+                    <button role="tab" class="gl-pill text-xs" :class="cmp===t ? 'on' : ''" :aria-selected="cmp===t" @click="cmp=t" x-text="t"></button>
+                  </template>
+                </div>
+              </div>
+              <div x-show="cmp!=='Season' && cmp!=='Matchup' && cmp!=='Trends'" class="overflow-x-auto">
+                <table class="gl-table min-w-[30rem]">
+                  <thead>
+                    <tr>
+                      <th scope="col" class="!text-left w-32">Player</th>
+                      <template x-for="i in n">
+                        <th scope="col"><span class="flex items-center gap-2 justify-center normal-case"><span class="h-8 w-8 rounded-full bg-zinc-700" aria-hidden="true"></span><span class="text-left"><span class="block text-sm text-white">Player Name</span><span class="block text-[10px] text-zinc-400">POS - TM</span></span></span></th>
+                      </template>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template x-for="(r,ri) in rows">
+                      <tr>
+                        <th scope="row" class="!text-left !text-sm !text-white !tracking-normal" x-text="r"></th>
+                        <template x-for="i in n">
+                          <td :class="i===1 ? (ri===0 ? 'g' : (ri===2 ? 'gt' : '')) : (i===n && ri===2 ? 'rt' : '')" x-text="ri===1 ? '#0' : (ri===2 ? 'vs TM (00th)' : (ri===6 ? '00%' : '00.0'))"></td>
+                        </template>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+              <!-- Matchup view -->
+              <div x-show="cmp==='Matchup'" x-cloak class="space-y-3">
+                <div class="overflow-x-auto">
+                  <div class="rounded-xl border border-zinc-800 p-2" :style="n>=4 ? 'zoom:.78' : (n===3 ? 'zoom:.92' : '')">
+                    <div class="grid items-end gap-2 pb-2" :style="`grid-template-columns: ${n>=4 ? '6rem' : '8rem'} repeat(${n}, minmax(0,1fr))`">
+                      <div></div>
+                      <template x-for="i in n">
+                        <div class="flex items-center gap-2 rounded-xl border p-1.5" style="border-color:#2a8a1a;background:#0a140a">
+                          <span class="h-14 w-12 rounded-lg bg-zinc-700 shrink-0" aria-hidden="true"></span>
+                          <span class="min-w-0 flex-1">
+                            <span class="flex justify-end"><span class="h-5 w-5 rounded-full bg-zinc-600 inline-block" aria-hidden="true"></span></span>
+                            <span class="block text-sm font-bold leading-tight">Player Name</span>
+                            <span class="block text-[11px]" style="color:#7fd6c0">POS • TM</span>
+                          </span>
+                        </div>
+                      </template>
+                    </div>
+                    <template x-for="(r,ri) in [['◎','Projection'],['▦','Matchup'],['⛨','Matchup Grade']]">
+                      <div class="grid items-center gap-2 border-t border-zinc-800 py-2" :style="`grid-template-columns: ${n>=4 ? '6rem' : '8rem'} repeat(${n}, minmax(0,1fr))`">
+                        <div class="flex items-center gap-2 font-semibold"><span style="color:#39ff14" aria-hidden="true" x-text="r[0]"></span><span x-text="r[1]"></span></div>
+                        <template x-for="i in n">
+                          <div class="text-center">
+                            <template x-if="ri===0"><span class="inline-block w-full rounded-xl py-3 text-xl font-extrabold" :style="i===1 ? 'border:2px solid #39ff14;color:#b6ff3a;box-shadow:0 0 12px #39ff1466;background:#0c2a0c' : ''">00.0</span></template>
+                            <template x-if="ri===1"><span class="inline-block rounded-full px-4 py-1.5 text-sm" :style="i===2 ? 'background:#141814;border:1px solid #3a3f3a' : 'background:#0c2a0c;border:1px solid #1faa0a;color:#7dff6a'">vs TM (00th)</span></template>
+                            <template x-if="ri===2"><span class="text-4xl font-extrabold" style="color:#39ff14" x-text="['A','B','A-','B+'][i-1]"></span></template>
+                          </div>
+                        </template>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4 rounded-xl border p-3" style="border-color:#39ff14;background:#0a140a">
+                  <span class="text-2xl" style="color:#39ff14" aria-hidden="true">🏈︎</span>
+                  <span class="font-extrabold italic text-lg whitespace-nowrap" style="color:#b6ff3a">Matchup Take</span>
+                  <span class="w-px self-stretch bg-zinc-600" aria-hidden="true"></span>
+                  <p class="text-sm text-zinc-200">Placeholder take naming who has the best matchup and the highest projection, and why they are the top play.</p>
+                </div>
+              </div>
+
+              <!-- Trends view -->
+              <div x-show="cmp==='Trends'" x-cloak class="space-y-3"
+                   x-data="{ spark:[ {pts:'0,26 20,28 40,18 60,17 80,4', c:'#39ff14', t:'↑ +0.0 PPG', st:'Hot 🔥︎'}, {pts:'0,22 20,24 40,18 60,22 80,12', c:'#a1a1aa', t:'→ +0.0 PPG', st:'Neutral'}, {pts:'0,28 20,20 40,17 60,16 80,6', c:'#39ff14', t:'↑ +0.0 PPG', st:'Rising ↑'}, {pts:'0,6 20,10 40,16 60,18 80,26', c:'#ef4444', t:'↓ −0.0 PPG', st:'Cold ❄︎'} ] }">
+                <div class="overflow-x-auto">
+                  <div class="rounded-xl border border-zinc-800 p-2" :style="n>=4 ? 'zoom:.78' : (n===3 ? 'zoom:.92' : '')">
+                    <div class="grid items-end gap-2 pb-2" :style="`grid-template-columns: ${n>=4 ? '6rem' : '8rem'} repeat(${n}, minmax(0,1fr))`">
+                      <div></div>
+                      <template x-for="i in n">
+                        <div class="flex items-center gap-2 rounded-xl border p-1.5" style="border-color:#2a8a1a;background:#0a140a">
+                          <span class="h-14 w-12 rounded-lg bg-zinc-700 shrink-0" aria-hidden="true"></span>
+                          <span class="min-w-0 flex-1">
+                            <span class="flex justify-end"><span class="h-5 w-5 rounded-full bg-zinc-600 inline-block" aria-hidden="true"></span></span>
+                            <span class="block text-sm font-bold leading-tight">Player Name</span>
+                            <span class="block text-[11px]" style="color:#7fd6c0">POS • TM</span>
+                          </span>
+                        </div>
+                      </template>
+                    </div>
+                    <div class="grid items-center gap-2 border-t border-zinc-800 py-3" :style="`grid-template-columns: ${n>=4 ? '6rem' : '8rem'} repeat(${n}, minmax(0,1fr))`">
+                      <div class="flex items-center gap-2 font-semibold leading-tight"><span style="color:#39ff14" aria-hidden="true">↗</span><span>Trend<br>(Last 3)</span></div>
+                      <template x-for="i in n">
+                        <div class="text-center">
+                          <svg viewBox="0 0 90 34" class="w-4/5 mx-auto h-9" aria-hidden="true"><polyline :points="spark[i-1].pts" fill="none" :stroke="spark[i-1].c" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><circle :cx="spark[i-1].pts.split(' ').pop().split(',')[0]" :cy="spark[i-1].pts.split(' ').pop().split(',')[1]" r="4.5" :fill="spark[i-1].c"/></svg>
+                          <span class="block text-sm mt-1" x-text="spark[i-1].t"></span>
+                        </div>
+                      </template>
+                    </div>
+                    <div class="grid items-center gap-2 border-t border-zinc-800 py-3" :style="`grid-template-columns: ${n>=4 ? '6rem' : '8rem'} repeat(${n}, minmax(0,1fr))`">
+                      <div class="flex items-center gap-2 font-semibold"><span style="color:#39ff14" aria-hidden="true">🔥︎</span><span>Hot / Cold</span></div>
+                      <template x-for="i in n">
+                        <div class="text-center">
+                          <span class="inline-block w-4/5 rounded-xl py-2 text-lg font-extrabold" :style="spark[i-1].st==='Neutral' ? 'background:#141814;border:1px solid #3a3f3a;font-weight:500' : (spark[i-1].st.startsWith('Cold') ? 'background:#2a0c0c;border:1px solid #ef4444;color:#ff7a7a' : 'background:#0c2a0c;border:1px solid #39ff14;color:#7dff6a;box-shadow:0 0 10px #39ff1444')" x-text="spark[i-1].st"></span>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4 rounded-xl border p-3" style="border-color:#39ff14;background:#0a140a">
+                  <span class="text-2xl" style="color:#39ff14" aria-hidden="true">🏈︎</span>
+                  <span class="font-extrabold italic text-lg whitespace-nowrap" style="color:#b6ff3a">Trend Take</span>
+                  <span class="w-px self-stretch bg-zinc-600" aria-hidden="true"></span>
+                  <p class="text-sm text-zinc-200">Placeholder take about who is trending up over the last 3 weeks and who else is on the rise.</p>
+                </div>
+              </div>
+
+              <!-- Season view -->
+              <div x-show="cmp==='Season'" class="space-y-3">
+                <div class="overflow-x-auto">
+                  <div class="rounded-xl border border-zinc-800 p-2" :style="n>=4 ? 'zoom:.78' : (n===3 ? 'zoom:.92' : '')">
+                    <div class="grid items-end gap-2 pb-2" :style="`grid-template-columns: ${n>=4 ? '6rem' : '8rem'} repeat(${n}, minmax(0,1fr))`">
+                      <div></div>
+                      <template x-for="i in n">
+                        <div class="flex items-center gap-2 rounded-xl border p-1.5" style="border-color:#2a8a1a;background:#0a140a">
+                          <span class="h-14 w-12 rounded-lg bg-zinc-700 shrink-0" aria-hidden="true"></span>
+                          <span class="min-w-0 flex-1">
+                            <span class="flex justify-end"><span class="h-5 w-5 rounded-full bg-zinc-600 inline-block" aria-hidden="true"></span></span>
+                            <span class="block text-sm font-bold leading-tight">Player Name</span>
+                            <span class="block text-[11px]" style="color:#7fd6c0">POS • TM</span>
+                          </span>
+                        </div>
+                      </template>
+                    </div>
+                    <template x-for="(r,ri) in [['▮','PPG'],['🏆︎','Total Points'],['⛰︎','POS Rank']]">
+                      <div class="grid items-center gap-2 border-t border-zinc-800 py-2" :style="`grid-template-columns: ${n>=4 ? '6rem' : '8rem'} repeat(${n}, minmax(0,1fr))`">
+                        <div class="flex items-center gap-2 font-semibold"><span style="color:#39ff14" aria-hidden="true" x-text="r[0]"></span><span x-text="r[1]"></span></div>
+                        <template x-for="i in n">
+                          <div class="text-center">
+                            <template x-if="ri===0"><span class="inline-block w-full rounded-xl py-3 text-xl font-extrabold" :style="i===1 ? 'border:2px solid #39ff14;color:#b6ff3a;box-shadow:0 0 12px #39ff1466;background:#0c2a0c' : ''">00.0</span></template>
+                            <template x-if="ri===1"><span class="text-lg">000.0</span></template>
+                            <template x-if="ri===2"><span class="inline-block w-4/5 rounded-full border border-zinc-700 py-1.5 text-sm" style="background:#000;color:#fff" x-text="'POS'+i"></span></template>
+                          </div>
+                        </template>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4 rounded-xl border p-3" style="border-color:#39ff14;background:#0a140a">
+                  <span class="text-2xl" style="color:#39ff14" aria-hidden="true">🏈︎</span>
+                  <span class="font-extrabold italic text-lg" style="color:#b6ff3a">Season Take</span>
+                  <span class="w-px self-stretch bg-zinc-600" aria-hidden="true"></span>
+                  <p class="text-sm text-zinc-200">Placeholder take summarizing who leads in points per game and total points, and how close the rest are.</p>
+                </div>
+              </div>
+              <p class="text-xs text-zinc-500 text-center">Sample data. Tabs show the same placeholder table for now.</p>
+            </div>
+          </div>
+
+          <!-- RIGHT -->
+          <div class="space-y-4">
+
+            <div class="gl-panel p-4" style="border-color:#39ff14;box-shadow:0 0 18px #39ff1433">
+              <p class="text-center text-xs tracking-[0.45em] text-zinc-300 mb-3">RECOMMENDATION</p>
+              <div class="flex items-center gap-4">
+                <span class="h-28 w-24 rounded-lg bg-zinc-800 shrink-0 flex items-center justify-center text-[10px] text-zinc-500">Photo</span>
+                <div>
+                  <span class="inline-block rounded-lg px-5 py-2 font-extrabold" style="background:#3dea1f;color:#04120a">▶ START</span>
+                  <p class="text-2xl font-bold mt-3 leading-tight">Player Name</p>
+                  <p class="text-zinc-400">Projected: 00.0 PTS</p>
+                </div>
+              </div>
+              <p class="text-xs text-zinc-500 mt-2">Sample result.</p>
+            </div>
+
+            <div class="gl-panel p-4">
+              <h3 class="font-bold mb-3"><span style="color:#39ff14" aria-hidden="true">✔</span> Why Start Player Name?</h3>
+              <ul class="space-y-2 text-sm">
+                <li><span style="color:#39ff14" aria-hidden="true">●</span> Highest projection (00.0 PTS)</li>
+                <li><span style="color:#39ff14" aria-hidden="true">●</span> Top-ranked at position (#0)</li>
+                <li><span style="color:#39ff14" aria-hidden="true">●</span> Favorable matchup (TM, 00th vs POS)</li>
+                <li><span style="color:#39ff14" aria-hidden="true">●</span> Highest ceiling (00.0 PTS)</li>
+              </ul>
+            </div>
+
+            <div class="gl-panel p-4">
+              <h3 class="font-bold mb-3"><span style="color:#39ff14" aria-hidden="true">▮</span> Projection Breakdown</h3>
+              <ul class="space-y-3 text-sm">
+                <li class="flex items-center gap-3"><span class="w-20 shrink-0">Player 1</span><span class="flex-1 h-3 rounded bg-zinc-800"><span class="block h-3 rounded" style="width:100%;background:#3dea1f"></span></span><span class="w-10 text-right">00.0</span></li>
+                <li class="flex items-center gap-3"><span class="w-20 shrink-0">Player 2</span><span class="flex-1 h-3 rounded bg-zinc-800"><span class="block h-3 rounded" style="width:85%;background:#2a7d1c"></span></span><span class="w-10 text-right">00.0</span></li>
+                <li class="flex items-center gap-3" x-show="n>=3"><span class="w-20 shrink-0">Player 3</span><span class="flex-1 h-3 rounded bg-zinc-800"><span class="block h-3 rounded" style="width:80%;background:#2a7d1c"></span></span><span class="w-10 text-right">00.0</span></li>
+                <li class="flex items-center gap-3" x-show="n>=4"><span class="w-20 shrink-0">Player 4</span><span class="flex-1 h-3 rounded bg-zinc-800"><span class="block h-3 rounded" style="width:70%;background:#2a7d1c"></span></span><span class="w-10 text-right">00.0</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ DYNASTY ============ -->
+      <section x-show="screen==='dynasty'" x-cloak aria-labelledby="h-dyn" class="space-y-4"
+               x-data="{ dtab:'Overview', tabs:['Overview','Rookie Rankings','Breakouts','Strategy'],
+                         show(k){ return this.dtab==='Overview' || this.dtab===k } }">
+
+        <div>
+          <label for="dsearch" class="sr-only">Search players, teams, or stats</label>
+          <input id="dsearch" type="search" placeholder="Search players, teams, or stats..." class="gl-search">
+        </div>
+
+        <!-- Hero -->
+        <div class="gl-hero p-6 sm:p-8 grid md:grid-cols-[1fr_auto] gap-4 items-center">
+          <div class="flex items-center gap-4">
+            <span class="text-6xl hidden sm:block" style="color:#39ff14" aria-hidden="true">♛</span>
+            <div>
+              <h2 id="h-dyn" class="gl-title text-4xl sm:text-6xl">DYNASTY <span style="color:#39ff14">HUB</span></h2>
+              <p class="text-sm text-zinc-200 mt-2">Long-term value, rookie insights, and dynasty strategy, all in one place.</p>
+            </div>
+          </div>
+          <div class="hidden md:flex w-48 h-28 items-center justify-center text-[10px] text-zinc-500 border border-dashed border-zinc-600 rounded-lg">Image placeholder</div>
+        </div>
+
+        <!-- Tabs -->
+        <div role="tablist" aria-label="Dynasty sections" class="flex flex-wrap gap-2">
+          <template x-for="t in tabs">
+            <button role="tab" class="gl-pill !px-5" :class="dtab===t ? 'on-o' : ''" :aria-selected="dtab===t" @click="dtab=t" x-text="t"></button>
+          </template>
+        </div>
+
+        <div class="grid gap-4" :class="dtab==='Overview' ? 'lg:grid-cols-3' : 'lg:grid-cols-1'">
+
+          <!-- Dynasty rankings -->
+          <div x-show="show('Dynasty Rankings')" class="gl-panel p-4">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="font-bold text-lg"><span style="color:#39ff14" aria-hidden="true">▮</span> Dynasty Rankings</h3>
+              <button class="text-xs" style="color:#7dff6a" @click="go('rankings')">View Full Rankings →</button>
+            </div>
+            <table class="gl-table">
+              <thead><tr><th scope="col" class="w-6">#</th><th scope="col" class="!text-left">Player</th><th scope="col">Pos</th><th scope="col">Age</th><th scope="col">Dynasty Value</th></tr></thead>
+              <tbody>
+                <template x-for="r in 5">
+                  <tr class="cursor-pointer" tabindex="0" title="Open player profile" @click="profileOpen=true" @keydown.enter="profileOpen=true">
+                    <td x-text="r"></td>
+                    <td class="!text-left"><span class="flex items-center gap-2"><span class="h-8 w-8 rounded-full bg-zinc-700 shrink-0" aria-hidden="true"></span>Player Name</span></td>
+                    <td>POS</td><td>00</td>
+                    <td><span class="inline-block rounded-full px-3 py-0.5 text-xs" style="background:#0f3a12;color:#7dff6a;border:1px solid #39ff14">00.0</span></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Rookie rankings -->
+          <div x-show="show('Rookie Rankings')" class="gl-panel p-4">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="font-bold text-lg"><span style="color:#39ff14" aria-hidden="true">🎓</span> Rookie Rankings <span class="font-normal text-sm">(2027)</span></h3>
+              <button class="text-xs" style="color:#7dff6a" @click="go('rookies')">View Class →</button>
+            </div>
+            <table class="gl-table">
+              <thead><tr><th scope="col" class="w-6">#</th><th scope="col" class="!text-left">Player</th><th scope="col">Pos</th><th scope="col">School</th><th scope="col">Tier</th></tr></thead>
+              <tbody>
+                <template x-for="r in 5">
+                  <tr class="cursor-pointer" tabindex="0" title="Open player profile" @click="profileOpen=true" @keydown.enter="profileOpen=true">
+                    <td x-text="r"></td>
+                    <td class="!text-left"><span class="flex items-center gap-2"><span class="h-8 w-8 rounded-full bg-zinc-700 shrink-0" aria-hidden="true"></span>Player Name</span></td>
+                    <td>POS</td><td>School</td>
+                    <td><span class="inline-block rounded-full px-3 py-0.5 text-xs" style="background:#2a2a05;color:#e8e83a;border:1px solid #e8e83a" x-text="'Tier '+(r<3 ? 1 : (r<5 ? 2 : 3))"></span></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Tools -->
+          <div x-show="dtab==='Overview'" class="gl-panel p-4 space-y-2">
+            <h3 class="font-bold text-lg mb-1"><span style="color:#39ff14" aria-hidden="true">🛠</span> Dynasty Tools</h3>
+            <button class="gl-row w-full text-left" @click="dtab='Rookie Rankings'"><span aria-hidden="true">☻</span><span class="flex-1">Rookie Rankings</span><span aria-hidden="true">›</span></button>
+            <button class="gl-row w-full text-left" @click="dtab='Breakouts'"><span aria-hidden="true">▮</span><span class="flex-1">Breakout Finder</span><span aria-hidden="true">›</span></button>
+            <button class="gl-row w-full text-left" @click="dtab='Strategy'"><span aria-hidden="true">◎</span><span class="flex-1">Contender / Rebuild</span><span aria-hidden="true">›</span></button>
+            <button class="gl-row w-full text-left" @click="go('trade')"><span aria-hidden="true">⇄</span><span class="flex-1">Trade Calculator</span><span aria-hidden="true">›</span></button>
+          </div>
+
+          <!-- Draft pick values -->
+          <div x-show="show('Draft Pick Values')" class="gl-panel p-4">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="font-bold text-lg"><span style="color:#39ff14" aria-hidden="true">▤</span> Draft Pick Values</h3>
+              <button class="text-xs" style="color:#7dff6a">Edit Class →</button>
+            </div>
+            <div class="flex text-xs text-zinc-300 mb-2"><span class="w-24">Pick</span><span>Value (1.0 = 1st Overall)</span></div>
+            <ul class="space-y-3 text-sm">
+              <template x-for="k in [['20XX 1st',100],['20XX 2nd',38],['20XX 3rd',18],['20XY 1st',92],['20XY 2nd',36]]">
+                <li class="flex items-center gap-3"><span class="w-24 shrink-0" x-text="k[0]"></span><span class="w-10" x-text="(k[1]/100).toFixed(2)"></span><span class="flex-1 h-3 rounded bg-zinc-800"><span class="block h-3 rounded" :style="`width:${k[1]}%;background:#3dea1f`"></span></span></li>
+              </template>
+            </ul>
+          </div>
+
+          <!-- Breakouts -->
+          <div x-show="show('Breakouts')" class="gl-panel p-4 space-y-2">
+            <div class="flex items-center justify-between mb-1">
+              <h3 class="font-bold text-lg"><span style="color:#39ff14" aria-hidden="true">↗</span> Breakout Candidates</h3>
+              <button class="text-xs" style="color:#7dff6a" @click="go('breakouts')">View All →</button>
+            </div>
+            <template x-for="b in [['21%','Increasing role, elite upside'],['18%','Larger target share, year 2 jump'],['17%','Growing workload, high ceiling']]">
+              <div class="gl-row cursor-pointer" tabindex="0" title="Open player profile" @click="profileOpen=true" @keydown.enter="profileOpen=true">
+                <span class="h-12 w-12 rounded-full bg-zinc-700 shrink-0" aria-hidden="true"></span>
+                <span class="flex-1"><span class="block font-semibold">Player Name</span><span class="block text-xs text-zinc-400">POS - TM</span></span>
+                <span class="text-right"><span class="inline-block rounded-full px-3 py-0.5 text-xs" style="background:#0f3a12;color:#7dff6a;border:1px solid #39ff14" x-text="'↑ '+b[0]"></span><span class="block text-xs text-zinc-400 mt-1" x-text="b[1]"></span></span>
+              </div>
+            </template>
+            <p class="text-xs text-zinc-500">Sample data.</p>
+          </div>
+
+          <!-- Strategy -->
+          <div x-show="show('Strategy')" class="gl-panel p-4">
+            <h3 class="font-bold text-lg mb-3"><span style="color:#39ff14" aria-hidden="true">💡</span> Dynasty Strategy</h3>
+            <ul class="space-y-3 text-sm">
+              <template x-for="t in ['Strategy tip placeholder one.','Strategy tip placeholder two.','Strategy tip placeholder three.','Strategy tip placeholder four.','Strategy tip placeholder five.']">
+                <li class="flex gap-3"><span style="color:#39ff14" aria-hidden="true">✔</span><span x-text="t"></span></li>
+              </template>
+            </ul>
+          </div>
+        </div>
+        <p class="text-xs text-zinc-500 text-center">Sample data. All names, ages and values are placeholders.</p>
+      </section>
+
+      <!-- ============ ROOKIE RANKINGS (full list) ============ -->
+      <section x-show="screen==='rookies'" x-cloak aria-labelledby="h-rook" class="space-y-4"
+               x-data="{ pos:'All', pp:['RB','WR','QB','WR','TE','RB','WR','RB','QB','WR','TE','RB','WR','WR','RB','TE','QB','RB','WR','RB'] }">
+        <button class="text-sm" style="color:#7dff6a" @click="go('dynasty')">← Back to Dynasty Hub</button>
+        <div class="gl-hero p-6 sm:p-8">
+          <h2 id="h-rook" class="gl-title text-4xl sm:text-6xl">ROOKIE <span style="color:#39ff14">RANKINGS</span> <span class="text-2xl">(2027)</span></h2>
+          <p class="text-sm text-zinc-200 mt-2">The full 2027 rookie class, ranked for dynasty.</p>
+        </div>
+        <div class="flex flex-wrap gap-2" role="tablist" aria-label="Filter by position">
+          <template x-for="p in ['All','QB','RB','WR','TE']">
+            <button class="gl-pill !px-5" :class="pos===p ? 'on-o' : ''" @click="pos=p" x-text="p"></button>
+          </template>
+        </div>
+        <div class="gl-panel p-4">
+          <table class="gl-table">
+            <thead><tr><th scope="col" class="w-6">#</th><th scope="col" class="!text-left">Player</th><th scope="col">Pos</th><th scope="col">School</th><th scope="col">Tier</th></tr></thead>
+            <tbody>
+              <template x-for="(p,i) in pp.map((x,i)=>({x,i})).filter(o => pos==='All' || o.x===pos)" :key="p.i">
+                <tr class="cursor-pointer" tabindex="0" title="Open player profile" @click="profileOpen=true" @keydown.enter="profileOpen=true">
+                  <td x-text="p.i+1"></td>
+                  <td class="!text-left"><span class="flex items-center gap-2"><span class="h-8 w-8 rounded-full bg-zinc-700 shrink-0" aria-hidden="true"></span>Player Name</span></td>
+                  <td x-text="p.x"></td><td>School</td>
+                  <td><span class="inline-block rounded-full px-3 py-0.5 text-xs" style="background:#2a2a05;color:#e8e83a;border:1px solid #e8e83a" x-text="'Tier '+(p.i<6 ? 1 : (p.i<13 ? 2 : 3))"></span></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+          <p class="text-xs text-zinc-500 mt-3">Sample data. All names and schools are placeholders.</p>
+        </div>
+      </section>
+
+      <!-- ============ BREAKOUTS (full list) ============ -->
+      <section x-show="screen==='breakouts'" x-cloak aria-labelledby="h-brk" class="space-y-4"
+               x-data="{ pos:'All', rows:[['21%','Increasing role, elite upside','RB'],['20%','Offseason hype, locked-in starter','WR'],['18%','Larger target share, year 2 jump','WR'],['17%','Growing workload, high ceiling','RB'],['16%','Rushing upside, new weapons','QB'],['15%','Red zone usage trending up','TE'],['14%','Slot role expanding','WR'],['13%','Backfield share rising','RB'],['12%','Improved offensive line','QB'],['12%','Seam target, snap count up','TE'],['11%','Deep threat, new QB','WR'],['10%','Goal line role, handcuff upside','RB'],['9%','Second-year leap candidate','WR'],['9%','Pass-catching role growing','RB'],['8%','Breakout TE2 turned TE1','TE']] }">
+        <button class="text-sm" style="color:#7dff6a" @click="go('dynasty')">← Back to Dynasty Hub</button>
+        <div class="gl-hero p-6 sm:p-8">
+          <h2 id="h-brk" class="gl-title text-4xl sm:text-6xl">TOP <span style="color:#39ff14">BREAKOUTS</span></h2>
+          <p class="text-sm text-zinc-200 mt-2">Full list of players projected to jump in value.</p>
+        </div>
+        <div class="flex flex-wrap gap-2" role="tablist" aria-label="Filter by position">
+          <template x-for="p in ['All','QB','RB','WR','TE']">
+            <button class="gl-pill !px-5" :class="pos===p ? 'on-o' : ''" @click="pos=p" x-text="p"></button>
+          </template>
+        </div>
+        <div class="gl-panel p-4 space-y-2">
+          <template x-for="(b,i) in rows.filter(r => pos==='All' || r[2]===pos)" :key="i">
+            <div class="gl-row cursor-pointer" tabindex="0" title="Open player profile" @click="profileOpen=true" @keydown.enter="profileOpen=true">
+              <span class="w-6 text-center text-zinc-400" x-text="i+1"></span>
+              <span class="h-12 w-12 rounded-full bg-zinc-700 shrink-0" aria-hidden="true"></span>
+              <span class="flex-1"><span class="block font-semibold">Player Name</span><span class="block text-xs text-zinc-400" x-text="b[2]+' - TM'"></span></span>
+              <span class="text-right"><span class="inline-block rounded-full px-3 py-0.5 text-xs" style="background:#0f3a12;color:#7dff6a;border:1px solid #39ff14" x-text="'↑ '+b[0]"></span><span class="block text-xs text-zinc-400 mt-1" x-text="b[1]"></span></span>
+            </div>
+          </template>
+          <p class="text-xs text-zinc-500">Sample data. All names and values are placeholders.</p>
+        </div>
+      </section>
+
+      <!-- ============ DRAFT ============ -->
+      <section x-show="screen==='draft'" x-cloak aria-labelledby="h-draft" class="space-y-4"
+               x-data="{ dr:'Rankings', ltype:'Snake', size:12, rfmt:'Custom', qbf:'1 QB', edit:false, adv:false,
+                         pos:{QB:1,RB:2,WR:2,TE:1,FLEX:1,SUPERFLEX:0,K:1,DEF:1},
+                         P:['WR','RB','WR','RB','WR','WR','TE','RB','WR','WR'],
+                         reset(){ this.ltype='Snake'; this.size=12; this.rfmt='Custom'; this.qbf='1 QB'; this.pos={QB:1,RB:2,WR:2,TE:1,FLEX:1,SUPERFLEX:0,K:1,DEF:1}} }">
+
+        <div>
+          <label for="drsearch" class="sr-only">Search players, teams, or stats</label>
+          <input id="drsearch" type="search" placeholder="Search players, teams, or stats..." class="gl-search">
+        </div>
+
+        <!-- Hero -->
+        <div class="gl-hero p-5 sm:p-6 flex items-center gap-4 min-h-[8rem]">
+          <span class="hidden sm:flex h-20 w-16 rounded-lg items-center justify-center text-4xl" style="border:3px solid #39ff14;color:#39ff14" aria-hidden="true">☑</span>
+          <div>
+            <h2 id="h-draft" class="gl-title text-4xl sm:text-6xl">DRAFT <span style="color:#39ff14">GUIDE</span></h2>
+            <p class="text-sm text-zinc-200 mt-2">Rankings, ADP, and draft tools to help you build a championship roster.</p>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div role="tablist" aria-label="Draft sections" class="flex flex-wrap gap-3">
+          <template x-for="t in ['Rankings','ADP','Mock Draft']">
+            <button role="tab" class="gl-pill !px-8 !py-2.5 !rounded-xl" :class="dr===t ? 'on-o' : ''" :aria-selected="dr===t" @click="dr=t" x-text="t"></button>
+          </template>
+        </div>
+
+        <!-- ADP tab content -->
+        <div x-show="dr==='ADP'" x-cloak class="grid lg:grid-cols-[1.05fr_1fr] gap-4 items-start">
+
+          <div class="gl-panel p-4 min-w-0">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <h3 class="font-bold text-xl"><span style="color:#39ff14" aria-hidden="true">▮</span> Average Draft Position (ADP) <span class="text-zinc-500 text-sm" aria-hidden="true">ⓘ</span></h3>
+              <p class="text-xs text-zinc-300">Source: Source A, Source B, Source C &nbsp; Updated: sample date</p>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="gl-table min-w-[30rem]">
+                <thead><tr><th scope="col" class="w-8">#</th><th scope="col" class="!text-left">Player</th><th scope="col">Pos</th><th scope="col">Team</th><th scope="col">ADP ↓</th><th scope="col">ADP Trend</th><th scope="col"><span class="sr-only">Trend line</span></th></tr></thead>
+                <tbody>
+                  <template x-for="r in 12">
+                    <tr class="cursor-pointer" tabindex="0" title="Open player profile" @click="profileOpen=true" @keydown.enter="profileOpen=true">
+                      <td class="font-bold text-base" x-text="r"></td>
+                      <td class="!text-left"><span class="flex items-center gap-2"><span class="h-9 w-9 rounded-full bg-zinc-700 shrink-0" aria-hidden="true"></span><span class="font-semibold">Player Name</span></span></td>
+                      <td x-text="['WR','RB','WR','RB','WR','WR','TE','RB','WR','WR','WR','RB'][r-1]"></td>
+                      <td><span class="flex items-center justify-center gap-1"><span class="h-5 w-5 rounded-full bg-zinc-600 inline-block" aria-hidden="true"></span>TM</span></td>
+                      <td><span class="inline-block rounded-full px-3 py-0.5 text-xs font-semibold" style="background:#0c2a0c;color:#7dff6a;border:1px solid #39ff14" x-text="'1.'+String(r).padStart(2,'0')"></span></td>
+                      <td class="font-semibold" :style="['—','—','▲1','▲1','▼2','—','▲1','▼1','—','▲1','▲2','▼1'][r-1].startsWith('▲') ? 'color:#39ff14' : (['—','—','▲1','▲1','▼2','—','▲1','▼1','—','▲1','▲2','▼1'][r-1].startsWith('▼') ? 'color:#ef4444' : '')" x-text="['—','—','▲1','▲1','▼2','—','▲1','▼1','—','▲1','▲2','▼1'][r-1]"></td>
+                      <td><svg viewBox="0 0 60 20" class="w-14 h-5 inline-block" aria-hidden="true"><polyline points="0,18 12,14 24,15 36,9 48,10 60,3" fill="none" stroke="#39ff14" stroke-width="2"/></svg></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+            <p class="text-xs text-zinc-500 mt-2">Sample data.</p>
+          </div>
+
+          <div class="space-y-4 min-w-0">
+
+            <!-- ADP trends chart -->
+            <div class="gl-panel p-4">
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <h3 class="font-bold text-xl"><span style="color:#39ff14" aria-hidden="true">↗</span> ADP Trends</h3>
+                <div>
+                  <label for="adp-player" class="sr-only">Player</label>
+                  <select id="adp-player" class="rounded-lg border px-3 py-1.5 text-sm" style="border-color:#39ff14">
+                    <option>Player Name 1</option><option>Player Name 2</option><option>Player Name 3</option>
+                  </select>
+                </div>
+              </div>
+              <svg viewBox="0 0 420 190" class="w-full h-auto" role="img" aria-label="ADP trend line chart, sample data">
+                <defs><linearGradient id="adpfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#39ff14" stop-opacity="0.35"/><stop offset="1" stop-color="#39ff14" stop-opacity="0"/></linearGradient></defs>
+                <g fill="#d4d4d8" font-size="10">
+                  <text x="2" y="18">1.01</text><text x="2" y="46">1.03</text><text x="2" y="74">1.05</text><text x="2" y="102">1.07</text><text x="2" y="130">1.09</text><text x="2" y="158">1.11</text>
+                </g>
+                <line x1="40" y1="10" x2="40" y2="158" stroke="#71717a"/><line x1="40" y1="158" x2="415" y2="158" stroke="#71717a"/>
+                <polygon points="42,156 70,152 105,128 135,140 170,118 205,115 240,92 280,100 320,78 350,86 380,64 400,70 413,50 413,158 42,158" fill="url(#adpfill)"/>
+                <polyline points="42,156 70,152 105,128 135,140 170,118 205,115 240,92 280,100 320,78 350,86 380,64 400,70 413,50" fill="none" stroke="#39ff14" stroke-width="3" stroke-linejoin="round"/>
+                <g fill="#e5e5e5" font-size="11" text-anchor="middle"><text x="105" y="180">Aug</text><text x="230" y="180">Sep</text><text x="350" y="180">Oct</text></g>
+              </svg>
+              <p class="text-xs text-zinc-500">Sample data.</p>
+            </div>
+
+            <!-- Risers + fallers -->
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div class="gl-panel p-4">
+                <h3 class="font-bold text-lg mb-3"><span style="color:#39ff14" aria-hidden="true">↑</span> Biggest Risers (ADP)</h3>
+                <ul class="space-y-2 text-sm">
+                  <template x-for="r in ['+4','+3','+3','+2','+2']"><li class="flex gap-3"><span class="w-10 font-semibold" style="color:#39ff14" x-text="'▲ '+r"></span><span>Player Name (POS - TM)</span></li></template>
+                </ul>
+              </div>
+              <div class="gl-panel p-4">
+                <h3 class="font-bold text-lg mb-3"><span style="color:#ef4444" aria-hidden="true">↓</span> Biggest Fallers (ADP)</h3>
+                <ul class="space-y-2 text-sm">
+                  <template x-for="r in ['−4','−3','−3','−2','−2']"><li class="flex gap-3"><span class="w-10 font-semibold" style="color:#ef4444" x-text="'▼ '+r"></span><span>Player Name (POS - TM)</span></li></template>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Insights -->
+            <div class="gl-panel p-4" style="border-color:#2a8a1a">
+              <h3 class="font-bold text-xl mb-3"><span style="color:#39ff14" aria-hidden="true">💡︎</span> ADP Insights</h3>
+              <ul class="space-y-3 text-sm">
+                <template x-for="i in 4"><li class="flex gap-3"><span style="color:#39ff14" aria-hidden="true">●</span>Insight placeholder: a short note about how a player's or position's ADP is moving.</li></template>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+                <!-- Mock Draft setup (Mock Draft tab) -->
+        <div x-show="dr==='Mock Draft'" x-cloak class="grid lg:grid-cols-[1.6fr_1fr] gap-4 items-start" x-data="{ adv:false }">
+
+          <div class="gl-panel p-4 space-y-4 min-w-0">
+            <div class="flex items-center gap-3">
+              <span class="text-4xl" style="color:#39ff14" aria-hidden="true">▷</span>
+              <div>
+                <h3 class="font-bold text-2xl leading-tight">Mock Draft Setup</h3>
+                <p class="text-sm text-zinc-300">Customize your mock draft to match your league settings.</p>
+              </div>
+            </div>
+
+            <div class="grid xl:grid-cols-2 gap-4">
+              <!-- League settings -->
+              <div class="rounded-xl border border-zinc-800 p-3 space-y-4">
+                <h4 class="font-bold text-lg"><span style="color:#facc15" aria-hidden="true">⚙</span> League Settings</h4>
+                <div>
+                  <p id="ms-fmt" class="text-sm mb-1">League Format <span class="text-zinc-500" aria-hidden="true">ⓘ</span></p>
+                  <div role="group" aria-labelledby="ms-fmt" class="flex flex-wrap gap-2">
+                    <template x-for="t in ['Standard','Dynasty']"><button class="gl-pill !rounded-full" :class="mock.format===t ? 'on-o' : ''" :aria-pressed="mock.format===t" @click="mock.format=t" x-text="t"></button></template>
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <p id="ms-lt" class="text-sm mb-1">League Type <span class="text-zinc-500" aria-hidden="true">ⓘ</span></p>
+                    <div role="group" aria-labelledby="ms-lt" class="flex gap-2">
+                      <template x-for="t in ['Snake','Auction']"><button class="gl-pill !rounded-full" :class="mock.type===t ? 'on-o' : ''" :aria-pressed="mock.type===t" @click="mock.type=t" x-text="t"></button></template>
+                    </div>
+                  </div>
+                  <div>
+                    <label for="ms-size" class="block text-sm mb-1">League Size <span class="text-zinc-500" aria-hidden="true">ⓘ</span></label>
+                    <select id="ms-size" x-model.number="mock.size" @change="mock.pick=Math.min(mock.pick,mock.size)" class="w-full rounded-lg border border-zinc-600 px-3 py-2 text-sm">
+                      <template x-for="t in [8,10,12,14,16]"><option :value="t" :selected="mock.size===t" x-text="t+' Teams'"></option></template>
+                    </select>
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <p id="ms-sf" class="text-sm mb-1">Scoring Format <span class="text-zinc-500" aria-hidden="true">ⓘ</span></p>
+                    <div role="group" aria-labelledby="ms-sf" class="flex flex-wrap gap-2">
+                      <template x-for="o in [['ppr','PPR'],['half','Half PPR'],['std','Standard']]"><button class="gl-pill !rounded-full !px-3 text-xs" :class="scoring===o[0] ? 'on-o' : ''" :aria-pressed="scoring===o[0]" @click="scoring=o[0]" x-text="o[1]"></button></template>
+                    </div>
+                  </div>
+                  <div>
+                    <p id="ms-qb" class="text-sm mb-1">Quarterback Format <span class="text-zinc-500" aria-hidden="true">ⓘ</span></p>
+                    <div role="group" aria-labelledby="ms-qb" class="flex flex-wrap gap-2">
+                      <template x-for="t in ['1 QB','Superflex']"><button class="gl-pill !rounded-full !px-3 text-xs" :class="mock.qb===t ? 'on-o' : ''" :aria-pressed="mock.qb===t" @click="mock.qb=t" x-text="t"></button></template>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Roster settings -->
+              <div class="rounded-xl border border-zinc-800 p-3 space-y-3">
+                <h4 class="font-bold text-lg"><span style="color:#39ff14" aria-hidden="true">👥︎</span> Roster Settings</h4>
+                <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-[11px] font-semibold">
+                  <template x-for="k in ['QB','RB','WR','TE','FLEX','SUPERFLEX']">
+                    <div><label :for="'ms-'+k" class="block mb-1" x-text="k"></label><input :id="'ms-'+k" type="number" min="0" max="9" x-model.number="mock.pos[k]" class="w-full rounded-lg border border-zinc-600 px-1 py-1.5 text-center text-sm"></div>
+                  </template>
+                </div>
+                <div class="grid grid-cols-4 gap-2 text-center text-[11px] font-semibold items-end">
+                  <template x-for="k in ['K','DEF']">
+                    <div><label :for="'ms-'+k" class="block mb-1" x-text="k"></label><input :id="'ms-'+k" type="number" min="0" max="9" x-model.number="mock.pos[k]" class="w-full rounded-lg border border-zinc-600 px-1 py-1.5 text-center text-sm"></div>
+                  </template>
+                  <div class="col-span-2 text-left"><label for="ms-bench" class="block mb-1">Bench Spots <span class="text-zinc-500" aria-hidden="true">ⓘ</span></label>
+                    <select id="ms-bench" x-model.number="mock.bench" class="w-full rounded-lg border border-zinc-600 px-3 py-1.5 text-sm font-normal">
+                      <template x-for="b in [0,1,2,3,4,5,6,7,8,9,10]"><option :value="b" :selected="mock.bench===b" x-text="b"></option></template>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid xl:grid-cols-2 gap-4">
+              <!-- Draft position -->
+              <div class="rounded-xl border border-zinc-800 p-3 space-y-3">
+                <h4 class="font-bold text-lg"><span style="color:#facc15" aria-hidden="true">◎</span> Your Draft Position</h4>
+                <div class="flex flex-wrap items-end gap-3">
+                  <button class="gl-pill !rounded-xl" :class="mock.mode==='choose' ? 'on-o' : ''" :aria-pressed="mock.mode==='choose'" @click="mock.mode='choose'">✎ Choose My Pick</button>
+                  <button class="gl-pill !rounded-xl" :class="mock.mode==='random' ? 'on-o' : ''" :aria-pressed="mock.mode==='random'" @click="mock.mode='random'; mock.pick=Math.ceil(Math.random()*mock.size)">⤮ Randomize</button>
+                  <div class="ml-auto">
+                    <label for="ms-pick" class="block text-sm mb-1">Pick Number <span class="text-zinc-500" aria-hidden="true">ⓘ</span></label>
+                    <input id="ms-pick" type="number" min="1" :max="mock.size" x-model.number="mock.pick" class="w-24 rounded-lg border border-zinc-600 px-3 py-1.5 text-sm">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Advanced -->
+              <div class="rounded-xl border border-zinc-800">
+                <button class="w-full flex items-center gap-3 p-3 text-left" :aria-expanded="adv" @click="adv=!adv">
+                  <span aria-hidden="true" style="color:#39ff14">⇄</span><span class="flex-1 font-bold text-lg">Advanced Settings</span><span aria-hidden="true" x-text="adv ? '⌃' : '⌄'"></span>
+                </button>
+                <div x-show="adv" x-cloak class="px-3 pb-3 grid grid-cols-2 gap-3 text-sm">
+                  <div><label for="ms-timer" class="block text-xs text-zinc-400 mb-1">Pick timer (sec)</label><input id="ms-timer" type="text" placeholder="90" class="gl-search !rounded-lg !py-1.5"></div>
+                  <div><label for="ms-ai" class="block text-xs text-zinc-400 mb-1">Computer difficulty</label><input id="ms-ai" type="text" placeholder="Expert" class="gl-search !rounded-lg !py-1.5"></div>
+                </div>
+              </div>
+            </div>
+
+            <button class="w-full rounded-full py-4 text-2xl font-extrabold" style="background:#3dea1f;color:#04120a" @click="go('mock')">▷ Start Mock Draft →</button>
+          </div>
+
+          <!-- Right -->
+          <div class="space-y-4">
+            <div class="gl-panel p-4">
+              <h3 class="font-bold text-xl mb-3"><span style="color:#39ff14" aria-hidden="true">▦</span> Mock Draft Preview</h3>
+              <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 text-sm">
+                <dt>League Format:</dt><dd class="text-right font-bold" style="color:#7dff6a" x-text="mock.format"></dd>
+                <dt>Format:</dt><dd class="text-right font-bold" style="color:#7dff6a" x-text="mock.type"></dd>
+                <dt>Teams:</dt><dd class="text-right font-bold" style="color:#7dff6a" x-text="mock.size"></dd>
+                <dt>Scoring:</dt><dd class="text-right font-bold" style="color:#7dff6a" x-text="{ppr:'PPR',half:'Half PPR',std:'Standard'}[scoring]"></dd>
+                <dt>QB Format:</dt><dd class="text-right font-bold" style="color:#7dff6a" x-text="mock.qb"></dd>
+                <dt>Roster:</dt><dd class="text-right" x-text="Object.keys(mock.pos).filter(k=>mock.pos[k]>0).map(k=>(mock.pos[k]===1 && (k==='K'||k==='DEF')) ? k : mock.pos[k]+' '+k).join(', ')+' ('+mock.bench+' Bench)'"></dd>
+                <dt>Your Pick:</dt><dd class="text-right font-bold" style="color:#7dff6a" x-text="ord(mock.pick)+' Overall'"></dd>
+              </dl>
+            </div>
+            <div class="gl-panel p-4">
+              <h3 class="font-bold text-xl mb-3"><span style="color:#39ff14" aria-hidden="true">▮</span> What You'll Get</h3>
+              <ul class="space-y-3 text-sm">
+                <template x-for="t in ['Realistic, expert-powered mock draft','Live draft board with ADP and rankings','Pick recommendations and analysis','Full roster review and team grade','Post-draft recap and improvement tips']">
+                  <li class="flex gap-3"><span style="color:#39ff14" aria-hidden="true">✔</span><span x-text="t"></span></li>
+                </template>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div x-show="dr!=='ADP' && dr!=='Mock Draft'" class="grid lg:grid-cols-[1fr_1.05fr] gap-4 items-start">
+
+          <!-- LEFT: content by tab -->
+          <div class="gl-panel p-4 min-w-0">
+
+            <div x-show="dr==='Rankings'">
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="font-bold text-xl"><span style="color:#39ff14" aria-hidden="true">▮</span> Draft Rankings</h3>
+                <span class="text-xs text-zinc-400"><span x-text="mock.format"></span> · Updated: sample date</span>
+              </div>
+              <div>
+                <table class="gl-table !text-xs [&_td]:!px-1 [&_td]:!py-1 [&_th]:!px-1">
+                  <thead><tr><th scope="col" class="w-8">#</th><th scope="col" class="!text-left">Player</th><th scope="col">Pos</th><th scope="col">Team</th><th scope="col">ADP</th><th scope="col">Proj. Pts</th></tr></thead>
+                  <tbody>
+                    <template x-for="r in 10">
+                      <tr class="cursor-pointer" tabindex="0" title="Open player profile" @click="profileOpen=true" @keydown.enter="profileOpen=true">
+                        <td class="font-bold text-sm" x-text="r"></td>
+                        <td class="!text-left"><span class="flex items-center gap-1.5"><span class="h-6 w-6 rounded-full bg-zinc-700 shrink-0" aria-hidden="true"></span><span class="font-semibold text-xs">Player Name</span></span></td>
+                        <td x-text="P[r-1]"></td>
+                        <td><span class="flex items-center justify-center gap-1"><span class="h-4 w-4 rounded-full bg-zinc-600 inline-block" aria-hidden="true"></span>TM</span></td>
+                        <td x-text="'1.'+String(r).padStart(2,'0')"></td>
+                        <td><span class="inline-block rounded-full px-2 py-0 text-[11px] font-semibold" style="background:#0f3a12;color:#7dff6a;border:1px solid #39ff14">000.0</span></td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- RIGHT: draft settings -->
+          <div class="gl-panel p-4 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-xl"><span style="color:#39ff14" aria-hidden="true">⚙</span> Draft Settings</h3>
+              <button class="text-sm text-zinc-300" @click="reset(); scoring='ppr'; mock.format='Standard'">⟳ Reset to Default</button>
+            </div>
+
+            <div>
+              <p id="d-fmt" class="text-sm mb-1">League Format <span class="text-zinc-500" aria-hidden="true">ⓘ</span></p>
+              <div role="group" aria-labelledby="d-fmt" class="flex flex-wrap gap-2">
+                <template x-for="t in ['Standard','Dynasty']"><button class="gl-pill !rounded-full" :class="mock.format===t ? 'on-o' : ''" :aria-pressed="mock.format===t" @click="mock.format=t" x-text="t"></button></template>
+              </div>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <p id="d-lt" class="text-sm mb-1">League Type <span class="text-zinc-500" aria-hidden="true">ⓘ</span></p>
+                <div role="group" aria-labelledby="d-lt" class="grid grid-cols-2 gap-2">
+                  <template x-for="t in ['Snake','Auction']"><button class="gl-pill !rounded-full" :class="ltype===t ? 'on-o' : ''" :aria-pressed="ltype===t" @click="ltype=t" x-text="t"></button></template>
+                </div>
+              </div>
+              <div>
+                <label for="d-ab" class="block text-sm mb-1">Auction Budget <span class="text-zinc-500" aria-hidden="true">ⓘ</span></label>
+                <input id="d-ab" type="text" value="$200" class="gl-search !rounded-lg" :disabled="ltype!=='Auction'" :class="ltype!=='Auction' ? 'opacity-50' : ''">
+              </div>
+
+              <div>
+                <p id="d-ls" class="text-sm mb-1">League Size <span class="text-zinc-500" aria-hidden="true">ⓘ</span></p>
+                <div role="group" aria-labelledby="d-ls" class="flex flex-wrap gap-2">
+                  <template x-for="t in [8,10,12,14,16]"><button class="gl-pill !rounded-full text-xs" :class="size===t ? 'on-o' : ''" :aria-pressed="size===t" @click="size=t" x-text="t+' Teams'"></button></template>
+                </div>
+              </div>
+              <div>
+                <p id="d-rf" class="text-sm mb-1">Roster Format <span class="text-zinc-500" aria-hidden="true">ⓘ</span></p>
+                <div role="group" aria-labelledby="d-rf" class="flex flex-wrap gap-2">
+                  <template x-for="t in ['Standard','Custom']"><button class="gl-pill !rounded-full text-xs" :class="rfmt===t ? 'on-o' : ''" :aria-pressed="rfmt===t" @click="rfmt=t" x-text="t"></button></template>
+                </div>
+              </div>
+
+              <div>
+                <p id="d-qb" class="text-sm mb-1">Quarterback Format <span class="text-zinc-500" aria-hidden="true">ⓘ</span></p>
+                <div role="group" aria-labelledby="d-qb" class="grid grid-cols-2 gap-2">
+                  <template x-for="t in ['1 QB','Superflex']"><button class="gl-pill !rounded-full" :class="qbf===t ? 'on-o' : ''" :aria-pressed="qbf===t" @click="qbf=t" x-text="t"></button></template>
+                </div>
+              </div>
+              <div>
+                <p id="d-sf" class="text-sm mb-1">Scoring Format <span class="text-zinc-500" aria-hidden="true">ⓘ</span></p>
+                <div role="group" aria-labelledby="d-sf" class="grid grid-cols-3 gap-2">
+                  <template x-for="o in [['ppr','PPR'],['half','Half PPR'],['std','Standard']]"><button class="gl-pill !rounded-full !px-2 text-xs" :class="scoring===o[0] ? 'on-o' : ''" :aria-pressed="scoring===o[0]" @click="scoring=o[0]" x-text="o[1]"></button></template>
+                </div>
+              </div>
+            </div>
+
+            <!-- Position settings -->
+            <div class="rounded-xl border border-zinc-700 p-3">
+              <div class="flex items-center justify-between mb-2">
+                <p class="text-sm">Position Settings <span class="text-zinc-500" aria-hidden="true">ⓘ</span></p>
+                <button class="text-sm" style="color:#7dff6a" @click="edit=!edit" x-text="edit ? 'Done' : 'Edit'"></button>
+              </div>
+              <div class="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                <template x-for="k in Object.keys(pos)">
+                  <div class="rounded-lg border border-zinc-700 py-2 text-center" style="background:#000;color:#fff">
+                    <p class="text-[11px] font-semibold" x-text="k"></p>
+                    <p class="font-bold" x-text="pos[k]"></p>
+                    <div x-show="edit" x-cloak class="flex justify-center gap-1 mt-1">
+                      <button class="h-5 w-5 rounded bg-zinc-700 text-xs" :aria-label="'Decrease '+k" @click="if(pos[k]>0) pos[k]--">−</button>
+                      <button class="h-5 w-5 rounded bg-zinc-700 text-xs" :aria-label="'Increase '+k" @click="if(pos[k]<9) pos[k]++">+</button>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- Advanced -->
+            <div class="rounded-xl border border-zinc-700">
+              <button class="w-full flex items-center gap-3 p-3 text-left" :aria-expanded="adv" @click="adv=!adv">
+                <span aria-hidden="true" style="color:#39ff14">⇄</span><span class="flex-1 font-semibold">Advanced Settings</span><span aria-hidden="true" x-text="adv ? '⌃' : '⌄'"></span>
+              </button>
+              <div x-show="adv" x-cloak class="px-3 pb-3 grid grid-cols-2 gap-3 text-sm">
+                <div><label for="d-rounds" class="block text-xs text-zinc-400 mb-1">Rounds</label><input id="d-rounds" type="text" placeholder="15" class="gl-search !rounded-lg !py-1.5"></div>
+                <div><label for="d-timer" class="block text-xs text-zinc-400 mb-1">Pick timer (sec)</label><input id="d-timer" type="text" placeholder="90" class="gl-search !rounded-lg !py-1.5"></div>
+                <div><label for="d-slot" class="block text-xs text-zinc-400 mb-1">Your draft slot</label><input id="d-slot" type="text" placeholder="1" class="gl-search !rounded-lg !py-1.5"></div>
+                <div><label for="d-bench" class="block text-xs text-zinc-400 mb-1">Bench spots</label><input id="d-bench" type="text" placeholder="6" class="gl-search !rounded-lg !py-1.5"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom cards -->
+        <div class="grid md:grid-cols-3 gap-4">
+          <div class="gl-panel p-4 space-y-3" style="border-color:#2a8a1a">
+            <h3 class="font-bold text-lg"><span style="color:#39ff14" aria-hidden="true">▤</span> Draft Cheat Sheet</h3>
+            <p class="text-sm text-zinc-300">A one-page, printable board with rankings, ADP, and key notes.</p>
+            <button class="rounded-full px-5 py-2 font-bold text-sm" style="background:#3dea1f;color:#04120a" title="We'll wire this up later">⭳ Download Cheat Sheet</button>
+          </div>
+          <div class="gl-panel p-4 space-y-3" style="border-color:#2a8a1a">
+            <h3 class="font-bold text-lg"><span style="color:#39ff14" aria-hidden="true">▷</span> Mock Draft</h3>
+            <p class="text-sm text-zinc-300">Simulate your draft with custom league settings.</p>
+            <button class="rounded-full px-5 py-2 font-bold text-sm" style="background:#3dea1f;color:#04120a" @click="dr='Mock Draft'; window.scrollTo(0,0)">Start Mock Draft →</button>
+          </div>
+          <div class="gl-panel p-4 space-y-3" style="border-color:#2a8a1a">
+            <h3 class="font-bold text-lg"><span style="color:#39ff14" aria-hidden="true">▮</span> ADP Trends</h3>
+            <p class="text-sm text-zinc-300">See how player ADP is changing across platforms.</p>
+            <button class="rounded-full px-5 py-2 font-bold text-sm" style="background:#3dea1f;color:#04120a" @click="dr='ADP'">View ADP Trends →</button>
+          </div>
+        </div>
+        <p class="text-xs text-zinc-500 text-center">Sample data. Names, ADP and projections are placeholders.</p>
+      </section>
+
+      <!-- ============ MY TEAMS ============ -->
+      <section x-show="screen==='teams'" x-cloak aria-labelledby="h-teams" class="space-y-4"
+               x-data="{ tt:'League Overview', lgOpen:false,
+                 tabs:['League Overview','My Team','League Rankings'],
+                 map:{ 'League Overview':['mt','tb','sc','pr','lp','br','sp'], 'My Team':[], 'League Rankings':[], 'Projections':['lp','br'], 'Predictions':['br','sp'] },
+                 show(k){ return this.map[this.tt].includes(k) },
+                 trend:['—','▲1','▲2','▼2','—','▲1','▲3','▼2','▼1','—','—','—'],
+                 grade:['A-','A-','B+','B+','B','B','B-','C+','C+','C','C-','D+'],
+                 rec:['10 – 4','10 – 4','9 – 5','8 – 6','8 – 6','7 – 7','7 – 7','6 – 8','6 – 8','5 – 9','4 – 10','3 – 11'],
+                 po:['84%','82%','76%','61%','57%','48%','44%','31%','28%','17%','11%','6%'],
+                 ti:['18%','16%','14%','10%','9%','7%','6%','4%','4%','2%','1%','<1%'],
+                 lu:['QB','RB','RB','WR','WR','TE','FLEX','D/ST','K'],
+                 gr:[['QB','A',92],['RB','A-',85],['WR','A',90],['TE','B+',74],['FLEX','A-',82],['DEPTH','B+',68]],
+                 bd:[['QB','A',92],['RB','A-',85],['WR','A',90],['TE','B+',74],['FLEX','A-',82],['DEPTH','B+',68]] }">
+
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="flex-1 min-w-[12rem]">
+            <label for="tmsearch" class="sr-only">Search players, teams, or stats</label>
+            <input id="tmsearch" type="search" placeholder="Search players, teams, or stats..." class="gl-search">
+          </div>
+          <button class="gl-pill on-o !px-5 !py-2.5" @click="syncOpen=true" title="We'll wire this up later" x-text="synced ? 'Sync another league' : '⟳ Sync League'"></button>
+        </div>
+
+        <!-- Hero -->
+        <div class="gl-hero p-5 sm:p-6 flex items-center gap-4 min-h-[8rem]">
+          <span class="hidden sm:block text-6xl" style="color:#39ff14" aria-hidden="true">🏆︎</span>
+          <div>
+            <h2 id="h-teams" class="gl-title text-4xl sm:text-6xl">MY <span style="color:#39ff14">TEAMS</span></h2>
+            <p class="text-sm text-zinc-200 mt-2">Your leagues, team analysis, league rankings, and season projections.</p>
+          </div>
+        </div>
+
+        <!-- Tabs + league picker -->
+        <div class="flex flex-wrap items-center gap-3">
+          <div role="tablist" aria-label="My Teams sections" class="flex flex-wrap gap-3 flex-1">
+            <template x-for="t in tabs">
+              <button role="tab" class="gl-pill !px-5 !rounded-xl" :class="tt===t ? 'on-o' : ''" :aria-selected="tt===t" @click="tt=t" x-text="t"></button>
+            </template>
+          </div>
+          <div class="relative">
+            <button class="gl-pill on-o !rounded-xl !px-5" :aria-expanded="lgOpen" @click="lgOpen=!lgOpen">My Leagues &nbsp;⌄</button>
+            <div x-show="lgOpen" x-cloak @click.outside="lgOpen=false" class="absolute right-0 mt-2 w-56 gl-panel p-2 z-10 space-y-1">
+              <button class="gl-row w-full text-left !py-2 text-sm" @click="lgOpen=false">League Name Placeholder</button>
+              <button class="gl-row w-full text-left !py-2 text-sm" @click="lgOpen=false; syncOpen=true">+ Sync another league</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- League strip -->
+        <div class="gl-panel p-3 flex items-center gap-4">
+          <span class="text-2xl" style="color:#39ff14" aria-hidden="true">🏈︎</span>
+          <div>
+            <p class="font-bold text-lg leading-tight">League Name Placeholder <span class="ml-3 text-xs font-normal" style="color:#7dff6a" x-text="synced ? '⚭ Synced' : '⚭ Sample league (not synced)'"></span></p>
+            <p class="text-xs text-zinc-400">12 Teams • Redraft • PPR • 1 QB</p>
+          </div>
+        </div>
+
+        <!-- My Team tab content -->
+        <div x-show="tt==='My Team'" x-cloak>
+          <div class="grid lg:grid-cols-12 gap-4 items-start">
+
+            <!-- Team grade -->
+            <div class="gl-panel p-4 lg:col-span-4">
+              <h3 class="font-bold text-lg mb-3"><span style="color:#39ff14" aria-hidden="true">🏆︎</span> Team Grade <span class="text-zinc-500 text-sm" aria-hidden="true">ⓘ</span></h3>
+              <div class="flex items-center gap-4">
+                <div class="rounded-2xl px-7 py-5 shrink-0" style="border:2px solid #39ff14;box-shadow:0 0 14px #39ff1455;background:#0a140a"><p class="text-6xl font-extrabold italic leading-none">A-</p></div>
+                <dl class="flex-1 text-sm space-y-2">
+                  <div class="flex justify-between"><dt>Projected Record</dt><dd class="font-bold" style="color:#7dff6a">00 – 0</dd></div>
+                  <div class="flex justify-between"><dt>Playoff Odds</dt><dd class="font-bold" style="color:#7dff6a">00%</dd></div>
+                  <div class="flex justify-between"><dt>Proj. Finish</dt><dd class="font-bold" style="color:#7dff6a">0nd</dd></div>
+                  <div class="flex justify-between"><dt>Title Odds</dt><dd class="font-bold" style="color:#7dff6a">00%</dd></div>
+                </dl>
+              </div>
+            </div>
+
+            <!-- Position grades -->
+            <div class="gl-panel p-4 lg:col-span-4">
+              <h3 class="font-bold text-lg mb-3"><span style="color:#39ff14" aria-hidden="true">▮</span> Position Grades</h3>
+              <ul class="space-y-1.5 text-sm">
+                <template x-for="r in gr">
+                  <li class="flex items-center gap-3"><span class="w-14 font-semibold" x-text="r[0]"></span><span class="w-8 font-bold" style="color:#7dff6a" x-text="r[1]"></span><span class="flex-1 h-3 rounded bg-zinc-800"><span class="block h-3 rounded" :style="`width:${r[2]}%;background:#3dea1f`"></span></span></li>
+                </template>
+              </ul>
+            </div>
+
+            <!-- Team analysis -->
+            <div class="gl-panel p-4 lg:col-span-4">
+              <h3 class="font-bold text-lg mb-3"><span style="color:#39ff14" aria-hidden="true">🏋︎</span> Team Analysis</h3>
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p class="font-bold mb-2" style="color:#7dff6a">✔ Strengths</p>
+                  <ul class="space-y-2"><template x-for="i in 4"><li><span style="color:#39ff14" aria-hidden="true">●</span> Strength placeholder</li></template></ul>
+                </div>
+                <div>
+                  <p class="font-bold mb-2" style="color:#e8e83a">⚠ Concerns</p>
+                  <ul class="space-y-2"><template x-for="i in 4"><li><span style="color:#e8c83a" aria-hidden="true">⚠</span> Concern placeholder</li></template></ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Starting lineup -->
+            <div class="gl-panel p-4 lg:col-span-4 min-w-0">
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="font-bold text-lg"><span style="color:#39ff14" aria-hidden="true">▤</span> Starting Lineup</h3>
+                <span class="text-xs" style="color:#7dff6a">Proj. Pts: 000.0</span>
+              </div>
+              <table class="gl-table">
+                <thead><tr><th scope="col" class="!text-left">Pos</th><th scope="col" class="!text-left">Player</th><th scope="col">Opp</th><th scope="col">Proj. Pts</th></tr></thead>
+                <tbody>
+                  <template x-for="p in lu">
+                    <tr class="cursor-pointer" tabindex="0" title="Open player profile" @click="profileOpen=true" @keydown.enter="profileOpen=true">
+                      <td class="!text-left"><span class="inline-block rounded-lg px-3 py-1 text-xs font-bold" style="border:1px solid #39ff14;background:#0c2a0c" x-text="p"></span></td>
+                      <td class="!text-left"><span class="flex items-center gap-2"><span class="h-8 w-8 rounded-full bg-zinc-700 shrink-0" aria-hidden="true"></span>Player Name</span></td>
+                      <td><span class="flex items-center justify-center gap-1"><span class="h-5 w-5 rounded-full bg-zinc-600 inline-block" aria-hidden="true"></span>vs TM</span></td>
+                      <td class="font-bold" style="color:#7dff6a">00.0</td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Bench -->
+            <div class="gl-panel p-4 lg:col-span-4 min-w-0">
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="font-bold text-lg"><span style="color:#39ff14" aria-hidden="true">▭</span> Bench</h3>
+                <span class="text-xs" style="color:#7dff6a">Proj. Pts: 00.0</span>
+              </div>
+              <table class="gl-table">
+                <thead><tr><th scope="col" class="!text-left">Pos</th><th scope="col" class="!text-left">Player</th><th scope="col">Opp</th><th scope="col">Proj. Pts</th></tr></thead>
+                <tbody>
+                  <template x-for="i in 6">
+                    <tr class="cursor-pointer" tabindex="0" title="Open player profile" @click="profileOpen=true" @keydown.enter="profileOpen=true">
+                      <td class="!text-left"><span class="inline-block rounded-lg px-3 py-1 text-xs font-bold bg-zinc-800">BN</span></td>
+                      <td class="!text-left"><span class="flex items-center gap-2"><span class="h-8 w-8 rounded-full bg-zinc-700 shrink-0" aria-hidden="true"></span>Player Name</span></td>
+                      <td><span class="flex items-center justify-center gap-1"><span class="h-5 w-5 rounded-full bg-zinc-600 inline-block" aria-hidden="true"></span>vs TM</span></td>
+                      <td class="font-bold" style="color:#7dff6a">00.0</td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Right column -->
+            <div class="lg:col-span-4 space-y-4 min-w-0">
+              <div class="gl-panel p-4">
+                <h3 class="font-bold text-lg mb-3"><span style="color:#39ff14" aria-hidden="true">◎</span> Recommendations</h3>
+                <ul class="space-y-2 text-sm">
+                  <template x-for="r in ['Upgrade placeholder: target a top player at a weak position.','Add depth placeholder: consider a low-cost player for insurance.','Trade suggestion placeholder: package bench players for an elite starter.']">
+                    <li class="flex gap-2 items-start"><span class="rounded border px-1.5 text-xs" style="border-color:#39ff14;color:#39ff14" aria-hidden="true">→</span><span x-text="r"></span></li>
+                  </template>
+                </ul>
+              </div>
+              <div class="gl-panel p-4">
+                <h3 class="font-bold text-lg mb-3"><span style="color:#39ff14" aria-hidden="true">↗</span> Key Projections</h3>
+                <div class="grid grid-cols-4 gap-2 text-center">
+                  <template x-for="k in [['000.0','Proj. PPG'],['0,000','Proj. Points'],['00 – 0','Proj. Record'],['00%','Playoff Odds']]">
+                    <div class="gl-row !flex-col !gap-0 !p-2" style="border-color:#2a8a1a"><span class="text-lg font-bold" x-text="k[0]"></span><span class="text-[11px] text-zinc-300" x-text="k[1]"></span></div>
+                  </template>
+                </div>
+              </div>
+              <div class="gl-panel p-4" style="border-color:#39ff14;box-shadow:0 0 14px #39ff1433">
+                <h3 class="font-bold text-lg mb-2"><span style="color:#39ff14" aria-hidden="true">🤖︎</span> AI Analyst Take</h3>
+                <p class="text-sm italic text-zinc-200">"Placeholder analyst paragraph summarizing the roster, its biggest strength, and the one move that would help most."</p>
+              </div>
+            </div>
+
+          </div>
+          <p class="text-xs text-zinc-500 text-center mt-3">Sample data. All names and numbers are placeholders.</p>
+        </div>
+
+        <!-- League Rankings tab content -->
+        <div x-show="tt==='League Rankings'" x-cloak>
+          <div class="grid lg:grid-cols-[1.25fr_1fr_1.15fr] gap-4 items-start">
+
+            <!-- Power rankings -->
+            <div class="gl-panel p-4 min-w-0">
+              <h3 class="font-bold text-xl mb-2"><span style="color:#39ff14" aria-hidden="true">🏆︎</span> League Power Rankings</h3>
+              <div class="overflow-x-auto">
+                <table class="gl-table min-w-[26rem]">
+                  <thead><tr><th scope="col" class="w-6">#</th><th scope="col" class="!text-left">Team</th><th scope="col">Grade</th><th scope="col">Proj. Record</th><th scope="col">Playoff %</th><th scope="col">Δ</th></tr></thead>
+                  <tbody>
+                    <template x-for="r in 12">
+                      <tr :style="r===1 ? 'outline:1px solid #39ff14;background:#0c2a0c' : ''">
+                        <td class="font-bold" x-text="r"></td>
+                        <td class="!text-left"><span class="flex items-center gap-2"><span class="h-8 w-8 rounded-full bg-zinc-600 shrink-0" aria-hidden="true"></span><span x-text="r===1 ? 'My Team' : 'Team Name '+String(r).padStart(2,'0')"></span></span></td>
+                        <td><span class="inline-block rounded-full px-3 py-0.5 text-xs font-bold" style="background:#0c2a0c;border:1px solid #39ff14;color:#7dff6a" x-text="grade[r-1]"></span></td>
+                        <td x-text="rec[r-1]"></td>
+                        <td x-text="po[r-1]"></td>
+                        <td :style="trend[r-1].startsWith('▲') ? 'color:#39ff14' : (trend[r-1].startsWith('▼') ? 'color:#ef4444' : '')" x-text="trend[r-1]"></td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Middle column -->
+            <div class="space-y-4 min-w-0">
+              <div class="gl-panel p-4">
+                <h3 class="font-bold text-xl mb-3"><span style="color:#39ff14" aria-hidden="true">👥︎</span> League Overview</h3>
+                <dl class="text-sm grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5">
+                  <dt class="font-bold">League:</dt><dd>League Name Placeholder</dd>
+                  <dt class="font-bold">Teams:</dt><dd>12</dd>
+                  <dt class="font-bold">Format:</dt><dd>Redraft</dd>
+                  <dt class="font-bold">Scoring:</dt><dd x-text="{ppr:'PPR',half:'Half PPR',std:'Standard'}[scoring]"></dd>
+                  <dt class="font-bold">QB Format:</dt><dd>1 QB</dd>
+                  <dt class="font-bold">Playoffs:</dt><dd>6 Teams (Top 50%)</dd>
+                  <dt class="font-bold">Trade Deadline:</dt><dd>Week 12</dd>
+                </dl>
+              </div>
+
+              <div class="gl-panel p-4">
+                <h3 class="font-bold text-xl mb-2"><span style="color:#39ff14" aria-hidden="true">▦</span> Projected Standings</h3>
+                <table class="gl-table">
+                  <thead><tr><th scope="col" class="w-6">#</th><th scope="col" class="!text-left">Team</th><th scope="col">Proj. Record</th></tr></thead>
+                  <tbody>
+                    <template x-for="r in 12">
+                      <tr :style="r===7 ? 'border-top:2px dashed #39ff14' : ''">
+                        <td class="font-bold" :style="r<=6 ? 'color:#39ff14' : ''" x-text="r"></td>
+                        <td class="!text-left"><span class="flex items-center gap-2"><span class="h-6 w-6 rounded-full bg-zinc-600 shrink-0" aria-hidden="true"></span><span x-text="r===1 ? 'My Team' : 'Team Name '+String(r).padStart(2,'0')"></span></span></td>
+                        <td x-text="rec[r-1]"></td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+                <p class="text-xs text-zinc-500 mt-2">Dashed line marks the playoff cut. Sample data.</p>
+              </div>
+            </div>
+
+            <!-- Right column -->
+            <div class="space-y-4 min-w-0">
+              <div class="gl-panel p-4">
+                <h3 class="font-bold text-xl mb-3"><span style="color:#39ff14" aria-hidden="true">▮</span> League Projection</h3>
+                <dl class="text-sm space-y-2">
+                  <template x-for="r in [['🏆︎','Projected Champion','My Team (00% odds)',true],['♛','Runner-Up','Team Name (00%)',false],['☆','3rd Place','Team Name (00%)',false],['⚡︎','Biggest Riser','Team Name (+0 spots)',false],['⇩','Biggest Faller','Team Name (−0 spots)',false]]">
+                    <div class="grid grid-cols-[2rem_1fr_1.2fr] items-center gap-2"><span style="color:#39ff14" aria-hidden="true" x-text="r[0]"></span><dt x-text="r[1]"></dt><dd :style="r[3] ? 'color:#7dff6a' : ''" x-text="r[2]"></dd></div>
+                  </template>
+                </dl>
+              </div>
+
+              <div class="gl-panel p-4">
+                <h3 class="font-bold text-xl mb-3"><span style="color:#39ff14" aria-hidden="true">⌥</span> Playoff Odds</h3>
+                <div class="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-3 xl:grid-cols-6 gap-3 text-center text-[11px]">
+                  <template x-for="r in 12">
+                    <div>
+                      <div class="mx-auto h-14 w-14 rounded-full flex items-center justify-center" :style="`background:conic-gradient(#39ff14 ${parseInt(po[r-1])*3.6}deg,#27272a 0)`">
+                        <span class="h-11 w-11 rounded-full bg-black flex items-center justify-center text-xs font-bold" x-text="po[r-1]"></span>
+                      </div>
+                      <p class="mt-1 leading-tight" :style="r===1 ? 'color:#7dff6a' : ''" x-text="r===1 ? 'My Team' : 'Team Name '+String(r).padStart(2,'0')"></p>
+                    </div>
+                  </template>
+                </div>
+              </div>
+
+              <div class="gl-panel p-4" style="border-color:#39ff14;box-shadow:0 0 14px #39ff1433">
+                <h3 class="font-bold text-xl mb-2"><span style="color:#39ff14" aria-hidden="true">🧠︎</span> Analyst Take</h3>
+                <p class="text-sm italic text-zinc-200">"Placeholder analyst paragraph about who the favorite is, who the biggest threats are, and what separates the top of the league."</p>
+              </div>
+            </div>
+          </div>
+          <p class="text-xs text-zinc-500 text-center mt-3">Sample data. All teams, grades and percentages are placeholders.</p>
+        </div>
+
+        <div class="grid lg:grid-cols-6 gap-4 items-start">
+
+          <!-- My Team -->
+          <div x-show="show('mt')" class="gl-panel p-4 lg:col-span-2">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-bold text-lg"><span style="color:#39ff14" aria-hidden="true">⛑︎</span> My Team</h3>
+              <button class="text-xs" style="color:#7dff6a">Team Analysis</button>
+            </div>
+            <div class="flex items-center gap-4">
+              <div class="rounded-2xl text-center px-5 py-4 shrink-0" style="border:2px solid #39ff14;box-shadow:0 0 14px #39ff1455;background:#0a140a">
+                <p class="text-5xl font-extrabold italic leading-none">A-</p>
+                <p class="text-sm mt-2">Team Grade</p>
+              </div>
+              <dl class="flex-1 text-sm space-y-2">
+                <div class="flex justify-between"><dt>Projected Record</dt><dd class="font-bold" style="color:#7dff6a">00 – 0</dd></div>
+                <div class="flex justify-between"><dt>Playoff Odds</dt><dd class="font-bold" style="color:#7dff6a">00%</dd></div>
+                <div class="flex justify-between"><dt>Proj. Finish</dt><dd class="font-bold" style="color:#7dff6a">0nd</dd></div>
+                <div class="flex justify-between"><dt>Title Odds</dt><dd class="font-bold" style="color:#7dff6a">00%</dd></div>
+              </dl>
+            </div>
+          </div>
+
+          <!-- Team breakdown -->
+          <div x-show="show('tb')" class="gl-panel p-4 lg:col-span-2">
+            <h3 class="font-bold text-lg mb-3"><span style="color:#39ff14" aria-hidden="true">▮</span> Team Breakdown</h3>
+            <ul class="space-y-1.5 text-sm">
+              <template x-for="r in bd">
+                <li class="flex items-center gap-3"><span class="w-12" x-text="r[0]"></span><span class="w-8 font-bold" x-text="r[1]"></span><span class="flex-1 h-3 rounded bg-zinc-800"><span class="block h-3 rounded" :style="`width:${r[2]}%;background:#3dea1f`"></span></span></li>
+              </template>
+            </ul>
+            <p class="text-xs text-zinc-500 mt-2">Sample data.</p>
+          </div>
+
+          <!-- Strengths & concerns -->
+          <div x-show="show('sc')" class="gl-panel p-4 lg:col-span-2">
+            <h3 class="font-bold text-lg mb-3"><span style="color:#39ff14" aria-hidden="true">👍︎</span> Strengths &amp; Concerns</h3>
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p class="font-bold mb-2" style="color:#7dff6a">Strengths</p>
+                <ul class="space-y-2">
+                  <li><span style="color:#39ff14" aria-hidden="true">✔</span> Strength placeholder</li>
+                  <li><span style="color:#39ff14" aria-hidden="true">✔</span> Strength placeholder</li>
+                  <li><span style="color:#39ff14" aria-hidden="true">✔</span> Strength placeholder</li>
+                </ul>
+              </div>
+              <div>
+                <p class="font-bold mb-2" style="color:#e8e83a">Concerns</p>
+                <ul class="space-y-2">
+                  <li><span style="color:#e8c83a" aria-hidden="true">⚠</span> Concern placeholder</li>
+                  <li><span style="color:#e8c83a" aria-hidden="true">⚠</span> Concern placeholder</li>
+                  <li><span style="color:#e8c83a" aria-hidden="true">⚠</span> Concern placeholder</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Power rankings -->
+          <div x-show="show('pr')" class="gl-panel p-4 lg:col-span-2 min-w-0">
+            <h3 class="font-bold text-lg mb-2"><span style="color:#39ff14" aria-hidden="true">♛</span> League Power Rankings</h3>
+            <table class="gl-table">
+              <thead><tr><th scope="col" class="w-6">#</th><th scope="col" class="!text-left">Team</th><th scope="col">Trend</th><th scope="col">Grade</th></tr></thead>
+              <tbody>
+                <template x-for="r in 12">
+                  <tr :style="r===1 ? 'outline:1px solid #39ff14;background:#0c2a0c' : ''">
+                    <td x-text="r"></td>
+                    <td class="!text-left"><span class="flex items-center gap-2"><span class="h-6 w-6 rounded-full bg-zinc-600 shrink-0" aria-hidden="true"></span><span x-text="r===1 ? 'My Team' : 'Team Name '+String(r).padStart(2,'0')"></span></span></td>
+                    <td :style="trend[r-1].startsWith('▲') ? 'color:#39ff14' : (trend[r-1].startsWith('▼') ? 'color:#ef4444' : '')" x-text="trend[r-1]"></td>
+                    <td class="font-bold" x-text="grade[r-1]"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- League projections -->
+          <div x-show="show('lp')" class="gl-panel p-4 lg:col-span-2 min-w-0">
+            <h3 class="font-bold text-lg mb-2"><span style="color:#39ff14" aria-hidden="true">▮</span> League Projections</h3>
+            <table class="gl-table">
+              <thead><tr><th scope="col" class="!text-left">Team</th><th scope="col">Proj. Record</th><th scope="col">Playoff %</th><th scope="col">Title %</th></tr></thead>
+              <tbody>
+                <template x-for="r in 12">
+                  <tr :style="r===1 ? 'outline:1px solid #39ff14;background:#0c2a0c' : ''">
+                    <td class="!text-left"><span class="flex items-center gap-2"><span class="h-6 w-6 rounded-full bg-zinc-600 shrink-0" aria-hidden="true"></span><span x-text="r===1 ? 'My Team' : 'Team Name '+String(r).padStart(2,'0')"></span></span></td>
+                    <td x-text="rec[r-1]"></td>
+                    <td :style="r<5 ? 'color:#7dff6a' : ''" x-text="po[r-1]"></td>
+                    <td :style="r<5 ? 'color:#7dff6a' : ''" x-text="ti[r-1]"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+            <p class="text-xs text-zinc-500 mt-2">Sample data.</p>
+          </div>
+
+          <!-- Bracket + predictions -->
+          <div x-show="show('br') || show('sp')" class="lg:col-span-2 space-y-4 min-w-0">
+
+            <div x-show="show('br')" class="gl-panel p-4">
+              <h3 class="font-bold text-lg mb-3"><span style="color:#39ff14" aria-hidden="true">⌥</span> Projected Playoff Bracket</h3>
+              <div class="flex items-center gap-2">
+                <div class="flex-1 space-y-3 text-sm">
+                  <div class="space-y-1">
+                    <div class="gl-row !py-1.5" style="border-color:#39ff14"><span class="h-6 w-6 rounded-full bg-zinc-600" aria-hidden="true"></span>(1) My Team</div>
+                    <div class="gl-row !py-1.5"><span class="h-6 w-6 rounded-full bg-zinc-600" aria-hidden="true"></span>(4) Team Name</div>
+                  </div>
+                  <div class="space-y-1">
+                    <div class="gl-row !py-1.5"><span class="h-6 w-6 rounded-full bg-zinc-600" aria-hidden="true"></span>(2) Team Name</div>
+                    <div class="gl-row !py-1.5"><span class="h-6 w-6 rounded-full bg-zinc-600" aria-hidden="true"></span>(3) Team Name</div>
+                  </div>
+                </div>
+                <div class="w-6 self-stretch my-6 border-t border-b border-r border-zinc-500 rounded-r" aria-hidden="true"></div>
+                <div class="rounded-xl text-center p-3 text-sm" style="border:2px solid #39ff14;background:#0c2a0c">
+                  <p class="text-3xl" style="color:#39ff14" aria-hidden="true">♛</p>
+                  <p class="text-[10px] tracking-[0.3em] text-zinc-300">PROJECTED</p>
+                  <p class="font-extrabold italic text-lg leading-tight">CHAMPION</p>
+                  <p class="font-semibold mt-1" style="color:#7dff6a">My Team</p>
+                </div>
+              </div>
+            </div>
+
+            <div x-show="show('sp')" class="gl-panel p-4">
+              <h3 class="font-bold text-lg mb-3"><span style="color:#39ff14" aria-hidden="true">◎</span> Season Predictions</h3>
+              <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4 gap-2 text-center text-xs">
+                <div class="gl-row !flex-col !gap-1 !p-2" style="border-color:#2a8a1a"><span style="color:#39ff14" aria-hidden="true">♛</span><span>Champion</span><span class="font-bold text-sm">My Team</span><span class="text-zinc-400">(00% odds)</span></div>
+                <div class="gl-row !flex-col !gap-1 !p-2" style="border-color:#2a8a1a"><span style="color:#39ff14" aria-hidden="true">↗</span><span>Biggest Riser</span><span class="font-bold text-sm">Team Name</span><span class="text-zinc-400">(+0 spots)</span></div>
+                <div class="gl-row !flex-col !gap-1 !p-2" style="border-color:#2a8a1a"><span style="color:#ef4444" aria-hidden="true">↘</span><span>Biggest Faller</span><span class="font-bold text-sm">Team Name</span><span class="text-zinc-400">(−0 spots)</span></div>
+                <div class="gl-row !flex-col !gap-1 !p-2" style="border-color:#2a8a1a"><span style="color:#39ff14" aria-hidden="true">☆</span><span>MVP (Fantasy)</span><span class="font-bold text-sm">Player Name</span><span class="text-zinc-400">(Proj. 000.0 pts)</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="text-xs text-zinc-500 text-center">Sample data. All teams, grades and projections are placeholders.</p>
+
+      </section>
+
+      <!-- ============ MOCK DRAFT ROOM ============ -->
+      <section x-show="screen==='mock'" x-cloak aria-labelledby="h-mock" class="space-y-4"
+               x-effect="teams=mock.size; slot=Math.min(mock.pick,mock.size)-1; rounds=Math.max(1,Object.values(mock.pos).reduce((a,b)=>a+b,0)+mock.bench); n=0"
+               x-data="{ n:0, slot:5, rounds:5, teams:12, P:['QB','RB','WR','WR','RB','TE','WR','RB','WR','QB'],
+                 pickNo(r,t){ return r*this.teams + (r%2===0 ? t : this.teams-1-t) + 1 },
+                 total(){ return this.rounds*this.teams },
+                 clockTeam(){ const r=Math.floor(this.n/this.teams), i=this.n%this.teams; return r%2===0 ? i : this.teams-1-i },
+                 mine(){ return this.clockTeam()===this.slot },
+                 draft(){ if(this.n<this.total()) this.n++ } }">
+
+        <button class="text-sm text-zinc-300" @click="go('draft')">‹ Back to Draft Guide</button>
+
+        <div class="gl-hero p-5 sm:p-6 grid md:grid-cols-[1fr_auto] gap-4 items-center">
+          <div>
+            <p class="text-xs tracking-[0.4em] text-zinc-400 mb-1">DRAFT GUIDE</p>
+            <h2 id="h-mock" class="gl-title text-4xl sm:text-5xl">MOCK <span style="color:#39ff14">DRAFT</span></h2>
+            <p class="text-sm text-zinc-200 mt-2"><span x-text="teams"></span> teams · <span x-text="mock.format"></span> · <span x-text="mock.type"></span> · <span x-text="rounds"></span> rounds · <span x-text="{ppr:'PPR',half:'Half PPR',std:'Standard'}[scoring]"></span> · You pick <span x-text="'#'+(slot+1)"></span></p>
+          </div>
+          <div class="flex gap-2">
+            <button class="gl-pill on-o" @click="n=0">⟲ Restart</button>
+            <button class="gl-pill" @click="go('draft')">Exit</button>
+          </div>
+        </div>
+
+        <div class="grid lg:grid-cols-[1fr_21rem] gap-4 items-start">
+
+          <!-- Draft board -->
+          <div class="gl-panel p-3 min-w-0">
+            <h3 class="font-bold text-lg mb-2"><span style="color:#39ff14" aria-hidden="true">▦</span> Draft Board</h3>
+            <div class="overflow-x-auto">
+              <table class="min-w-[44rem] w-full text-center text-[11px] border-separate" style="border-spacing:3px">
+                <thead>
+                  <tr>
+                    <template x-for="t in teams">
+                      <th scope="col" class="py-1 font-semibold" :style="(t-1)===slot ? 'color:#39ff14' : 'color:#a1a1aa'" x-text="(t-1)===slot ? 'You' : 'Team '+t"></th>
+                    </template>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="r in rounds">
+                    <tr>
+                      <template x-for="t in teams">
+                        <td class="rounded-md h-14 align-middle px-1"
+                            :style="pickNo(r-1,t-1)<=n ? 'background:#0f3a12;border:1px solid #1faa0a' : (pickNo(r-1,t-1)===n+1 ? 'background:#0c2a0c;border:1px solid #39ff14;box-shadow:0 0 8px #39ff1488' : ((t-1)===slot ? 'background:#101a10;border:1px solid #1d3a1d' : 'background:#0a0f0a;border:1px solid #1a2a1a'))">
+                          <template x-if="pickNo(r-1,t-1)<=n">
+                            <span><span class="block text-[9px] text-zinc-400" x-text="r+'.'+String(t).padStart(2,'0')"></span><span class="block leading-tight">Player Name</span><span class="block text-[9px] text-zinc-300" x-text="P[(pickNo(r-1,t-1)-1)%P.length]+' - TM'"></span></span>
+                          </template>
+                          <template x-if="pickNo(r-1,t-1)>n">
+                            <span class="text-zinc-500" x-text="pickNo(r-1,t-1)===n+1 ? 'On the clock' : r+'.'+String(t).padStart(2,'0')"></span>
+                          </template>
+                        </td>
+                      </template>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+            <p class="text-xs text-zinc-500 mt-2">Sample data. Every pick uses a placeholder player.</p>
+          </div>
+
+          <!-- Right column -->
+          <div class="space-y-4">
+            <div class="gl-panel p-4 text-center" style="border-color:#39ff14;box-shadow:0 0 14px #39ff1433" aria-live="polite">
+              <p class="text-xs tracking-[0.4em] text-zinc-300 mb-2" x-text="n>=total() ? 'DRAFT COMPLETE' : 'ON THE CLOCK'"></p>
+              <p class="text-2xl font-extrabold italic" x-show="n<total()" x-text="mine() ? 'You are on the clock!' : 'Team '+(clockTeam()+1)"></p>
+              <p class="text-sm text-zinc-300 mt-1" x-show="n<total()" x-text="'Pick '+(Math.floor(n/teams)+1)+'.'+String(n%teams+1).padStart(2,'0')+' · overall #'+(n+1)"></p>
+              <p class="text-sm text-zinc-300 mt-1" x-show="n>=total()">Press Restart to run it again.</p>
+            </div>
+
+            <div class="gl-panel p-4">
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="font-bold text-lg">Available Players</h3>
+                <label class="sr-only" for="mk-search">Search available players</label>
+                <input id="mk-search" type="search" placeholder="Search" class="gl-search !w-32 !py-1 !text-xs">
+              </div>
+              <ul class="space-y-2">
+                <template x-for="r in 8">
+                  <li class="gl-row !py-2">
+                    <span class="h-8 w-8 rounded-full bg-zinc-700 shrink-0" aria-hidden="true"></span>
+                    <span class="flex-1"><span class="block text-sm font-semibold">Player Name</span><span class="block text-[11px] text-zinc-400" x-text="P[r-1]+' - TM · ADP 0.00'"></span></span>
+                    <button class="gl-pill !px-3 !py-1 text-xs on-o" :disabled="n>=total()" @click="draft()" x-text="mine() ? 'Draft' : 'Pick'"></button>
+                  </li>
+                </template>
+              </ul>
+              <button class="mt-3 w-full gl-pill" :disabled="n>=total()" @click="draft()">Auto-pick for team on the clock</button>
+            </div>
+
+            <div class="gl-panel p-4">
+              <h3 class="font-bold text-lg mb-2">My Picks</h3>
+              <p class="text-sm text-zinc-400" x-show="n===0">No picks yet.</p>
+              <ul class="space-y-1 text-sm">
+                <template x-for="r in rounds">
+                  <li x-show="pickNo(r-1,slot)<=n" class="flex justify-between"><span x-text="'Round '+r+', pick '+pickNo(r-1,slot)"></span><span>Player Name</span></li>
+                </template>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ USER LOG IN / SIGN UP ============ -->
+      <section x-show="screen==='login'" x-cloak aria-labelledby="h-login" class="space-y-4 max-w-md mx-auto" x-data="{ mode:'login' }">
+        <h2 id="h-login" class="text-xl font-bold">Your account</h2>
+        <p class="text-sm text-zinc-600">Placeholder copy: an account saves your synced leagues and settings.</p>
+
+        <div role="group" aria-label="Account action" class="flex text-sm border border-zinc-400 rounded-full overflow-hidden">
+          <button class="flex-1 py-2" :class="mode==='login' ? 'bg-zinc-900 text-white' : ''" @click="mode='login'">Log in</button>
+          <button class="flex-1 py-2" :class="mode==='signup' ? 'bg-zinc-900 text-white' : ''" @click="mode='signup'">Create account</button>
+        </div>
+
+        <form class="border border-zinc-300 rounded-lg p-4 space-y-3" @submit.prevent>
+          <div x-show="mode==='signup'" x-cloak>
+            <label for="uname" class="block text-xs text-zinc-600 mb-1">Display name</label>
+            <input id="uname" type="text" class="w-full border border-zinc-400 rounded px-2 py-1.5 text-sm">
+          </div>
+          <div>
+            <label for="uemail" class="block text-xs text-zinc-600 mb-1">Email</label>
+            <input id="uemail" type="email" class="w-full border border-zinc-400 rounded px-2 py-1.5 text-sm">
+          </div>
+          <div>
+            <label for="upw" class="block text-xs text-zinc-600 mb-1">Password</label>
+            <input id="upw" type="password" class="w-full border border-zinc-400 rounded px-2 py-1.5 text-sm">
+          </div>
+          <div x-show="mode==='signup'" x-cloak>
+            <label for="upw2" class="block text-xs text-zinc-600 mb-1">Confirm password</label>
+            <input id="upw2" type="password" class="w-full border border-zinc-400 rounded px-2 py-1.5 text-sm">
+          </div>
+          <button type="button" class="w-full bg-zinc-900 text-white rounded py-2 text-sm" title="We'll wire this up later" x-text="mode==='login' ? 'Log in' : 'Create account'"></button>
+          <p class="text-xs text-center"><button type="button" class="underline" x-show="mode==='login'">Forgot password?</button></p>
+        </form>
+
+        <div class="border-t border-zinc-300 pt-4 text-center space-y-1">
+          <p class="text-xs text-zinc-500">Publish your own rankings?</p>
+          <button class="text-sm underline" @click="go('contrib')">Developer account log in</button>
+        </div>
+      </section>
+
+      <!-- ============ DEVELOPER (CONTRIBUTOR) ============ -->
+      <section x-show="screen==='contrib'" x-cloak aria-labelledby="h-contrib" class="space-y-4">
+        <h2 id="h-contrib" class="text-xl font-bold">Developer account</h2>
+        <p class="text-sm text-zinc-600">For people who publish their own rankings. Separate from a regular user account.</p>
+
+        <form class="border border-zinc-300 rounded-lg p-3 space-y-3" @submit.prevent>
+          <h3 class="text-sm font-semibold">Developer log in</h3>
+          <div>
+            <label for="email" class="block text-xs text-zinc-600 mb-1">Email</label>
+            <input id="email" type="email" class="w-full border border-zinc-400 rounded px-2 py-1.5 text-sm">
+          </div>
+          <div>
+            <label for="pw" class="block text-xs text-zinc-600 mb-1">Password</label>
+            <input id="pw" type="password" class="w-full border border-zinc-400 rounded px-2 py-1.5 text-sm">
+          </div>
+          <button type="button" class="w-full bg-zinc-900 text-white rounded py-2 text-sm" title="We'll wire this up later">Log in</button>
+        </form>
+
+        <div class="border border-zinc-300 rounded-lg p-3 space-y-3">
+          <h3 class="text-sm font-semibold">My rankings <span class="font-normal text-xs text-zinc-500">(shown after login, sample data)</span></h3>
+          <div class="flex gap-2 text-sm">
+            <span class="px-2 py-1 rounded border border-zinc-400">Draft</span>
+            <span class="px-2 py-1 rounded border border-zinc-900 bg-zinc-900 text-white">Published</span>
+          </div>
+          <ol class="text-sm divide-y divide-zinc-200">
+            <li class="flex items-center gap-2 py-1.5"><span aria-hidden="true">⋮⋮</span><span class="flex-1">1. Player Name</span><button class="text-xs underline">Move</button></li>
+            <li class="flex items-center gap-2 py-1.5"><span aria-hidden="true">⋮⋮</span><span class="flex-1">2. Player Name</span><button class="text-xs underline">Move</button></li>
+            <li class="flex items-center gap-2 py-1.5"><span aria-hidden="true">⋮⋮</span><span class="flex-1">3. Player Name</span><button class="text-xs underline">Move</button></li>
+          </ol>
+          <div class="flex gap-2">
+            <button class="flex-1 border border-zinc-400 rounded py-2 text-sm">Save draft</button>
+            <button class="flex-1 bg-zinc-900 text-white rounded py-2 text-sm" title="We'll wire this up later">Publish</button>
+          </div>
+          <p class="text-xs text-zinc-500">Publishing updates the Ball Knowers consensus automatically.</p>
+        </div>
+      </section>
+
+      <!-- ============ NOTES (data model) ============ -->
+      <section x-show="screen==='notes'" x-cloak aria-labelledby="h-notes" class="space-y-4 text-sm">
+        <h2 id="h-notes" class="text-xl font-bold">Data model notes</h2>
+        <p class="text-zinc-600">What the app tracks. Wireframe stage only, nothing is stored yet.</p>
+        <dl class="space-y-3">
+          <div class="border border-zinc-300 rounded p-3"><dt class="font-semibold">Player</dt><dd class="text-zinc-600">name, position, team, tier</dd></div>
+          <div class="border border-zinc-300 rounded p-3"><dt class="font-semibold">Contributor</dt><dd class="text-zinc-600">name, login, role (you or friend)</dd></div>
+          <div class="border border-zinc-300 rounded p-3"><dt class="font-semibold">Ranking</dt><dd class="text-zinc-600">contributor, settings profile, ordered list of players, status (draft or published)</dd></div>
+          <div class="border border-zinc-300 rounded p-3"><dt class="font-semibold">Consensus ("Ball Knowers")</dt><dd class="text-zinc-600">derived from all published rankings, per settings profile</dd></div>
+          <div class="border border-zinc-300 rounded p-3"><dt class="font-semibold">League</dt><dd class="text-zinc-600">platform, scoring, team count, superflex, dynasty or redraft, budget</dd></div>
+          <div class="border border-zinc-300 rounded p-3"><dt class="font-semibold">Roster</dt><dd class="text-zinc-600">league, team, players on it</dd></div>
+          <div class="border border-zinc-300 rounded p-3"><dt class="font-semibold">Trade</dt><dd class="text-zinc-600">assets given, assets received, ranker used, result</dd></div>
+          <div class="border border-zinc-300 rounded p-3"><dt class="font-semibold">Lineup</dt><dd class="text-zinc-600">roster, week, starters, bench, suggestion notes</dd></div>
+        </dl>
+        <h3 class="font-semibold pt-2">Screens</h3>
+        <p class="text-zinc-600">Home, Rankings, Trade Calculator, Start/Sit, Contributor, plus a Sync League modal. Bottom nav switches the three core tabs.</p>
+      </section>
+
+    </main>
+
+    <!-- Bottom nav -->
+    <nav aria-label="Primary" class="fixed left-0 top-0 bottom-0 z-40 w-16 sm:w-48 flex flex-col overflow-hidden" style="background:#030503;border-right:1px solid #1a2a1a">
+      <ul class="flex flex-col gap-3 p-2 sm:p-3 pt-10">
+        <li><button class="gl-nav" :class="screen==='home' ? 'on' : ''" @click="go('home')" :aria-current="screen==='home' ? 'page' : null" aria-label="Home">
+          <span class="gl-nav-ico" aria-hidden="true">🏠</span><span class="gl-nav-sep" aria-hidden="true"></span><span class="hidden sm:inline">Home</span></button></li>
+        <li><button class="gl-nav" :class="screen==='teams' ? 'on' : ''" @click="go('teams')" :aria-current="screen==='teams' ? 'page' : null" aria-label="My Teams">
+          <span class="gl-nav-ico" aria-hidden="true">👥</span><span class="gl-nav-sep" aria-hidden="true"></span><span class="hidden sm:inline">My Teams</span></button></li>
+        <li><button class="gl-nav" :class="screen==='rankings' ? 'on' : ''" @click="go('rankings')" :aria-current="screen==='rankings' ? 'page' : null" aria-label="Rankings">
+          <span class="gl-nav-ico" aria-hidden="true">🥇</span><span class="gl-nav-sep" aria-hidden="true"></span><span class="hidden sm:inline">Rankings</span></button></li>
+        <li><button class="gl-nav" :class="screen==='startsit' ? 'on' : ''" @click="go('startsit')" :aria-current="screen==='startsit' ? 'page' : null" aria-label="Start / Sit">
+          <span class="gl-nav-ico" aria-hidden="true">🤔</span><span class="gl-nav-sep" aria-hidden="true"></span><span class="hidden sm:inline">Start / Sit</span></button></li>
+        <li><button class="gl-nav" :class="screen==='trade' ? 'on' : ''" @click="go('trade')" :aria-current="screen==='trade' ? 'page' : null" aria-label="Trade">
+          <span class="gl-nav-ico" aria-hidden="true">🤝</span><span class="gl-nav-sep" aria-hidden="true"></span><span class="hidden sm:inline">Trade</span></button></li>
+        <li><button class="gl-nav" :class="(screen==='dynasty' || screen==='breakouts' || screen==='rookies') ? 'on' : ''" @click="go('dynasty')" :aria-current="screen==='dynasty' ? 'page' : null" aria-label="Dynasty">
+          <span class="gl-nav-ico" aria-hidden="true">👑</span><span class="gl-nav-sep" aria-hidden="true"></span><span class="hidden sm:inline">Dynasty</span></button></li>
+        <li><button class="gl-nav" :class="(screen==='draft' || screen==='mock') ? 'on' : ''" @click="go('draft')" :aria-current="(screen==='draft' || screen==='mock') ? 'page' : null" aria-label="Draft">
+          <span class="gl-nav-ico" aria-hidden="true">📋</span><span class="gl-nav-sep" aria-hidden="true"></span><span class="hidden sm:inline">Draft</span></button></li>
+      </ul>
+      <div class="gl-field mt-auto" aria-hidden="true"></div>
+      <p class="relative z-10 flex flex-col items-center gap-1 text-[10px] text-center pb-3 px-1" style="color:#d4d4d8">
+        <img src="https://p.1stVibe.ai/mascot.png" alt="" class="h-4 w-4 grayscale"><span class="hidden sm:inline">Made with 1stVibe.ai</span>
+      </p>
+    </nav>
+
+    <!-- Player profile overlay -->
+    <div x-show="profileOpen" x-cloak class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-0 sm:p-4" @keydown.escape.window="profileOpen=false" @click.self="profileOpen=false">
+      <div role="dialog" aria-modal="true" aria-labelledby="pp-title" x-data="{ ptab:'Overview' }" x-effect="if(profileOpen) ptab='Overview'"
+           class="gl-panel w-full max-w-3xl max-h-[92vh] overflow-y-auto p-5 space-y-4" style="border-color:#39ff14;box-shadow:0 0 24px #39ff1444">
+
+        <div class="flex items-start gap-4">
+          <span class="h-24 w-24 rounded-xl bg-zinc-800 shrink-0 flex items-center justify-center text-[10px] text-zinc-500">Photo</span>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs tracking-[0.35em] text-zinc-400">PLAYER PROFILE</p>
+            <h2 id="pp-title" class="gl-title text-3xl">Player Name</h2>
+            <p class="text-sm text-zinc-300 mt-1">POS - TM · #00 · Sample data</p>
+            <div class="flex flex-wrap gap-2 mt-2">
+              <span class="bd WR">POS 0</span>
+              <span class="text-xs rounded px-2 py-0.5" style="background:#0f3a12;color:#7dff6a;border:1px solid #1faa0a">Overall #0</span>
+              <span class="text-xs rounded px-2 py-0.5 border border-zinc-600">Tier S</span>
+            </div>
+          </div>
+          <button class="gl-pill !px-3" aria-label="Close player profile" @click="profileOpen=false">✕</button>
+        </div>
+
+        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+          <template x-for="s in [['Proj. Pts','00.0'],['Rank','#0'],['Avg. PPG','00.0'],['Ceiling','00.0'],['Floor','00.0'],['Start %','00%']]">
+            <div class="gl-stat !min-w-0 !p-3 text-center"><span class="text-xl font-extrabold italic" x-text="s[1]"></span><span class="text-[11px] text-zinc-400" x-text="s[0]"></span></div>
+          </template>
+        </div>
+
+        <div role="tablist" aria-label="Profile sections" class="flex flex-wrap gap-2">
+          <template x-for="t in ['Overview','Game Log','Matchup','News']">
+            <button role="tab" class="gl-pill text-xs" :class="ptab===t ? 'on' : ''" :aria-selected="ptab===t" @click="ptab=t" x-text="t"></button>
+          </template>
+        </div>
+
+        <!-- Overview -->
+        <div x-show="ptab==='Overview'" class="grid md:grid-cols-2 gap-4">
+          <div class="gl-panel p-3">
+            <h3 class="font-bold mb-2">Rank by source</h3>
+            <table class="gl-table">
+              <thead><tr><th scope="col" class="!text-left">SOURCE</th><th scope="col">RANK</th><th scope="col">TIER</th></tr></thead>
+              <tbody>
+                <template x-for="r in ['Expert Average','You','Friend 1','Friend 2']">
+                  <tr><td class="!text-left" x-text="r"></td><td class="g">#0</td><td>S</td></tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+          <div class="gl-panel p-3">
+            <h3 class="font-bold mb-2">Player info</h3>
+            <dl class="text-sm grid grid-cols-2 gap-y-2">
+              <dt class="text-zinc-400">Age</dt><dd>00</dd>
+              <dt class="text-zinc-400">Height / Weight</dt><dd>0'0" / 000 lb</dd>
+              <dt class="text-zinc-400">Bye week</dt><dd>00</dd>
+              <dt class="text-zinc-400">Trade value</dt><dd>00.0</dd>
+              <dt class="text-zinc-400">Injury status</dt><dd>Healthy</dd>
+            </dl>
+          </div>
+          <div class="gl-panel p-3 md:col-span-2">
+            <h3 class="font-bold mb-1">Your take</h3>
+            <p class="text-sm text-zinc-300">Placeholder analysis paragraph from the ranker.</p>
+          </div>
+        </div>
+
+        <!-- Game log -->
+        <div x-show="ptab==='Game Log'" x-cloak class="overflow-x-auto">
+          <table class="gl-table min-w-[26rem]">
+            <thead><tr><th scope="col">WEEK</th><th scope="col">OPP</th><th scope="col">FPTS</th><th scope="col">SNAP %</th><th scope="col">POS FINISH</th></tr></thead>
+            <tbody>
+              <template x-for="w in 8">
+                <tr><td x-text="w"></td><td>vs TM</td><td :class="['g','g','o','g','r','g','g','o'][w-1]">00.0</td><td class="g">00.0</td><td :class="['g','o','g','g','r','g','o','g'][w-1]">0</td></tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Matchup -->
+        <div x-show="ptab==='Matchup'" x-cloak class="grid md:grid-cols-2 gap-4">
+          <div class="gl-panel p-3">
+            <h3 class="font-bold mb-2">Next game</h3>
+            <p class="text-sm">Week 0 · vs TM</p>
+            <p class="text-sm text-zinc-400">Defense rank vs POS: 00th</p>
+          </div>
+          <div class="gl-panel p-3">
+            <h3 class="font-bold mb-2">Matchup rating</h3>
+            <div class="h-3 rounded bg-zinc-800"><div class="h-3 rounded" style="width:70%;background:#3dea1f"></div></div>
+            <p class="text-xs text-zinc-500 mt-1">Sample data</p>
+          </div>
+        </div>
+
+        <!-- News -->
+        <div x-show="ptab==='News'" x-cloak class="space-y-2">
+          <template x-for="n in 3">
+            <div class="gl-row"><span class="h-10 w-10 rounded bg-zinc-700 shrink-0" aria-hidden="true"></span><span class="flex-1"><span class="block text-sm font-semibold">News headline placeholder</span><span class="block text-xs text-zinc-400">Source · 0h ago · sample data</span></span></div>
+          </template>
+        </div>
+
+        <div class="flex flex-wrap gap-2 pt-1">
+          <button class="gl-pill on-o" @click="profileOpen=false; go('startsit')">Compare in Start/Sit</button>
+          <button class="gl-pill on-o" @click="profileOpen=false; go('trade')">Add to Trade</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sync League modal -->
+    <div x-show="syncOpen" x-cloak class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-zinc-900/60" @keydown.escape.window="syncOpen=false">
+      <div role="dialog" aria-modal="true" aria-labelledby="sync-title" class="bg-white w-full max-w-md rounded-t-xl sm:rounded-xl p-4 space-y-3">
+        <div class="flex justify-between items-center">
+          <h2 id="sync-title" class="font-bold">Sync your league</h2>
+          <button class="text-sm underline" @click="syncOpen=false">Close</button>
+        </div>
+        <fieldset class="space-y-2 text-sm">
+          <legend class="text-xs text-zinc-600 mb-1">Platform</legend>
+          <label class="flex items-center gap-2 border border-zinc-300 rounded px-3 py-2"><input type="radio" name="platform" checked> ESPN</label>
+          <label class="flex items-center gap-2 border border-zinc-300 rounded px-3 py-2"><input type="radio" name="platform"> Yahoo</label>
+          <label class="flex items-center gap-2 border border-zinc-300 rounded px-3 py-2"><input type="radio" name="platform"> Sleeper</label>
+        </fieldset>
+        <div>
+          <label for="leagueid" class="block text-xs text-zinc-600 mb-1">League ID or username</label>
+          <input id="leagueid" type="text" placeholder="Placeholder" class="w-full border border-zinc-400 rounded px-2 py-1.5 text-sm">
+        </div>
+        <button class="w-full bg-zinc-900 text-white rounded py-2 text-sm" @click="synced=true; syncOpen=false" title="Preview only: shows the synced state">Sync (preview)</button>
+        <p class="text-xs text-zinc-500">Pulls league settings and roster. Sample behavior for the wireframe only.</p>
+      </div>
+    </div>
+
+  </div>
+  <script>
+    /* Tag placeholder player names so they pick up the player-name font, including ones Alpine renders later */
+    (function () {
+      var re = /^\s*Player Name(\s\d+)?\s*$/;
+      function tag(root) {
+        var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        var n;
+        while ((n = w.nextNode())) {
+          if (re.test(n.nodeValue) && n.parentElement && n.parentElement.tagName !== 'OPTION') n.parentElement.classList.add('pn');
+        }
+      }
+      var queued = false;
+      new MutationObserver(function () {
+        if (queued) return; queued = true;
+        requestAnimationFrame(function () { queued = false; tag(document.body); });
+      }).observe(document.body, { childList: true, subtree: true });
+      document.addEventListener('DOMContentLoaded', function () { tag(document.body); });
+    })();
+  </script>
+</body>
+</html>

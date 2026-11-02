@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Fantasy Football Rankings Site</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,800;1,700&family=Inter:wght@400;500;600&family=Roboto+Condensed:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: "Inter", system-ui, sans-serif; }
+    h1 { font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-style: italic; }
+    h2 { font-family: "Barlow Condensed", sans-serif; font-weight: 800; }
+    /* Dark theme: white writing on a black base */
+    :root { color-scheme: dark; }
+    body { background:#000 !important; color:#fff !important; }
+    .text-neutral-800, .text-neutral-900 { color:#fff !important; }
+    .text-neutral-400, .text-neutral-500 { color:#a1a1aa !important; }
+    .border-neutral-300 { border-color:#3f3f46 !important; }
+  </style>
+</head>
+<body class="bg-neutral-100 text-neutral-800 antialiased">
+  <main class="max-w-2xl mx-auto px-6 py-16 sm:py-24">
+
+    <header class="mb-14">
+      <p class="text-xs uppercase tracking-widest text-neutral-500 mb-3">Project brief</p>
+      <h1 class="text-4xl sm:text-5xl font-bold tracking-tight text-neutral-900">Your Fantasy Football Rankings Site</h1>
+    </header>
+
+    <section class="mb-12">
+      <h2 class="text-xs uppercase tracking-widest text-neutral-500 mb-3">The one thing</h2>
+      <p class="text-xl leading-relaxed text-neutral-900">A fantasy football rankings platform with a beautiful UI that presents your personal rankings and analysis.</p>
+    </section>
+
+    <section class="mb-12">
+      <h2 class="text-xs uppercase tracking-widest text-neutral-500 mb-3">Problem</h2>
+      <p class="leading-relaxed">You want your own voice and opinions out there in the fantasy football space, presented exactly the way you want it to look, not constrained by existing tools.</p>
+    </section>
+
+    <section class="mb-12">
+      <h2 class="text-xs uppercase tracking-widest text-neutral-500 mb-3">Users</h2>
+      <p class="leading-relaxed">Two groups: you (building your rankings, your analysis, your platform) and other fantasy players who come to use your rankings, trade calculator, and start/sit advice.</p>
+    </section>
+
+    <section class="mb-12">
+      <h2 class="text-xs uppercase tracking-widest text-neutral-500 mb-3">Solution</h2>
+      <p class="leading-relaxed">A rankings site where you publish your player rankings, let friends add theirs, and provide tools (trade calculator that handles any league type, start/sit calculator, league sync that applies your rankings to users' actual teams). The UI is the hook: beautiful and attractive, the kind of site people want to stay on.</p>
+    </section>
+
+    <section class="mb-12">
+      <h2 class="text-xs uppercase tracking-widest text-neutral-500 mb-4">User journey</h2>
+      <ol class="space-y-4">
+        <li class="flex gap-4"><span class="text-neutral-400 font-semibold tabular-nums">1</span><span class="leading-relaxed">User lands on the home page</span></li>
+        <li class="flex gap-4"><span class="text-neutral-400 font-semibold tabular-nums">2</span><span class="leading-relaxed">Sees their synced league (or a prompt to sync their league if they haven't yet)</span></li>
+        <li class="flex gap-4"><span class="text-neutral-400 font-semibold tabular-nums">3</span><span class="leading-relaxed">Bottom navigation bar gives access to the core features: Rankings, Sit/Start, Trade Calculator</span></li>
+        <li class="flex gap-4"><span class="text-neutral-400 font-semibold tabular-nums">4</span><span class="leading-relaxed">User taps into Rankings to see your player rankings (and can add their friends' rankings)</span></li>
+        <li class="flex gap-4"><span class="text-neutral-400 font-semibold tabular-nums">5</span><span class="leading-relaxed">User runs a trade through the Trade Calculator (works for any league type variation)</span></li>
+        <li class="flex gap-4"><span class="text-neutral-400 font-semibold tabular-nums">6</span><span class="leading-relaxed">User checks Start/Sit to get your take on their lineup decisions</span></li>
+        <li class="flex gap-4"><span class="text-neutral-400 font-semibold tabular-nums">7</span><span class="leading-relaxed">User syncs their league so your rankings apply directly to their teams</span></li>
+      </ol>
+    </section>
+
+    <footer class="mt-20 pt-6 border-t border-neutral-300 flex items-center gap-2 text-sm text-neutral-500">
+      <img src="https://p.1stVibe.ai/mascot.png" alt="1stVibe beaver" class="h-6 w-6 grayscale">
+      <span>Made with 1stVibe.ai</span>
+    </footer>
+
+  </main>
+</body>
+</html>
