@@ -22,14 +22,16 @@ export async function createList(formData: FormData) {
     qb_type: String(formData.get("qb_type")),
   };
 
+  // Edit right on the Rankings page, for the settings that are showing.
+  const inline = `/rankings?${new URLSearchParams({ format: combo.format, scoring: combo.scoring, qb: combo.qb_type, edit: "1" })}`;
+
   const { data: existing } = await supabase
     .from("ranking_sets").select("id").match(combo).maybeSingle();
-  if (existing) redirect(`/lists/${existing.id}`);
+  if (existing) redirect(inline);
 
-  const { data: created, error } = await supabase
-    .from("ranking_sets").insert(combo).select("id").single();
-  if (error || !created) redirect("/rankings");
-  redirect(`/lists/${created.id}`);
+  const { error } = await supabase.from("ranking_sets").insert(combo);
+  if (error) redirect("/rankings");
+  redirect(inline);
 }
 
 export type SaveItem = {

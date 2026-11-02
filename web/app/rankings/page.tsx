@@ -7,6 +7,7 @@ import { nowMs } from "@/lib/time";
 import { createList } from "../lists/actions";
 import { TeamLogo } from "@/app/team-logo";
 import { seasonLines } from "@/lib/season";
+import { InlineEditor, type Item, type Line } from "./inline-editor";
 
 type Player = { name: string; position: string; nfl_team: string | null };
 type ConsensusRow = {
@@ -32,11 +33,11 @@ const QBS = [["1qb", "1 QB"], ["superflex", "Superflex"]] as const;
 const POSITIONS = ["All", "QB", "RB", "WR", "TE", "K", "DEF"];
 const DAY = 24 * 60 * 60 * 1000;
 
-type Params = { format: string; scoring: string; qb: string; pos: string; ranker: string; q: string; proj: string };
+type Params = { format: string; scoring: string; qb: string; pos: string; ranker: string; q: string; proj: string; edit: string };
 
 function href(current: Params, over: Partial<Params>) {
   const next = { ...current, ...over };
-  const defaults: Params = { format: "redraft", scoring: "ppr", qb: "1qb", pos: "All", ranker: "consensus", q: "", proj: "1" };
+  const defaults: Params = { format: "redraft", scoring: "ppr", qb: "1qb", pos: "All", ranker: "consensus", q: "", proj: "1", edit: "" };
   const qs = new URLSearchParams();
   (Object.keys(next) as (keyof Params)[]).forEach((k) => { if (next[k] !== defaults[k]) qs.set(k, next[k]); });
   const s = qs.toString();
@@ -62,6 +63,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
     ranker: typeof sp.ranker === "string" ? sp.ranker : "consensus",
     q: typeof sp.q === "string" ? sp.q : "",
     proj: sp.proj === "0" ? "0" : "1",
+    edit: sp.edit === "1" ? "1" : "",
   };
 
   const supabase = await createClient();
@@ -73,6 +75,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
     ? await supabase.from("profiles").select("role").eq("id", user.id).single()
     : { data: null };
   const canEdit = me?.role === "contributor";
+  const editing = canEdit && params.edit === "1";
 
   // Everyone with a published list for this combination (for the Expert Sources panel).
   const { data: sets } = await supabase
@@ -123,6 +126,44 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
   const shown = rows.filter((r) => (params.pos === "All" || r.position === params.pos) && (!q || r.name.toLowerCase().includes(q)));
   const lines = await seasonLines(supabase, params.scoring);
   const showProj = params.proj !== "0";
+  const settings = `${FORMATS.find((f) => f[0] === params.format)?.[1]} · ${SCORING.find((f) => f[0] === params.scoring)?.[1]} · ${QBS.find((f) => f[0] === params.qb)?.[1]}`;
+
+  // Edit mode: your own list for the settings on screen.
+  let editor: React.ReactNode = null;
+  if (editing && user) {
+    const { data: mine } = await supabase.from("ranking_sets").select("id, published").match({ ...combo, contributor_id: user.id }).maybeSingle();
+    if (!mine) {
+      editor = (
+        <div className="gl-panel space-y-3 p-5">
+          <p className="font-bold">You don&apos;t have a list for {settings} yet.</p>
+          <form action={createList}>
+            <input type="hidden" name="format" value={params.format} />
+            <input type="hidden" name="scoring" value={params.scoring} />
+            <input type="hidden" name="qb_type" value={params.qb} />
+            <button className="gl-pill on">Create it</button>
+          </form>
+        </div>
+      );
+    } else {
+      const { data: own } = await supabase
+        .from("rankings").select("player_id, tier, note, needs_ranking, players(name, position, nfl_team)")
+        .eq("set_id", mine.id).order("rank").limit(2000)
+        .returns<{ player_id: number; tier: string | null; note: string | null; needs_ranking: boolean; players: Player | null }[]>();
+      const items: Item[] = (own ?? []).map((r) => ({
+        player_id: r.player_id, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", team: r.players?.nfl_team ?? "",
+        tier: r.tier ?? "", note: r.note ?? "", placed: !r.needs_ranking,
+      }));
+      const lineMap: Record<number, Line> = {};
+      lines.forEach((v, k) => { lineMap[k] = { proj: v.proj, played: v.played, snapPct: v.snapPct, posFinish: v.posFinish }; });
+      const exit = new URLSearchParams({ format: params.format, scoring: params.scoring, qb: params.qb });
+      editor = (
+        <InlineEditor
+          key={`${mine.id}`} setId={mine.id} initial={items} initialPublished={mine.published} lines={lineMap} settings={settings}
+          exitHref={`/rankings?${exit}`} fullEditorHref={`/lists/${mine.id}`}
+        />
+      );
+    }
+  }
 
   // Consecutive players with the same tier share one box.
   const runs: { tier: string | null; rows: Row[] }[] = [];
@@ -132,7 +173,6 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
   });
 
   const season = new Date().getFullYear();
-  const settings = `${FORMATS.find((f) => f[0] === params.format)?.[1]} · ${SCORING.find((f) => f[0] === params.scoring)?.[1]} · ${QBS.find((f) => f[0] === params.qb)?.[1]}`;
   const num = (v: number | null | undefined, d = 1) => (v === null || v === undefined ? "–" : v.toFixed(d));
 
   return (
@@ -140,12 +180,12 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
       <div className="gl-hero p-5 sm:p-7">
         <p className="text-[11px] font-semibold tracking-[0.35em] text-zinc-400">FANTASY FOOTBALL</p>
         <h2 id="h-rank" className="gl-title text-5xl sm:text-7xl">Rankings</h2>
-        <p className="mt-2 text-base text-zinc-300">Expert player rankings, projections, and tiers.</p>
+        <p className="mt-2 text-base text-zinc-300">{editing ? "Editing your own list. Pick the settings on the right to switch which list you are editing." : "Expert player rankings, projections, and tiers."}</p>
         <div role="group" aria-label="Position filter" className="mt-5 flex flex-wrap gap-2">
-          {POSITIONS.map((p) => <a key={p} href={href(params, { pos: p })} className={`gl-pill !px-5 ${params.pos === p ? "on" : ""}`}>{p === "All" ? "Overall" : p === "DEF" ? "DST" : p}</a>)}
+          {!editing && POSITIONS.map((p) => <a key={p} href={href(params, { pos: p })} className={`gl-pill !px-5 ${params.pos === p ? "on" : ""}`}>{p === "All" ? "Overall" : p === "DEF" ? "DST" : p}</a>)}
           <span className="flex-1" />
           <span className="self-center text-xs text-zinc-400">{rows.length} players · {fresh.length} contributor{fresh.length === 1 ? "" : "s"} · {season}</span>
-          {canEdit && (
+          {canEdit && !editing && (
             <form action={createList}>
               <input type="hidden" name="format" value={params.format} />
               <input type="hidden" name="scoring" value={params.scoring} />
@@ -158,6 +198,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
 
       <div className="grid items-start gap-5 lg:grid-cols-[1fr_20rem]">
         <div className="min-w-0 space-y-4">
+          {editing ? editor : <>
           <p className="text-xs text-zinc-500">Showing {showing} · {settings}{q ? ` · matching "${params.q}"` : ""}</p>
           {stale && (
             <p className="rounded-xl border border-yellow-900 bg-yellow-950 p-3 text-sm text-yellow-300">
@@ -222,6 +263,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
               );
             })}
           </div>
+          </>}
         </div>
 
         <div className="space-y-5 lg:sticky lg:top-4">
