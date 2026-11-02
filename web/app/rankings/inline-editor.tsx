@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Avatar } from "@/app/avatar";
 import { PlayerLink } from "@/app/player-link";
@@ -25,6 +25,26 @@ export function InlineEditor({
   const [limit, setLimit] = useState(100);
   const [dragId, setDragId] = useState<number | null>(null);
   const [over, setOver] = useState<{ id: number; after: boolean } | { card: string } | null>(null);
+
+  // While a player is being dragged, scroll the page when the pointer nears the top or bottom edge,
+  // and keep scrolling until the drag ends (even if the pointer leaves the window).
+  const scrollSpeed = useRef(0);
+  useEffect(() => {
+    if (dragId === null) return;
+    const ZONE = 140, MAX = 26;
+    const onOver = (e: DragEvent) => {
+      const h = window.innerHeight;
+      if (e.clientY < ZONE) scrollSpeed.current = -Math.ceil(MAX * Math.min(1, (ZONE - e.clientY) / ZONE));
+      else if (e.clientY > h - ZONE) scrollSpeed.current = Math.ceil(MAX * Math.min(1, (e.clientY - (h - ZONE)) / ZONE));
+      else scrollSpeed.current = 0;
+    };
+    let frame = requestAnimationFrame(function tick() {
+      if (scrollSpeed.current) window.scrollBy(0, scrollSpeed.current);
+      frame = requestAnimationFrame(tick);
+    });
+    window.addEventListener("dragover", onOver);
+    return () => { cancelAnimationFrame(frame); window.removeEventListener("dragover", onOver); scrollSpeed.current = 0; };
+  }, [dragId]);
 
   useEffect(() => {
     if (!dirty) return;
