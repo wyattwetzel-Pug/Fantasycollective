@@ -37,8 +37,13 @@ export function InlineEditor({
     setMessage("");
   }
 
-  // Swap with the neighbour. Crossing a tier line puts the player in that tier.
+  // Move one spot. At the edge of a tier, the arrow moves the player into the next tier instead
+  // (the tier right above or below, even if it is empty).
   function step(idx: number, dir: -1 | 1) {
+    const here = items[idx];
+    const neighbour = items[idx + dir];
+    if (!neighbour) return;
+    if (here.tier !== "" && neighbour.tier !== here.tier) { shiftTier(idx, dir); return; }
     change((prev) => {
       const j = idx + dir;
       if (j < 0 || j >= prev.length) return prev;
@@ -119,7 +124,7 @@ export function InlineEditor({
       <div className="gl-panel flex flex-wrap items-center gap-3 p-4">
         <div className="min-w-[14rem] flex-1">
           <p className="font-bold">Editing your list</p>
-          <p className="text-xs text-zinc-400">{settings}. Use the arrows to move players, or move them up or down a tier.</p>
+          <p className="text-xs text-zinc-400">{settings}. Use ▲ and ▼ to move a player. At the edge of a tier they move the player into the next tier. ⇈ and ⇊ jump a player straight to the next tier.</p>
         </div>
         {message && <span className={`text-sm ${message.startsWith("Could not") ? "text-red-400" : "text-green-400"}`}>{message}</span>}
         {dirty && !message && <span className="text-sm text-yellow-400">Unsaved changes</span>}
@@ -155,7 +160,7 @@ export function InlineEditor({
                 </thead>
                 <tbody>
                   {run.idx.length === 0 && (
-                    <tr><td colSpan={6} className="!py-4 text-sm text-zinc-400">No players in this tier yet. Use ⇈ and ⇊ on a player to move one here.</td></tr>
+                    <tr><td colSpan={6} className="!py-4 text-sm text-zinc-400">No players in this tier yet. Move a player to the edge of the tier above or below and press ▲ or ▼ to bring them here.</td></tr>
                   )}
                   {run.idx.map((i) => {
                     const it = items[i];
