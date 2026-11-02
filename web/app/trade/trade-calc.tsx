@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { PlayerLink } from "@/app/player-link";
 
 export type P = { id: number; name: string; position: string; team: string; rank: number; tier: string | null };
 
@@ -57,7 +58,7 @@ function SideList({ title, hint, list, players, taken, onAdd, onRemove }: {
         <div key={p.id} className="gl-row">
           <span className="h-11 w-11 shrink-0 rounded-full bg-zinc-700" aria-hidden="true" />
           <span className="flex-1">
-            <span className="pn block text-sm">{p.name}</span>
+            <PlayerLink id={p.id} name={p.name} className="block text-sm" />
             <span className="block text-xs text-zinc-400">{p.position} - {p.team} · rank {p.rank}</span>
           </span>
           <span className="font-bold" style={{ color: "#7dff6a" }}>{fmt(value(p.rank))}</span>

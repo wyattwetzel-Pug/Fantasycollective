@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { PlayerLink } from "@/app/player-link";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { playerValue } from "@/lib/value";
@@ -117,7 +118,7 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
                         const p = info.get(r.player_id); const c = rank.get(r.player_id);
                         return (
                           <tr key={r.player_id}>
-                            <td className="!text-left"><span className="flex items-center gap-2"><span className="h-8 w-8 shrink-0 rounded-full bg-zinc-700" aria-hidden="true" /><span className="pn">{p?.name}</span></span></td>
+                            <td className="!text-left"><span className="flex items-center gap-2"><span className="h-8 w-8 shrink-0 rounded-full bg-zinc-700" aria-hidden="true" /><PlayerLink id={r.player_id} name={p?.name} /></span></td>
                             <td><span className={`bd ${p?.position}`}>{p?.position}</span></td>
                             <td>{p?.nfl_team}</td>
                             <td>{c?.tier ? <span className="inline-block rounded-full border px-3 text-xs" style={{ color: TIER_COLORS[c.tier], borderColor: TIER_COLORS[c.tier] }}>{c.tier}</span> : ""}</td>

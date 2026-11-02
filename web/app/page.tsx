@@ -1,10 +1,11 @@
 import { Suspense } from "react";
+import { PlayerLink } from "@/app/player-link";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { nowMs } from "@/lib/time";
 
 type Top = {
-  position_in_list: number; consensus_rank: number;
+  player_id: number; position_in_list: number; consensus_rank: number;
   players: { name: string; position: string; nfl_team: string | null } | null;
 };
 type NewsRow = { id: number; headline: string; body: string | null; published_at: string };
@@ -18,7 +19,7 @@ async function HomeView() {
 
   const { data: top } = await supabase
     .from("consensus_current")
-    .select("position_in_list, consensus_rank, players(name, position, nfl_team)")
+    .select("player_id, position_in_list, consensus_rank, players(name, position, nfl_team)")
     .match(COMBO).order("position_in_list").limit(5)
     .returns<Top[]>();
 
@@ -76,7 +77,7 @@ async function HomeView() {
                 <li key={r.position_in_list} className="flex items-center gap-3 text-sm">
                   <span className="h-7 w-7 rounded bg-zinc-800 text-center text-xs leading-7">{r.position_in_list}</span>
                   <span className="h-8 w-8 shrink-0 rounded-full bg-zinc-700" aria-hidden="true" />
-                  <span className="pn flex-1">{r.players?.name}</span>
+                  <span className="flex-1"><PlayerLink id={r.player_id} name={r.players?.name} /></span>
                   <span className={`bd ${r.players?.position}`}>{r.players?.position}</span>
                 </li>
               ))}

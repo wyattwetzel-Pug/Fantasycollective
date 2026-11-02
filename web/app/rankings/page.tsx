@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { PlayerLink } from "@/app/player-link";
 import { createClient } from "@/lib/supabase/server";
 import { nowMs } from "@/lib/time";
 import { createList } from "../lists/actions";
@@ -14,7 +15,7 @@ type SetRow = {
   contributors: { slug: string; profiles: { display_name: string } | null } | null;
 };
 type Row = {
-  rank: number; name: string; position: string; posRank: number; team: string;
+  id: number; rank: number; name: string; position: string; posRank: number; team: string;
   tier: string | null; a: string; b: string;
 };
 
@@ -95,7 +96,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
       .returns<ListRow[]>();
     if (error) loadError = error.message;
     rows = (data ?? []).map((r, i) => ({
-      rank: i + 1, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", posRank: 0,
+      id: r.player_id, rank: i + 1, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", posRank: 0,
       team: r.players?.nfl_team ?? "", tier: r.tier, a: ago(chosen.updated_at), b: r.note ?? "",
     }));
   } else {
@@ -107,7 +108,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
     if (error) loadError = error.message;
     stale = !!data?.length && data.every((r) => r.is_stale);
     rows = (data ?? []).map((r) => ({
-      rank: r.position_in_list, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", posRank: 0,
+      id: r.player_id, rank: r.position_in_list, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", posRank: 0,
       team: r.players?.nfl_team ?? "", tier: r.tier, a: String(r.consensus_rank), b: String(r.sources),
     }));
   }
@@ -209,7 +210,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
                       {run.rows.map((r) => (
                         <tr key={`${r.rank}-${r.name}`}>
                           <td>{r.rank}</td>
-                          <td className="!text-left"><span className="flex items-center gap-2"><span className="h-8 w-8 shrink-0 rounded-full bg-zinc-700" aria-hidden="true" /><span className="pn">{r.name}</span></span></td>
+                          <td className="!text-left"><span className="flex items-center gap-2"><span className="h-8 w-8 shrink-0 rounded-full bg-zinc-700" aria-hidden="true" /><PlayerLink id={r.id} name={r.name} /></span></td>
                           <td><span className={`bd ${r.position}`}>{r.position} {r.posRank}</span></td>
                           <td>{r.team}</td>
                           <td>{r.a}</td>

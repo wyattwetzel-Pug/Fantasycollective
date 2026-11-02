@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { PlayerLink } from "@/app/player-link";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { postCall } from "./actions";
@@ -110,7 +111,7 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
             <th className="w-40 px-2 py-2 text-left text-xs text-zinc-400" />
             {chosen.map((r) => (
               <th key={r.player_id} className="px-2 py-2 text-center">
-                <span className="pn block">{r.players?.name}</span>
+                <PlayerLink id={r.player_id} name={r.players?.name} className="block" />
                 <span className="text-xs font-normal text-zinc-400">{r.players?.position} - {r.players?.nfl_team}</span>
               </th>
             ))}
