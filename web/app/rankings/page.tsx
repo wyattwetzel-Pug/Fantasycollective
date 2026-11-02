@@ -97,7 +97,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
       .order("rank").limit(1000)
       .returns<ListRow[]>();
     if (error) loadError = error.message;
-    rows = (data ?? []).map((r, i) => ({
+    rows = fixTiers(data ?? []).map((r, i) => ({
       id: r.player_id, rank: i + 1, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", posRank: 0,
       team: r.players?.nfl_team ?? "", tier: r.tier, a: ago(chosen.updated_at), b: r.note ?? "",
     }));
