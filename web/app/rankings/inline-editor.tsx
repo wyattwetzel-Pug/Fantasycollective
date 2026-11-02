@@ -14,13 +14,19 @@ const ORDER = ["S", "A", "B", "C", "D", "E", "F"];
 const POSITIONS = ["All", "QB", "RB", "WR", "TE", "K", "DEF"];
 const COLORS: Record<string, string> = { S: "#D4A72C", A: "#43B02A", B: "#2F7BEA", C: "#8B5CF6", D: "#E0A800", E: "#F28C28", F: "#E5484D" };
 
+// Players with a tier always sit above players with none, and tiers run S to F, so a tier card can
+// never show up below the Unsorted players. Order inside a tier is kept.
+const tierRank = (t: string) => (ORDER.indexOf(t) >= 0 ? ORDER.indexOf(t) : ORDER.length);
+const tidy = (list: Item[]) => list.map((it, i) => ({ it, i })).sort((a, b) => tierRank(a.it.tier) - tierRank(b.it.tier) || a.i - b.i).map((x) => x.it);
+
 // Edit your own list right on the Rankings page: move players up and down, or up and down a tier.
 export function InlineEditor({
   setId, initial, initialPublished, lines, settings, exitHref, fullEditorHref,
 }: { setId: number; initial: Item[]; initialPublished: boolean; lines: Record<number, Line>; settings: string; exitHref: string; fullEditorHref: string }) {
-  const [items, setItems] = useState(initial);
+  const [items, setItems] = useState(() => tidy(initial));
   const [published, setPublished] = useState(initialPublished);
-  const [dirty, setDirty] = useState(false);
+  // Tidying a list whose tiers and order disagreed counts as a change you still need to save.
+  const [dirty, setDirty] = useState(() => tidy(initial).some((it, i) => it.player_id !== initial[i].player_id));
   const [message, setMessage] = useState("");
   const [pending, start] = useTransition();
   const [limit, setLimit] = useState(100);
@@ -56,7 +62,7 @@ export function InlineEditor({
   }, [dirty]);
 
   function change(fn: (prev: Item[]) => Item[]) {
-    setItems(fn);
+    setItems((prev) => tidy(fn(prev)));
     setDirty(true);
     setMessage("");
   }
