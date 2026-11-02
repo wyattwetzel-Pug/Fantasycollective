@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { nowMs } from "@/lib/time";
 import { pickLabel } from "@/lib/adp";
 import { playerValue } from "@/lib/value";
+import { defenseVsPosition, matchupGrade, ordinal, isOpen, opponentOf, average } from "@/lib/matchup";
 
 type Player = { id: number; name: string; position: string; nfl_team: string | null; age: number | null; status: string | null; is_rookie: boolean };
 type Cons = { player_id: number; position_in_list: number; consensus_rank: number; sources: number; tier: string | null; is_stale: boolean; players: { position: string } | null };
@@ -23,7 +24,7 @@ type CallRow = {
 const FORMATS = [["redraft", "Redraft"], ["dynasty", "Dynasty"]] as const;
 const SCORING = [["ppr", "PPR"], ["half", "Half PPR"], ["std", "Standard"]] as const;
 const QBS = [["1qb", "1 QB"], ["superflex", "Superflex"]] as const;
-const TABS = [["overview", "Overview"], ["log", "Game Log"], ["adp", "ADP"], ["news", "News"]] as const;
+const TABS = [["overview", "Overview"], ["log", "Game Log"], ["matchup", "Matchup"], ["adp", "ADP"], ["news", "News"]] as const;
 const LABEL: Record<string, string> = { redraft: "Redraft", dynasty: "Dynasty", ppr: "PPR", half: "Half PPR", std: "Standard", "1qb": "1 QB", superflex: "Superflex" };
 const TIER_COLORS: Record<string, string> = {
   S: "#D4AF37", A: "#22A722", B: "#9333EA", C: "#3B82F6", D: "#FACC15", E: "#F97316", F: "#EF4444",
@@ -109,8 +110,15 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
     ? await supabase.from("games").select("week, home, away, status").eq("season", logSeason).or(`home.eq.${player.nfl_team},away.eq.${player.nfl_team}`).order("week").returns<GameRow[]>()
     : { data: [] as GameRow[] };
   const oppFor = (g: GameRow) => (g.home === player.nfl_team ? `vs ${g.away}` : `@ ${g.home}`);
-  const next = (games ?? []).find((g) => g.status !== "complete" && g.status !== "in_progress");
+  const next = (games ?? []).find(isOpen);
   const proj = projRows?.[0];
+
+  // Matchup tab: how the next opponents' defenses do against this position.
+  const defense = params.tab === "matchup" && logSeason ? await defenseVsPosition(supabase, logSeason) : null;
+  const vsPos = defense?.[player.position];
+  const upcoming = (games ?? []).filter(isOpen).slice(0, 5);
+  const recent = log.slice(-3).map(pts);
+  const recentAvg = average(recent);
 
   const adpHere = (adpRows ?? []).find((a) => a.format === params.format && a.scoring === params.scoring && a.qb_type === params.qb);
 
@@ -267,6 +275,62 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
           ) : (
             <p className="text-sm text-zinc-400">No game stats are loaded for {player.name} yet. The admin can load them from the Admin page (Stats and schedule).</p>
           )}
+        </div>
+      )}
+
+      {params.tab === "matchup" && (
+        <div className="grid items-start gap-4 md:grid-cols-2">
+          <div className="gl-panel space-y-3 p-4">
+            <h3 className="font-bold">Next matchup</h3>
+            {next && player.nfl_team ? (() => {
+              const opp = opponentOf(next, player.nfl_team);
+              const a = vsPos?.get(opp);
+              const grade = matchupGrade(a);
+              return (
+                <>
+                  <p className="text-2xl font-extrabold italic">{oppFor(next)} <span className="text-sm font-normal not-italic text-zinc-400">week {next.week}</span></p>
+                  {vsPos ? (
+                    a ? (
+                      <p className="text-sm text-zinc-300">
+                        {opp} gives up <span className="font-semibold text-white">{a.avg.toFixed(1)}</span> PPR points a game to {player.position}s,
+                        {" "}<span className="font-semibold text-white">{ordinal(a.rank)} most</span> of {a.of} defenses.
+                        {" "}Matchup: <span className="font-bold" style={{ color: grade.color }}>{grade.label}</span>.
+                      </p>
+                    ) : <p className="text-sm text-zinc-400">No points-allowed data for {player.position}s against {opp} yet.</p>
+                  ) : <p className="text-sm text-zinc-400">Matchup ratings aren&apos;t available for {player.position}s.</p>}
+                  <dl className="grid grid-cols-2 gap-y-2 text-sm">
+                    <dt className="text-zinc-400">Projected ({LABEL[params.scoring]})</dt><dd>{proj ? `${Number(proj.points).toFixed(1)} (week ${proj.week})` : "–"}</dd>
+                    <dt className="text-zinc-400">Season average</dt><dd>{ppg === null ? "–" : ppg.toFixed(1)}</dd>
+                    <dt className="text-zinc-400">Last {recent.length || 3} games</dt><dd>{recentAvg === null ? "–" : recentAvg.toFixed(1)}</dd>
+                  </dl>
+                </>
+              );
+            })() : <p className="text-sm text-zinc-400">{player.nfl_team ? "No upcoming game found." : `${player.name} is not on a team.`} Load the schedule from the Admin page.</p>}
+          </div>
+
+          <div className="gl-panel p-4">
+            <h3 className="mb-2 font-bold">Upcoming schedule</h3>
+            {upcoming.length && player.nfl_team ? (
+              <table className="gl-table">
+                <thead><tr><th scope="col">WK</th><th scope="col">OPP</th><th scope="col">PTS ALLOWED TO {player.position}</th><th scope="col">MATCHUP</th></tr></thead>
+                <tbody>
+                  {upcoming.map((g) => {
+                    const a = vsPos?.get(opponentOf(g, player.nfl_team!));
+                    const grade = matchupGrade(a);
+                    return (
+                      <tr key={g.week}>
+                        <td>{g.week}</td>
+                        <td>{oppFor(g)}</td>
+                        <td>{a ? `${a.avg.toFixed(1)} (${ordinal(a.rank)})` : "–"}</td>
+                        <td className="font-semibold" style={{ color: grade.color }}>{grade.label}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : <p className="text-sm text-zinc-400">No upcoming games loaded.</p>}
+            <p className="mt-3 text-xs text-zinc-500">Points allowed are PPR fantasy points to the position this season. 1st means the friendliest defense.</p>
+          </div>
         </div>
       )}
 
