@@ -40,7 +40,7 @@ export type Grade = { label: string; color: string };
 export function matchupGrade(a: Allowed | undefined): Grade {
   if (!a || a.of < 2) return { label: "No data", color: "#8b8576" };
   const pct = (a.rank - 1) / (a.of - 1);
-  if (pct <= 0.2) return { label: "Great", color: "#1b8a35" };
+  if (pct <= 0.2) return { label: "Great", color: "#55745D" };
   if (pct <= 0.4) return { label: "Good", color: "#4a9d2f" };
   if (pct <= 0.6) return { label: "Neutral", color: "#a87a00" };
   if (pct <= 0.8) return { label: "Tough", color: "#d9660f" };

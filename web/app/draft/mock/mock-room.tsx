@@ -103,7 +103,7 @@ export function MockRoom({
                 const current = idx === overall && !done;
                 return (
                   <div key={`${r}-${t}`} className="min-h-[3.2rem] rounded p-1 text-[11px]"
-                       style={{ border: `1px solid ${current ? "#1b8a35" : t + 1 === slot ? "#7fbf8a" : "#e6dfd1"}`, background: current ? "#eaf5df" : "#fffdf8" }}>
+                       style={{ border: `1px solid ${current ? "#55745D" : t + 1 === slot ? "#9DB5A2" : "#DEDAD0"}`, background: current ? "#E3EAD9" : "#FBFAF6" }}>
                     <span className="block text-[9px] text-zinc-500">{r + 1}.{String((r % 2 === 0 ? t : teams - 1 - t) + 1).padStart(2, "0")}</span>
                     {pl && <><span className="pn block truncate">{pl.name}</span><span className={`bd !px-1 !text-[9px] ${pl.position}`}>{pl.position}</span></>}
                   </div>

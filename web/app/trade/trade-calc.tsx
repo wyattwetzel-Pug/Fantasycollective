@@ -104,7 +104,7 @@ export function TradeCalc({ players }: { players: P[] }) {
         <div className="grid items-start gap-3 md:grid-cols-[1fr_auto_1fr]">
           <SideList title="You give" hint="Players you send away" list={give} players={players} taken={taken}
             onAdd={(p) => setGive((l) => [...l, p])} onRemove={(id) => setGive((l) => l.filter((p) => p.id !== id))} />
-          <button className="mx-auto h-12 w-12 self-center rounded-lg border text-xl" style={{ borderColor: "var(--accent)", color: "var(--accent)", background: "#e4f0d8" }}
+          <button className="mx-auto h-12 w-12 self-center rounded-lg border text-xl" style={{ borderColor: "var(--accent)", color: "var(--accent)", background: "#E3EAD9" }}
             aria-label="Swap sides" onClick={() => { setGive(get); setGet(give); }}>⇄</button>
           <SideList title="You get" hint="Players you receive" list={get} players={players} taken={taken}
             onAdd={(p) => setGet((l) => [...l, p])} onRemove={(id) => setGet((l) => l.filter((p) => p.id !== id))} />
@@ -152,7 +152,7 @@ export function TradeCalc({ players }: { players: P[] }) {
               {all.map(({ p, mine }) => (
                 <li key={p.id} className="flex items-center gap-3">
                   <span className="pn w-28 shrink-0 truncate">{p.name}</span>
-                  <span className="h-3 flex-1 rounded bg-zinc-800"><span className="block h-3 rounded" style={{ width: `${(value(p.rank) / top) * 100}%`, background: mine ? "#43b02a" : "#b9b0a0" }} /></span>
+                  <span className="h-3 flex-1 rounded bg-zinc-800"><span className="block h-3 rounded" style={{ width: `${(value(p.rank) / top) * 100}%`, background: mine ? "#55745D" : "#b9b0a0" }} /></span>
                   <span className="w-10 text-right">{fmt(value(p.rank))}</span>
                 </li>
               ))}

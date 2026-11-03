@@ -168,16 +168,16 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
         <div className="space-y-4 lg:sticky lg:top-4">
           <div className="gl-panel space-y-3 p-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-2xl">Leagues <span className="ml-1 rounded-full bg-[#efe9dc] px-2 py-0.5 text-sm not-italic">{leagues.length}</span></h3>
+              <h3 className="text-2xl">Leagues <span className="ml-1 rounded-full bg-[#EDE9DF] px-2 py-0.5 text-sm not-italic">{leagues.length}</span></h3>
             </div>
             {leagues.map((l) => (
-              <Link key={l.id} href={`/teams?league=${l.id}`} className={`block rounded-xl border p-3 ${chosen?.id === l.id ? "gl-src-on" : "border-zinc-800 bg-[#fffdf8]"}`}>
+              <Link key={l.id} href={`/teams?league=${l.id}`} className={`block rounded-xl border p-3 ${chosen?.id === l.id ? "gl-src-on" : "border-zinc-800 bg-[#FBFAF6]"}`}>
                 <span className="block font-bold">{l.name}</span>
                 <span className="block text-xs text-zinc-400">{PLATFORM[l.platform] ?? l.platform} · {LABEL[l.format]} · {LABEL[l.scoring]} · {LABEL[l.qb_type]}</span>
               </Link>
             ))}
             {!leagues.length && <p className="text-sm text-zinc-400">No leagues synced yet.</p>}
-            <details open={!leagues.length} className="rounded-xl border border-zinc-800 bg-[#fffdf8] p-3">
+            <details open={!leagues.length} className="rounded-xl border border-zinc-800 bg-[#FBFAF6] p-3">
               <summary className="cursor-pointer text-sm font-bold">+ Sync a league</summary>
               <div className="mt-3"><SyncForm /></div>
             </details>

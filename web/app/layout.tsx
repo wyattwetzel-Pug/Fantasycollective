@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
+import { Barlow_Condensed, Inter } from "next/font/google";
 import "./globals.css";
 import { Suspense } from "react";
 import { Nav } from "./nav";
 import { Sidebar } from "./sidebar";
 import { SidebarLoader } from "./sidebar-loader";
 
-const serif = Playfair_Display({ subsets: ["latin"], weight: ["700", "800", "900"], style: ["italic"], variable: "--font-serif" });
+const barlow = Barlow_Condensed({ subsets: ["latin"], weight: ["600", "700", "800"], style: ["normal"], variable: "--font-barlow" });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${serif.variable} ${inter.variable} h-full antialiased`}>
+    <html lang="en" className={`${barlow.variable} ${inter.variable} h-full antialiased`}>
       <body className="min-h-full">
         <Suspense fallback={<Suspense><Sidebar isAdmin={false} /></Suspense>}>
           <SidebarLoader />

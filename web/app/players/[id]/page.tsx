@@ -347,7 +347,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
                     <tr key={`${a.season}${a.source}${a.format}${a.scoring}${a.qb_type}`}>
                       <td className="!text-left">{LABEL[a.format]} · {LABEL[a.scoring]} · {LABEL[a.qb_type]}</td>
                       <td>{a.season}</td>
-                      <td><span className="inline-block rounded-full border px-3 py-0.5 text-xs font-semibold" style={{ background: "#e4f0d8", color: "#1b6e2c", borderColor: "#1b8a35" }}>{pickLabel(a.adp, a.teams)}</span></td>
+                      <td><span className="inline-block rounded-full border px-3 py-0.5 text-xs font-semibold" style={{ background: "#E3EAD9", color: "#46634E", borderColor: "#55745D" }}>{pickLabel(a.adp, a.teams)}</span></td>
                       <td>{a.high ?? "–"}-{a.low ?? "–"}</td>
                       <td>{a.times_drafted ?? "–"}</td>
                       <td className="!text-left text-zinc-400">{a.source}</td>

@@ -5,7 +5,7 @@ import { PlayerLink } from "@/app/player-link";
 export type TeamPlayer = { id: number; name: string; pos: string; slot: string; rank: { rank: number; tier: string | null } | undefined; value: number };
 export type TeamRow = { name: string; mine: boolean; players: TeamPlayer[]; group: Record<string, number>; total: number };
 
-const POS_COLOR: Record<string, string> = { QB: "#b99aff", RB: "#5db4ff", WR: "#ff74b4", TE: "#ffb457", K: "#63d6bc", DEF: "#c9c4b8" };
+const POS_COLOR: Record<string, string> = { QB: "#4F7FD1", RB: "#4F7F5C", WR: "#8A63C7", TE: "#C95757", K: "#8B6B4A", DEF: "#8D8A80" };
 const posName = (p: string) => (p === "DEF" ? "DST" : p);
 
 // Every team in a league, strongest first. Click a team to open its roster by position.
@@ -30,7 +30,7 @@ export function TeamCards({ list, present, groupRank }: { list: TeamRow[]; prese
               </span>
               <span className="text-zinc-400 transition-transform group-open:rotate-180" aria-hidden="true">▾</span>
             </div>
-            <div className="mt-1.5 flex h-3 overflow-hidden rounded bg-[#e6dfd1]" role="img" aria-label="Share of roster value by position">
+            <div className="mt-1.5 flex h-3 overflow-hidden rounded bg-[#DEDAD0]" role="img" aria-label="Share of roster value by position">
               {present.filter((pos) => (t.group[pos] ?? 0) > 0).map((pos) => (
                 <span key={pos} className="flex items-center justify-center text-[9px] font-bold leading-none" style={{ width: `${((t.group[pos] ?? 0) / Math.max(1, t.total)) * 100}%`, background: POS_COLOR[pos] }}>
                   {groupRank.get(`${t.name}|${pos}`)}
@@ -53,10 +53,10 @@ export function TeamCards({ list, present, groupRank }: { list: TeamRow[]; prese
                     {rows.map((p) => {
                       const tc = p.rank?.tier ? TIER_COLORS[p.rank.tier] : undefined;
                       return (
-                        <li key={p.id} className="flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-[#fffdf8] p-1">
+                        <li key={p.id} className="flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-[#FBFAF6] p-1">
                           <Avatar id={p.id} name={p.name} size={24} />
                           <span className="min-w-0 flex-1 truncate text-xs"><PlayerLink id={p.id} name={p.name} />{p.slot === "ir" && <span className="ml-1 text-[10px] text-zinc-400">IR</span>}</span>
-                          <span className="min-w-[2rem] rounded px-1 text-center text-[11px] font-bold leading-5" style={tc ? { background: `${tc}33`, color: "var(--ink)", border: `1px solid ${tc}` } : { background: "#efe9dc" }}>
+                          <span className="min-w-[2rem] rounded px-1 text-center text-[11px] font-bold leading-5" style={tc ? { background: `${tc}33`, color: "var(--ink)", border: `1px solid ${tc}` } : { background: "#EDE9DF" }}>
                             {p.rank ? p.rank.rank : "–"}
                           </span>
                         </li>

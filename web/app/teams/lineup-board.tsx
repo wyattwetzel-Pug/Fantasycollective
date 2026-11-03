@@ -94,7 +94,7 @@ export function LineupBoard({
                 const a = p.allowed;
                 const g = matchupGrade(a);
                 return (
-                  <tr key={i} style={isNew ? { background: "#eaf5df" } : undefined}>
+                  <tr key={i} style={isNew ? { background: "#E3EAD9" } : undefined}>
                     <td className="font-bold">{slotLabel(slot)}</td>
                     <td className="!text-left">
                       <span className="flex items-center gap-3">

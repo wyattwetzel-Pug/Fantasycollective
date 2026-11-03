@@ -98,7 +98,7 @@ async function DraftView({ searchParams }: { searchParams: Promise<Record<string
   return (
     <div className="space-y-4">
       <div className="gl-hero flex min-h-[8rem] items-center gap-4 p-5 sm:p-6">
-        <span className="hidden h-20 w-16 items-center justify-center rounded-lg text-4xl sm:flex" style={{ border: "3px solid #1b8a35", color: "var(--accent)" }} aria-hidden="true">☑</span>
+        <span className="hidden h-20 w-16 items-center justify-center rounded-lg text-4xl sm:flex" style={{ border: "3px solid #55745D", color: "var(--accent)" }} aria-hidden="true">☑</span>
         <div>
           <h2 id="h-draft" className="gl-title text-4xl sm:text-6xl">Draft <span style={{ color: "var(--accent)" }}>Guide</span></h2>
           <p className="mt-2 text-sm text-zinc-200">Rankings, ADP, and draft tools to help you build a championship roster.</p>
@@ -194,7 +194,7 @@ async function DraftView({ searchParams }: { searchParams: Promise<Record<string
                           <td className="!text-left"><span className="flex items-center gap-2"><Avatar id={r.player_id} name={r.players?.name} size={32} /><PlayerLink id={r.player_id} name={r.players?.name} /></span></td>
                           <td><span className={`bd ${r.players?.position}`}>{r.players?.position}</span></td>
                           <td>{r.players?.nfl_team}</td>
-                          <td><span className="inline-block rounded-full border px-3 py-0.5 text-xs font-semibold" style={{ background: "#e4f0d8", color: "#1b6e2c", borderColor: "#1b8a35" }}>{pickLabel(r.adp, r.teams)}</span></td>
+                          <td><span className="inline-block rounded-full border px-3 py-0.5 text-xs font-semibold" style={{ background: "#E3EAD9", color: "#46634E", borderColor: "#55745D" }}>{pickLabel(r.adp, r.teams)}</span></td>
                           <td>{r.high ?? "–"}-{r.low ?? "–"}</td>
                           <td>{r.times_drafted ?? "–"}</td>
                           <td>{ours === undefined ? <span className="text-zinc-500">–</span> : `#${ours}`}</td>
@@ -274,7 +274,7 @@ async function DraftView({ searchParams }: { searchParams: Promise<Record<string
             </div>
             <p className="text-xs text-zinc-500">A draft needs enough ranked players: teams × rounds. Rounds equal starters plus bench.</p>
           </div>
-          <div className="gl-panel space-y-3 p-4" style={{ borderColor: "#7fbf8a" }}>
+          <div className="gl-panel space-y-3 p-4" style={{ borderColor: "#9DB5A2" }}>
             <h3 className="text-lg font-bold"><span style={{ color: "var(--accent)" }} aria-hidden="true">▷</span> Mock Draft</h3>
             <p className="text-sm text-zinc-300">Draft against computer teams that pick from the Ball Knowers Consensus. It&apos;s a snake draft, and nothing is saved.</p>
             <button className="rounded-full px-5 py-2 text-sm font-bold" style={{ background: "var(--bar)", color: "var(--bar-ink)" }}>Start Mock Draft →</button>

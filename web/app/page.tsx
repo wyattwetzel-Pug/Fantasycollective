@@ -49,7 +49,7 @@ async function HomeView() {
         <div>
           <h2 id="h-home" className="gl-title text-5xl sm:text-6xl">Fantasy Football</h2>
           <p className="mt-4 text-sm italic tracking-[0.3em] text-zinc-300">RESEARCH. RANKINGS. ADVANTAGE.</p>
-          <div className="mt-3 h-1 w-56 rounded" style={{ background: "linear-gradient(90deg,#1b8a35,transparent)" }} />
+          <div className="mt-3 h-1 w-56 rounded" style={{ background: "linear-gradient(90deg,#55745D,transparent)" }} />
         </div>
       </div>
 

@@ -18,7 +18,7 @@ export async function Nav() {
       </form>
       {me ? (
         <>
-          <span className="hidden rounded-full bg-[#fffdf8] px-4 py-2 font-semibold sm:inline" style={{ border: "1px solid #e6dfd1" }}>{me.display_name}</span>
+          <span className="hidden rounded-full bg-[#FBFAF6] px-4 py-2 font-semibold sm:inline" style={{ border: "1px solid #DEDAD0" }}>{me.display_name}</span>
           <form action={signOut}><button className="rounded-full px-3 py-2 text-zinc-400 hover:text-black">Log out</button></form>
         </>
       ) : (

@@ -1,6 +1,6 @@
 "use client";
 
-import { TIER_COLORS, TIER_ORDER } from "@/lib/tier-config";
+import { TIER_COLORS, TIER_ORDER, tierInk } from "@/lib/tier-config";
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Avatar } from "@/app/avatar";
@@ -188,7 +188,7 @@ export function InlineEditor({
   const posRank = items.map((it) => (posCount[it.position] = (posCount[it.position] ?? 0) + 1));
   const unplaced = items.filter((i) => !i.placed).length;
   const num = (v: number | null | undefined) => (v === null || v === undefined ? "–" : v.toFixed(1));
-  const btn = "rounded-md border border-zinc-700 bg-[#fffdf8] px-2.5 py-1.5 text-sm font-bold leading-none text-zinc-300 hover:bg-[#f0eadc] disabled:opacity-30";
+  const btn = "rounded-md border border-zinc-700 bg-[#FBFAF6] px-2.5 py-1.5 text-sm font-bold leading-none text-zinc-300 hover:bg-[#E7E3D8] disabled:opacity-30";
 
   return (
     <div className="space-y-4">
@@ -230,7 +230,7 @@ export function InlineEditor({
                   <tr>
                     <th scope="col" colSpan={2} className="!text-left">
                       <span className="flex items-center">
-                        <span className="tier-chip" style={{ background: `linear-gradient(180deg, ${c}, ${c})` }}>{run.tier || "–"}</span>
+                        <span className="tier-chip" style={{ background: c, color: tierInk(run.tier) }}>{run.tier || "–"}</span>
                         <span className="text-lg font-bold">{run.tier ? "TIER" : "UNSORTED"}</span>
                       </span>
                     </th>

@@ -1,4 +1,4 @@
-import { TIER_COLORS } from "@/lib/tier-config";
+import { TIER_COLORS, tierInk } from "@/lib/tier-config";
 import { fixTiers } from "@/lib/tiers";
 import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
@@ -226,7 +226,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
                       <tr>
                         <th scope="col" colSpan={2} className="!text-left">
                           <span className="flex items-center">
-                            <span className="tier-chip" style={{ background: `linear-gradient(180deg, ${c}, ${c})` }}>{run.tier ?? "–"}</span>
+                            <span className="tier-chip" style={{ background: c, color: tierInk(run.tier) }}>{run.tier ?? "–"}</span>
                             <span className="text-lg font-bold">{run.tier ? "TIER" : "UNSORTED"}</span>
                           </span>
                         </th>
