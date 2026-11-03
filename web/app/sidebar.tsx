@@ -47,8 +47,8 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
         })}
       </ul>
       <svg className="mt-auto w-full" viewBox="0 0 224 120" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-        <polygon points="0,120 0,70 40,30 70,62 110,10 150,66 185,40 224,80 224,120" fill="#c9c4b9" />
-        <polygon points="0,120 0,95 30,70 60,92 100,58 140,95 190,72 224,100 224,120" fill="#a8a398" />
+        <polygon points="0,120 0,70 40,30 70,62 110,10 150,66 185,40 224,80 224,120" fill="#55745D" fillOpacity="0.45" />
+        <polygon points="0,120 0,95 30,70 60,92 100,58 140,95 190,72 224,100 224,120" fill="#55745D" />
       </svg>
     </nav>
   );
