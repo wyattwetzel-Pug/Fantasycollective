@@ -88,36 +88,65 @@ export async function runSync(opts: { weeks?: number[]; backfill?: boolean } = {
   }
 }
 
-// NFL headlines from ESPN's public news feed. Stories that name players we track are also saved
-// against those players, so they show on the player's News tab. Only new stories are added.
+// NFL headlines from ESPN's public news feeds: the general feed plus one feed per team. Stories that
+// name players we track are saved against those players (their News tab), and every story keeps the
+// teams it was filed under, so a profile can show its team's news too. Only new stories are added.
 type EspnArticle = {
   id: number; headline?: string; description?: string; published?: string; type?: string;
   links?: { web?: { href?: string } }; categories?: { type?: string; description?: string }[];
 };
 const plain = (n: string) => n.toLowerCase().replace(/\b(jr|sr|ii|iii|iv|v)\b\.?/g, "").replace(/[^a-z]/g, "");
+const ESPN = "https://site.api.espn.com/apis/site/v2/sports/football/nfl";
+const TEAM_ALIAS: Record<string, string> = { WSH: "WAS" };
+
+async function espnArticles(url: string): Promise<EspnArticle[]> {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) return [];
+  return (((await res.json()) as { articles?: EspnArticle[] }).articles ?? []).filter((a) => a.headline && a.type !== "Media" && a.links?.web?.href);
+}
+
 async function syncNews(db: SupabaseClient, log: string[]) {
   try {
-    const res = await fetch("https://site.api.espn.com/apis/site/v2/sports/football/nfl/news?limit=40", { cache: "no-store" });
-    if (!res.ok) { log.push(`News skipped: ESPN returned ${res.status}.`); return; }
-    const feed = (await res.json()) as { articles?: EspnArticle[] };
-    const articles = (feed.articles ?? []).filter((a) => a.headline && a.type !== "Media" && a.links?.web?.href);
-    if (!articles.length) return;
+    const teamsRes = await fetch(`${ESPN}/teams`, { cache: "no-store" });
+    const teamList = teamsRes.ok
+      ? (((await teamsRes.json()) as { sports?: { leagues?: { teams?: { team: { id: string; abbreviation: string } }[] }[] }[] }).sports?.[0]?.leagues?.[0]?.teams ?? []).map((t) => ({ id: t.team.id, abbr: TEAM_ALIAS[t.team.abbreviation] ?? t.team.abbreviation }))
+      : [];
 
-    const ids = articles.map((a) => String(a.id));
-    const { data: have } = await db.from("news").select("external_id").in("external_id", ids);
-    const known = new Set((have ?? []).map((r) => r.external_id as string));
+    const stories = new Map<number, { a: EspnArticle; teams: Set<string> }>();
+    const take = (list: EspnArticle[], team?: string) => list.forEach((a) => {
+      const cur = stories.get(a.id) ?? { a, teams: new Set<string>() };
+      if (team) cur.teams.add(team);
+      stories.set(a.id, cur);
+    });
+    take(await espnArticles(`${ESPN}/news?limit=40`));
+    for (let i = 0; i < teamList.length; i += 8) {
+      const batch = teamList.slice(i, i + 8);
+      const got = await Promise.all(batch.map((t) => espnArticles(`${ESPN}/news?team=${t.id}&limit=50`).catch(() => [])));
+      got.forEach((list, k) => take(list, batch[k].abbr));
+    }
+    if (!stories.size) return;
+
+    const ids = [...stories.keys()].map(String);
+    const known = new Set<string>();
+    for (let i = 0; i < ids.length; i += 200) {
+      const { data: have } = await db.from("news").select("external_id").in("external_id", ids.slice(i, i + 200));
+      (have ?? []).forEach((r) => known.add(r.external_id as string));
+    }
     const { data: ours } = await db.from("players").select("id, name").limit(1000);
     const byName = new Map((ours ?? []).map((p) => [plain(p.name as string), p.id as number]));
 
     const rows: Record<string, unknown>[] = [];
-    for (const a of articles) {
+    for (const { a, teams } of stories.values()) {
       if (known.has(String(a.id))) continue;
       const matched = [...new Set((a.categories ?? []).filter((c) => c.type === "athlete" && c.description).map((c) => byName.get(plain(c.description!))).filter((x): x is number => !!x))].slice(0, 3);
-      const base = { headline: a.headline, body: a.description ?? null, url: a.links!.web!.href, source: "ESPN", external_id: String(a.id), published_at: a.published ?? new Date().toISOString() };
+      const base = {
+        headline: a.headline, body: a.description ?? null, url: a.links!.web!.href, source: "ESPN", external_id: String(a.id),
+        published_at: a.published ?? new Date().toISOString(), teams: [...teams],
+      };
       if (matched.length) matched.forEach((pid) => rows.push({ ...base, player_id: pid })); else rows.push({ ...base, player_id: null });
     }
-    if (rows.length) {
-      const { error } = await db.from("news").insert(rows);
+    for (let i = 0; i < rows.length; i += 400) {
+      const { error } = await db.from("news").insert(rows.slice(i, i + 400));
       if (error) { log.push(`News skipped: ${error.message}`); return; }
     }
     await db.from("news").delete().lt("published_at", new Date(Date.now() - 45 * 86400000).toISOString());

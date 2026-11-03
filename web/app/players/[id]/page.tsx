@@ -214,6 +214,27 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
     pts_ppr: careerRows.reduce((t, r) => t + Number(r.pts_ppr ?? 0), 0), pts_half: careerRows.reduce((t, r) => t + Number(r.pts_half ?? 0), 0),
   };
 
+  // News tab: stories that name the player, then (if few) the latest from his team's feeds.
+  let teamNews: NewsRow[] = [];
+  if (params.tab === "news" && player.nfl_team && (news ?? []).length < 8) {
+    const have = new Set((news ?? []).map((n) => n.headline));
+    const { data: tn } = await supabase.from("news").select("id, headline, body, published_at, url, source").contains("teams", [player.nfl_team]).is("player_id", null).order("published_at", { ascending: false }).limit(12).returns<NewsRow[]>();
+    const { data: tn2 } = await supabase.from("news").select("id, headline, body, published_at, url, source").contains("teams", [player.nfl_team]).not("player_id", "is", null).order("published_at", { ascending: false }).limit(30).returns<NewsRow[]>();
+    const seenHead = new Set<string>();
+    teamNews = [...(tn ?? []), ...(tn2 ?? [])].sort((a, b) => b.published_at.localeCompare(a.published_at))
+      .filter((n) => { if (have.has(n.headline) || seenHead.has(n.headline)) return false; seenHead.add(n.headline); return true; }).slice(0, 10);
+  }
+
+  const newsRow = (n: NewsRow) => (
+    <div key={n.id} className="gl-row !items-start">
+      <span className="flex-1">
+        {n.url ? <a href={n.url} target="_blank" rel="noopener noreferrer" className="block text-sm font-semibold hover:underline">{n.headline}</a> : <span className="block text-sm font-semibold">{n.headline}</span>}
+        {n.body && <span className="block text-xs text-zinc-400">{n.body}</span>}
+        <span className="block text-[11px] text-zinc-500">{n.source ? `${n.source} · ` : ""}{new Date(n.published_at).toLocaleDateString()}</span>
+      </span>
+    </div>
+  );
+
   const nextMatchup = (
       <div className="gl-panel space-y-3 p-4">
         <h3 className="font-bold">Next matchup</h3>
@@ -456,11 +477,14 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
       {params.tab === "news" && (
         <div className="gl-panel space-y-2 p-4">
           <h3 className="mb-2 font-bold">News</h3>
-          {(news ?? []).length ? (news ?? []).map((n) => (
-            <div key={n.id} className="gl-row !items-start">
-              <span className="flex-1">{n.url ? <a href={n.url} target="_blank" rel="noopener noreferrer" className="block text-sm font-semibold hover:underline">{n.headline}</a> : <span className="block text-sm font-semibold">{n.headline}</span>}{n.body && <span className="block text-xs text-zinc-400">{n.body}</span>}<span className="block text-[11px] text-zinc-500">{n.source ? `${n.source} · ` : ""}{new Date(n.published_at).toLocaleDateString()}</span></span>
-            </div>
-          )) : <p className="text-sm text-zinc-400">No news on {player.name} yet.</p>}
+          {[...(news ?? [])].map((n) => newsRow(n))}
+          {!(news ?? []).length && <p className="text-sm text-zinc-400">No stories name {player.name} right now.</p>}
+          {teamNews.length > 0 && (
+            <>
+              <h4 className="pt-3 text-sm font-bold">More from {player.nfl_team}</h4>
+              {teamNews.map((n) => newsRow(n))}
+            </>
+          )}
         </div>
       )}
     </div>
