@@ -65,8 +65,8 @@ const SCORINGS = ["ppr", "half", "std"];
 const QB_TYPES = ["1qb", "superflex"];
 
 // Copies a saved list to every other setting that has no ranked players yet, as drafts.
-// Lists you've already ranked are never touched.
-export async function copyListToOtherSettings(setId: number) {
+// Lists that already have ranked players are only replaced when overwrite is true.
+export async function copyListToOtherSettings(setId: number, overwrite = false) {
   const { supabase, user } = await requireContributor();
 
   const { data: source } = await supabase.from("ranking_sets").select("id, format, scoring, qb_type").eq("id", setId).eq("contributor_id", user.id).maybeSingle();
@@ -91,7 +91,7 @@ export async function copyListToOtherSettings(setId: number) {
     let { data: target } = await supabase.from("ranking_sets").select("id").match(combo).maybeSingle();
     if (target) {
       const { count } = await supabase.from("rankings").select("player_id", { count: "exact", head: true }).eq("set_id", target.id).eq("needs_ranking", false);
-      if ((count ?? 0) > 0) { skipped.push(label); continue; }
+      if ((count ?? 0) > 0 && !overwrite) { skipped.push(label); continue; }
     } else {
       const { data: made, error } = await supabase.from("ranking_sets").insert(combo).select("id").single();
       if (error || !made) return { ok: false as const, error: error?.message ?? "Could not create a list." };

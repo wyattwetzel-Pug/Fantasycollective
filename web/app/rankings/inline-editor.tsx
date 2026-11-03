@@ -168,9 +168,12 @@ export function InlineEditor({
     if (dirty) { setMessage("Save your list first, then copy it."); return; }
     if (!window.confirm("Copy this list to every other setting (format, scoring, QB) that you haven't ranked yet? They are saved as drafts you can edit. Lists you've already ranked are left alone.")) return;
     start(async () => {
-      const res = await copyListToOtherSettings(setId);
+      let res = await copyListToOtherSettings(setId);
+      if (res.ok && res.skipped > 0 && window.confirm(`${res.skipped} other settings already have players placed. Replace those lists with this one too? Their current order will be lost.`)) {
+        res = await copyListToOtherSettings(setId, true);
+      }
       if (!res.ok) { setMessage(`Could not copy: ${res.error}`); return; }
-      setMessage(`Copied to ${res.copied} other settings${res.skipped ? ` (${res.skipped} you'd already ranked were left alone)` : ""}. Switch the settings to edit each one.`);
+      setMessage(`Copied this list to your other settings. Switch the settings to edit each one.`);
     });
   }
 
