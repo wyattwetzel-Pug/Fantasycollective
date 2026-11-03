@@ -47,6 +47,21 @@ export async function LineupSection({ supabase, userId, chosen, isContributor, s
     .forEach(({ p }) => { counts[p.position] = (counts[p.position] ?? 0) + 1; posRank.set(p.id, counts[p.position]); });
   (await positionRankMap(supabase, combo)).forEach((rank, id) => posRank.set(id, rank));
 
+  // Who starts follows the position consensus. Within a position, the best position rank gets the best
+  // overall slot that position's players hold, so a QB and a WR can still be compared for a FLEX spot.
+  const adjusted = new Map<number, number>();
+  const byPos = new Map<string, { id: number; pr: number; r: number }[]>();
+  [...info.values()].forEach((p) => {
+    const r = rankOf(p.id), pr = posRank.get(p.id);
+    if (r === null || !pr) return;
+    byPos.set(p.position, [...(byPos.get(p.position) ?? []), { id: p.id, pr, r }]);
+  });
+  byPos.forEach((list) => {
+    const slots = list.map((x) => x.r).sort((a, b) => a - b);
+    [...list].sort((a, b) => a.pr - b.pr).forEach((x, i) => adjusted.set(x.id, slots[i]));
+  });
+  const rankFor = (id: number) => adjusted.get(id) ?? rankOf(id);
+
   // Next game and how that defense does against each position.
   const teams = [...new Set(rosterRows.map((r) => info.get(r.player_id)?.nfl_team).filter((t): t is string => !!t))];
   const { data: latest } = await supabase.from("games").select("season").order("season", { ascending: false }).limit(1);
@@ -65,7 +80,7 @@ export async function LineupSection({ supabase, userId, chosen, isContributor, s
     const next = p.nfl_team ? (gm ?? []).find((g) => (g.home === p.nfl_team || g.away === p.nfl_team) && isOpen(g)) ?? null : null;
     const opp = next && p.nfl_team ? opponentOf(next, p.nfl_team) : null;
     return [{
-      id: p.id, name: p.name, pos: p.position, team: p.nfl_team, slot: r.slot, rank: rankOf(p.id), posRank: posRank.get(p.id) ?? null,
+      id: p.id, name: p.name, pos: p.position, team: p.nfl_team, slot: r.slot, rank: rankFor(p.id), posRank: posRank.get(p.id) ?? null,
       proj: l?.proj ?? null, ppg: l && l.played ? l.points / l.played : null, next, opp,
       allowed: opp ? defense[p.position]?.get(opp) : undefined,
     }];
