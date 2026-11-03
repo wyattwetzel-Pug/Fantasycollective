@@ -90,15 +90,18 @@ export async function LineupSection({ supabase, userId, chosen, isContributor, s
     const pick = sits.find((s) => s.pos === player.pos && ![...swapFor.values()].includes(s)) ?? sits.find((s) => ![...swapFor.values()].includes(s));
     if (pick) swapFor.set(player.id, pick);
   });
+  // Everyone not in the best lineup, as the bench (injured reserve last).
+  const benchBest = roster.filter((p) => !recIds.has(p.id)).sort((a, b) => (a.slot === "ir" ? 1 : 0) - (b.slot === "ir" ? 1 : 0) || score(b) - score(a));
   const changes = recommended.filter((r) => r.player && !startIds.has(r.player.id)).length;
   const sum = (xs: (P | null)[]) => xs.reduce((s, p) => s + (p?.proj ?? 0), 0);
   const curProj = sum(current.map((c) => c.player));
   const recProj = sum(recommended.map((r) => r.player));
+  const recPpg = recommended.reduce((t, r) => t + (r.player?.ppg ?? 0), 0);
 
   return (
     <LineupBoard
       platform={chosen.platform} leagueId={chosen.id} source={source} isContributor={isContributor}
-      starters={starters} current={current} extras={extras} bench={bench} recommended={recommended}
+      starters={starters} current={current} extras={extras} bench={bench} recommended={recommended} benchBest={benchBest} recPpg={recPpg}
       startIds={startIds} swapFor={swapFor} changes={changes} curProj={curProj} recProj={recProj}
     />
   );
