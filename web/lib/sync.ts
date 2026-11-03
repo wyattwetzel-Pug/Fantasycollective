@@ -85,3 +85,38 @@ export async function runSync(opts: { weeks?: number[]; backfill?: boolean } = {
     return { ok: false, log };
   }
 }
+
+// Season totals for the three seasons before the current one (one request per season).
+const KEEP = ["rush_att", "rush_yd", "rush_td", "rec", "rec_tgt", "rec_yd", "rec_td", "pass_att", "pass_cmp", "pass_yd", "pass_td", "pass_int", "fum_lost", "fgm", "fga", "xpm"];
+export async function runHistory(): Promise<{ ok: boolean; log: string[] }> {
+  const log: string[] = [];
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return { ok: false, log: ["SUPABASE_SERVICE_ROLE_KEY is not set, so the sync can't write to the database."] };
+  const db = createClient(url, key, { auth: { persistSession: false } });
+  try {
+    const state = await getJson<State>("/v1/state/nfl");
+    const season = Number(state.season);
+    const { data: ours, error } = await db.from("players").select("id, external_id").limit(1000);
+    if (error) throw new Error(`players: ${error.message}`);
+    const idOf = new Map((ours ?? []).map((p) => [p.external_id as string, p.id as number]));
+    for (const y of [season - 3, season - 2, season - 1]) {
+      const all = await getJson<Record<string, Record<string, number>>>(`/v1/stats/nfl/regular/${y}`);
+      const rows: Record<string, unknown>[] = [];
+      for (const [sid, st] of Object.entries(all)) {
+        const pid = idOf.get(sid);
+        if (!pid || !(st.gp > 0) || st.pts_ppr === undefined) continue;
+        rows.push({
+          player_id: pid, season: y, gp: st.gp, pts_ppr: st.pts_ppr, pts_half: st.pts_half_ppr ?? null, pts_std: st.pts_std ?? null,
+          stats: Object.fromEntries(KEEP.filter((k) => st[k] !== undefined).map((k) => [k, st[k]])),
+        });
+      }
+      await upsertChunks("player_seasons", rows, "player_id,season", db);
+      log.push(`Season ${y}: ${rows.length} players.`);
+    }
+    return { ok: true, log };
+  } catch (e) {
+    log.push(`Failed: ${e instanceof Error ? e.message : String(e)}`);
+    return { ok: false, log };
+  }
+}

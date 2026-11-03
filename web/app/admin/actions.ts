@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { runSync } from "@/lib/sync";
+import { runSync, runHistory } from "@/lib/sync";
 
 // Every action below also fails at the database level for non-admins (row-level security).
 async function requireAdmin() {
@@ -49,6 +49,13 @@ export async function removeContributor(formData: FormData) {
 export async function syncStats(formData: FormData) {
   await requireAdmin();
   const result = await runSync({ backfill: formData.get("mode") === "backfill" });
+  redirect(`/admin?sync=${encodeURIComponent((result.ok ? "OK. " : "Problem. ") + result.log.join(" "))}`);
+}
+
+// Loads the last three seasons' totals for the "Last 3 seasons" table on player profiles.
+export async function syncHistory() {
+  await requireAdmin();
+  const result = await runHistory();
   redirect(`/admin?sync=${encodeURIComponent((result.ok ? "OK. " : "Problem. ") + result.log.join(" "))}`);
 }
 

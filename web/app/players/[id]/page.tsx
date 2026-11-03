@@ -137,6 +137,54 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
     <div className="gl-stat"><span className="text-xl font-extrabold italic">{value}</span><span className="text-[11px] leading-tight text-zinc-400">{label}{sub ? ` · ${sub}` : ""}</span></div>
   );
 
+  // Last three seasons, set by the Admin page's "Load past seasons" button.
+  type SeasonRow = { season: number; gp: number | null; stats: Record<string, number>; pts_ppr: number | null; pts_half: number | null };
+  const { data: seasonRows } = await supabase.from("player_seasons").select("season, gp, stats, pts_ppr, pts_half").eq("player_id", id).order("season", { ascending: false }).limit(3).returns<SeasonRow[]>();
+  const n0 = (v: number | undefined) => (v === undefined ? "–" : Math.round(v).toLocaleString());
+  const div1 = (a: number | undefined, b: number | undefined) => (a === undefined || !b ? "–" : (a / b).toFixed(1));
+  type Col = [string, (r: SeasonRow) => string];
+  const seasonCols: Col[] = player.position === "QB"
+    ? [["CMP", (r) => n0(r.stats.pass_cmp)], ["ATT", (r) => n0(r.stats.pass_att)], ["YDS", (r) => n0(r.stats.pass_yd)], ["TD", (r) => n0(r.stats.pass_td)], ["INT", (r) => n0(r.stats.pass_int)], ["RUSH YDS", (r) => n0(r.stats.rush_yd)]]
+    : player.position === "RB"
+      ? [["CAR", (r) => n0(r.stats.rush_att)], ["YDS", (r) => n0(r.stats.rush_yd)], ["AVG", (r) => div1(r.stats.rush_yd, r.stats.rush_att)], ["TD", (r) => n0(r.stats.rush_td)], ["REC", (r) => n0(r.stats.rec)]]
+      : player.position === "WR" || player.position === "TE"
+        ? [["TGT", (r) => n0(r.stats.rec_tgt)], ["REC", (r) => n0(r.stats.rec)], ["YDS", (r) => n0(r.stats.rec_yd)], ["AVG", (r) => div1(r.stats.rec_yd, r.stats.rec)], ["TD", (r) => n0(r.stats.rec_td)]]
+        : player.position === "K"
+          ? [["FGM", (r) => n0(r.stats.fgm)], ["FGA", (r) => n0(r.stats.fga)], ["XPM", (r) => n0(r.stats.xpm)]]
+          : [];
+  const seasonPts = (r: SeasonRow) => Number((params.scoring === "half" ? r.pts_half : r.pts_ppr) ?? 0);
+  const lastSeasons = (
+    <div className="gl-panel p-4">
+      <h3 className="mb-2 font-bold">Last 3 seasons <span className="text-xs font-normal text-zinc-400">{LABEL[params.scoring]}</span></h3>
+      {seasonRows?.length ? (
+        <div className="overflow-x-auto">
+          <table className="gl-table">
+            <thead>
+              <tr>
+                <th scope="col" className="!text-left">SEASON</th>
+                <th scope="col">GP</th>
+                {seasonCols.map(([h]) => <th key={h} scope="col">{h}</th>)}
+                <th scope="col">FPTS AVG</th>
+                <th scope="col">FPTS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {seasonRows.map((r) => (
+                <tr key={r.season}>
+                  <td className="!text-left text-zinc-400">{r.season}</td>
+                  <td>{r.gp ?? "–"}</td>
+                  {seasonCols.map(([h, f]) => <td key={h}>{f(r)}</td>)}
+                  <td className="hl font-semibold">{r.gp ? (seasonPts(r) / r.gp).toFixed(1) : "–"}</td>
+                  <td className="font-semibold">{seasonPts(r).toFixed(1)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : <p className="text-sm text-zinc-400">No past seasons for {player.name} yet.</p>}
+    </div>
+  );
+
   const nextMatchup = (
       <div className="gl-panel space-y-3 p-4">
         <h3 className="font-bold">Next matchup</h3>
@@ -200,7 +248,10 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
 
       {params.tab === "overview" && (
         <div className="grid items-start gap-4 md:grid-cols-2">
-          {nextMatchup}
+          <div className="space-y-4">
+            {nextMatchup}
+            {lastSeasons}
+          </div>
 
           <div className="gl-panel p-4">
             <h3 className="mb-2 font-bold">Points by week{logSeason ? ` · ${logSeason}` : ""} <span className="text-xs font-normal text-zinc-400">{LABEL[params.scoring]}</span></h3>

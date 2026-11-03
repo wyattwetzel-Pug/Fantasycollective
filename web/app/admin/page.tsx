@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { addProspect, deleteProspect, inviteContributor, moveProspect, removeContributor, revokeInvite, syncStats } from "./actions";
+import { addProspect, deleteProspect, inviteContributor, moveProspect, removeContributor, revokeInvite, syncStats, syncHistory } from "./actions";
 
 export const maxDuration = 60;
 
@@ -47,6 +47,7 @@ async function AdminPanel({ searchParams }: { searchParams: Promise<Record<strin
         <div className="flex flex-wrap gap-2">
           <form action={syncStats}><input type="hidden" name="mode" value="recent" /><button className="rounded bg-green-500 px-4 py-2 text-sm font-semibold text-black">Sync this week</button></form>
           <form action={syncStats}><input type="hidden" name="mode" value="backfill" /><button className="rounded border border-zinc-600 px-4 py-2 text-sm">Load the whole season</button></form>
+          <form action={syncHistory}><button className="rounded border border-zinc-600 px-4 py-2 text-sm">Load past seasons</button></form>
         </div>
         <p className="mt-2 text-xs text-zinc-400">Pulls schedule, weekly stats and projections from Sleeper. It also runs by itself once a day on the live site. Loading the whole season can take up to a minute.</p>
       </section>
