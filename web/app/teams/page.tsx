@@ -94,7 +94,14 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
     const rankOf = (id: number): Rank | undefined => (source === "mine" ? mine.get(id) ?? consensus.get(id) : consensus.get(id));
     const usingFallback = source === "mine" && (rosterRows ?? []).some((r) => !mine.has(r.player_id) && consensus.has(r.player_id));
 
-    type TeamPlayer = { id: number; name: string; pos: string; slot: string; rank: Rank | undefined; value: number };
+    // Position rank: where a player sits among all players at his position on this ranking.
+    const posRankOf = new Map<number, number>();
+    const seen: Record<string, number> = {};
+    [...info.values()].map((p) => ({ p, r: rankOf(p.id) })).filter((x) => x.r)
+      .sort((a, b) => a.r!.rank - b.r!.rank)
+      .forEach(({ p }) => { seen[p.position] = (seen[p.position] ?? 0) + 1; posRankOf.set(p.id, seen[p.position]); });
+
+    type TeamPlayer = { id: number; name: string; pos: string; slot: string; rank: Rank | undefined; posRank: number | null; value: number };
     const teams = new Map<string, { name: string; mine: boolean; players: TeamPlayer[] }>();
     for (const r of rosterRows ?? []) {
       const p = info.get(r.player_id);
@@ -102,21 +109,30 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
       const t = teams.get(r.team_name) ?? { name: r.team_name, mine: false, players: [] };
       const rk = rankOf(r.player_id);
       t.mine = t.mine || r.is_mine;
-      t.players.push({ id: p.id, name: p.name, pos: p.position, slot: r.slot, rank: rk, value: rk ? playerValue(rk.rank) : 0 });
+      t.players.push({ id: p.id, name: p.name, pos: p.position, slot: r.slot, rank: rk, posRank: posRankOf.get(p.id) ?? null, value: rk ? playerValue(rk.rank) : 0 });
       teams.set(r.team_name, t);
     }
-    const list = [...teams.values()].map((t) => {
+    // A team's strength at a position comes from the position ranks of its players. Teams are
+    // then ordered by their average position-group rank (QB, RB, WR and TE).
+    const base = [...teams.values()].map((t) => {
       const group: Record<string, number> = {};
-      t.players.forEach((p) => { group[p.pos] = (group[p.pos] ?? 0) + p.value; });
-      return { ...t, group, total: t.players.reduce((s, p) => s + p.value, 0) };
-    }).sort((a, b) => b.total - a.total);
-
-    // Each position group ranked against the rest of the league (1 = strongest).
-    const present = POS.filter((p) => list.some((t) => t.players.some((x) => x.pos === p)));
+      const posValue: Record<string, number> = {};
+      t.players.forEach((p) => {
+        group[p.pos] = (group[p.pos] ?? 0) + p.value;
+        if (p.posRank) posValue[p.pos] = (posValue[p.pos] ?? 0) + playerValue(p.posRank);
+      });
+      return { ...t, group, posValue, total: t.players.reduce((s, p) => s + p.value, 0) };
+    });
+    const present = POS.filter((p) => base.some((t) => t.players.some((x) => x.pos === p)));
     const groupRank = new Map<string, number>();
     present.forEach((pos) => {
-      [...list].sort((a, b) => (b.group[pos] ?? 0) - (a.group[pos] ?? 0)).forEach((t, i) => groupRank.set(`${t.name}|${pos}`, i + 1));
+      [...base].sort((a, b) => (b.posValue[pos] ?? 0) - (a.posValue[pos] ?? 0)).forEach((t, i) => groupRank.set(`${t.name}|${pos}`, i + 1));
     });
+    const CORE = ["QB", "RB", "WR", "TE"].filter((p) => (present as readonly string[]).includes(p));
+    const list = base.map((t) => ({
+      ...t,
+      avg: CORE.length ? CORE.reduce((sum, pos) => sum + (groupRank.get(`${t.name}|${pos}`) ?? 0), 0) / CORE.length : null,
+    })).sort((a, b) => (a.avg ?? 99) - (b.avg ?? 99) || b.total - a.total);
 
     content = (
       <div className="space-y-4">

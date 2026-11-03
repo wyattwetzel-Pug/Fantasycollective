@@ -2,8 +2,8 @@ import { TIER_COLORS } from "@/lib/tier-config";
 import { Avatar } from "@/app/avatar";
 import { PlayerLink } from "@/app/player-link";
 
-export type TeamPlayer = { id: number; name: string; pos: string; slot: string; rank: { rank: number; tier: string | null } | undefined; value: number };
-export type TeamRow = { name: string; mine: boolean; players: TeamPlayer[]; group: Record<string, number>; total: number };
+export type TeamPlayer = { id: number; name: string; pos: string; slot: string; rank: { rank: number; tier: string | null } | undefined; posRank: number | null; value: number };
+export type TeamRow = { name: string; mine: boolean; players: TeamPlayer[]; group: Record<string, number>; total: number; avg: number | null };
 
 const POS_COLOR: Record<string, string> = { QB: "#4F7FD1", RB: "#4F7F5C", WR: "#8A63C7", TE: "#C95757", K: "#8B6B4A", DEF: "#8D8A80" };
 const posName = (p: string) => (p === "DEF" ? "DST" : p);
@@ -19,7 +19,7 @@ export function TeamCards({ list, present, groupRank }: { list: TeamRow[]; prese
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--bar)] text-xs font-bold text-[var(--bar-ink)]">{i + 1}</span>
               <span className="min-w-[8rem] flex-1">
                 <span className="block text-sm font-bold">{t.name}{t.mine && <span className="ml-2 rounded-full px-1.5 text-[10px] font-bold text-[#fff]" style={{ background: "var(--accent)" }}>You</span>}</span>
-                <span className="block text-[11px] leading-tight text-zinc-400">Roster value {t.total.toFixed(0)}</span>
+                <span className="block text-[11px] leading-tight text-zinc-400">{t.avg === null ? "No ranked players" : `Avg position rank ${t.avg.toFixed(1)}`}</span>
               </span>
               <span className="hidden flex-wrap gap-1 md:flex">
                 {present.map((pos) => (
@@ -42,7 +42,7 @@ export function TeamCards({ list, present, groupRank }: { list: TeamRow[]; prese
           <div className="grid gap-3 border-t border-zinc-800 p-3" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(11rem,1fr))" }}>
             {present.map((pos) => {
               const rows = t.players.filter((p) => p.pos === pos)
-                .sort((a, b) => (a.rank?.rank ?? 9999) - (b.rank?.rank ?? 9999));
+                .sort((a, b) => (a.posRank ?? 9999) - (b.posRank ?? 9999));
               if (!rows.length) return null;
               return (
                 <div key={pos}>
@@ -57,7 +57,7 @@ export function TeamCards({ list, present, groupRank }: { list: TeamRow[]; prese
                           <Avatar id={p.id} name={p.name} size={24} />
                           <span className="min-w-0 flex-1 truncate text-xs"><PlayerLink id={p.id} name={p.name} />{p.slot === "ir" && <span className="ml-1 text-[10px] text-zinc-400">IR</span>}</span>
                           <span className="min-w-[2rem] rounded px-1 text-center text-[11px] font-bold leading-5" style={tc ? { background: `${tc}33`, color: "var(--ink)", border: `1px solid ${tc}` } : { background: "#EDE9DF" }}>
-                            {p.rank ? p.rank.rank : "–"}
+                            {p.posRank ?? "–"}
                           </span>
                         </li>
                       );
