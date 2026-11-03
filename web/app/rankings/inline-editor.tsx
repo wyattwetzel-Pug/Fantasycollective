@@ -145,14 +145,14 @@ export function InlineEditor({
     moveToTier(dragId, tier);
   }
 
-  // Put a player at the top of a tier (or Unsorted when the tier is empty text).
-  function moveToTier(id: number, tier: string) {
+  // Put a player in a tier: at the top of it (a drop on the tier's header) or at the bottom (the Tier picker).
+  function moveToTier(id: number, tier: string, bottom = false) {
     change((prev) => {
       const from = prev.findIndex((i) => i.player_id === id);
       if (from < 0) return prev;
       const next = [...prev];
       const [moved] = next.splice(from, 1);
-      let at = next.findIndex((i) => i.tier === tier);
+      let at = bottom ? next.map((i) => i.tier).lastIndexOf(tier) + 1 || -1 : next.findIndex((i) => i.tier === tier);
       if (at < 0) {
         // Empty tier: it sits right after the last player in an earlier tier.
         const ti = tier ? ORDER.indexOf(tier) : ORDER.length;
@@ -356,7 +356,7 @@ export function InlineEditor({
                           <span className="inline-flex gap-1">
                             <select
                               className={`${btn} w-[4.25rem] cursor-pointer !px-1 text-xs`} value="" aria-label={`Put ${it.name} in a tier`} title="Put in a tier"
-                              onChange={(e) => { if (e.target.value !== "") moveToTier(it.player_id, e.target.value === "__none" ? "" : e.target.value); }}
+                              onChange={(e) => { if (e.target.value !== "") moveToTier(it.player_id, e.target.value === "__none" ? "" : e.target.value, true); }}
                             >
                               <option value="" disabled>Tier</option>
                               {ORDER.map((t) => <option key={t} value={t}>{t}</option>)}
