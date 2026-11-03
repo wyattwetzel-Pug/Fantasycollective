@@ -27,7 +27,7 @@ type CallRow = {
 const FORMATS = [["redraft", "Redraft"], ["dynasty", "Dynasty"]] as const;
 const SCORING = [["ppr", "PPR"], ["half", "Half PPR"]] as const;
 const QBS = [["1qb", "1 QB"], ["superflex", "Superflex"]] as const;
-const TABS = [["overview", "Overview"], ["log", "Game Log"], ["matchup", "Matchup"], ["adp", "ADP"], ["news", "News"]] as const;
+const TABS = [["overview", "Overview"], ["log", "Game Log"], ["matchup", "Matchup"], ["adp", "ADP"], ["news", "News"], ["career", "Career"]] as const;
 const LABEL: Record<string, string> = { redraft: "Redraft", dynasty: "Dynasty", ppr: "PPR", half: "Half PPR", std: "Standard", "1qb": "1 QB", superflex: "Superflex" };
 
 type Params = { tab: string; format: string; scoring: string; qb: string };
@@ -155,7 +155,10 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
   const seasonPts = (r: SeasonRow) => Number((params.scoring === "half" ? r.pts_half : r.pts_ppr) ?? 0);
   const lastSeasons = (
     <div className="gl-panel px-4 py-3">
-      <h3 className="mb-1 text-sm font-bold">Last 3 seasons <span className="text-xs font-normal text-zinc-400">{LABEL[params.scoring]}</span></h3>
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <h3 className="text-sm font-bold">Last 3 seasons <span className="text-xs font-normal text-zinc-400">{LABEL[params.scoring]}</span></h3>
+        <Link href={href({ tab: "career" })} className="gl-pill !px-3 !py-1 text-xs">Full Career Log</Link>
+      </div>
       {seasonRows?.length ? (
         <div className="overflow-x-auto">
           <table className="gl-table !text-[13px] [&_td]:!px-1.5 [&_td]:!py-1 [&_th]:!px-1.5 [&_th]:!py-0.5 [&_th]:!text-[10px]">
@@ -184,6 +187,30 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
       ) : <p className="text-sm text-zinc-400">No past seasons for {player.name} yet.</p>}
     </div>
   );
+
+  // Career tab: every season we have, plus the season in progress (added up from the weekly stats).
+  const careerCols: Col[] = player.position === "QB"
+    ? [["CMP", (r) => n0(r.stats.pass_cmp)], ["ATT", (r) => n0(r.stats.pass_att)], ["PCT", (r) => (r.stats.pass_att ? `${((r.stats.pass_cmp ?? 0) / r.stats.pass_att * 100).toFixed(1)}%` : "–")], ["YDS", (r) => n0(r.stats.pass_yd)], ["TD", (r) => n0(r.stats.pass_td)], ["INT", (r) => n0(r.stats.pass_int)], ["CAR", (r) => n0(r.stats.rush_att)], ["RUSH YDS", (r) => n0(r.stats.rush_yd)], ["RUSH TD", (r) => n0(r.stats.rush_td)]]
+    : player.position === "RB" || player.position === "WR" || player.position === "TE"
+      ? [["CAR", (r) => n0(r.stats.rush_att)], ["RUSH YDS", (r) => n0(r.stats.rush_yd)], ["AVG", (r) => div1(r.stats.rush_yd, r.stats.rush_att)], ["RUSH TD", (r) => n0(r.stats.rush_td)], ["TGT", (r) => n0(r.stats.rec_tgt)], ["REC", (r) => n0(r.stats.rec)], ["REC YDS", (r) => n0(r.stats.rec_yd)], ["AVG", (r) => div1(r.stats.rec_yd, r.stats.rec)], ["REC TD", (r) => n0(r.stats.rec_td)], ["FUM", (r) => n0(r.stats.fum_lost)]]
+      : player.position === "K"
+        ? [["FGM", (r) => n0(r.stats.fgm)], ["FGA", (r) => n0(r.stats.fga)], ["XPM", (r) => n0(r.stats.xpm)]]
+        : [];
+  let careerRows: SeasonRow[] = [];
+  if (params.tab === "career") {
+    const { data: all } = await supabase.from("player_seasons").select("season, gp, stats, pts_ppr, pts_half").eq("player_id", id).order("season", { ascending: false }).limit(40).returns<SeasonRow[]>();
+    careerRows = all ?? [];
+    if (logSeason && log.length && !careerRows.some((r) => r.season === logSeason)) {
+      const sum: Record<string, number> = {};
+      log.forEach((r) => Object.entries(r.stats).forEach(([k, v]) => { if (typeof v === "number") sum[k] = (sum[k] ?? 0) + v; }));
+      careerRows = [{ season: logSeason, gp: log.length, stats: sum, pts_ppr: log.reduce((t, r) => t + Number(r.pts_ppr ?? 0), 0), pts_half: log.reduce((t, r) => t + Number(r.pts_half ?? 0), 0) }, ...careerRows];
+    }
+  }
+  const careerTotal: SeasonRow = {
+    season: 0, gp: careerRows.reduce((t, r) => t + (r.gp ?? 0), 0),
+    stats: careerRows.reduce<Record<string, number>>((acc, r) => { Object.entries(r.stats).forEach(([k, v]) => { acc[k] = (acc[k] ?? 0) + v; }); return acc; }, {}),
+    pts_ppr: careerRows.reduce((t, r) => t + Number(r.pts_ppr ?? 0), 0), pts_half: careerRows.reduce((t, r) => t + Number(r.pts_half ?? 0), 0),
+  };
 
   const nextMatchup = (
       <div className="gl-panel space-y-3 p-4">
@@ -363,6 +390,39 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
             ) : <p className="text-sm text-zinc-400">No upcoming games loaded.</p>}
             <p className="mt-3 text-xs text-zinc-500">Points allowed are PPR fantasy points to the position this season. 1st means the friendliest defense.</p>
           </div>
+        </div>
+      )}
+
+      {params.tab === "career" && (
+        <div className="gl-panel p-4">
+          <h3 className="mb-2 font-bold">Career log <span className="text-xs font-normal text-zinc-400">{LABEL[params.scoring]}</span></h3>
+          {careerRows.length ? (
+            <div className="overflow-x-auto">
+              <table className="gl-table">
+                <thead>
+                  <tr>
+                    <th scope="col" className="!text-left">SEASON</th>
+                    <th scope="col">GP</th>
+                    {careerCols.map(([h], i) => <th key={`${h}${i}`} scope="col">{h}</th>)}
+                    <th scope="col">FPTS AVG</th>
+                    <th scope="col">FPTS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...careerRows, careerTotal].map((r) => (
+                    <tr key={r.season} className={r.season === 0 ? "font-bold" : undefined} style={r.season === 0 ? { background: "var(--hilite)" } : undefined}>
+                      <td className="!text-left whitespace-nowrap text-zinc-400">{r.season === 0 ? "Career" : r.season === logSeason ? `${r.season} *` : r.season}</td>
+                      <td>{r.gp ?? "–"}</td>
+                      {careerCols.map(([h, f], i) => <td key={`${h}${i}`}>{f(r)}</td>)}
+                      <td className="font-semibold">{r.gp ? (seasonPts(r) / r.gp).toFixed(1) : "–"}</td>
+                      <td className="font-semibold">{seasonPts(r).toFixed(1)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="mt-2 text-xs text-zinc-500">* Season in progress. Past seasons come from the Admin page&apos;s Load past seasons button.</p>
+            </div>
+          ) : <p className="text-sm text-zinc-400">No career stats for {player.name} yet. Load past seasons from the Admin page.</p>}
         </div>
       )}
 

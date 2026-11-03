@@ -86,7 +86,8 @@ export async function runSync(opts: { weeks?: number[]; backfill?: boolean } = {
   }
 }
 
-// Season totals for the three seasons before the current one (one request per season).
+// Season totals for every season before the current one, back to 2009 (one request per season).
+// Seasons already loaded are skipped, so running it again carries on where a timeout stopped it.
 const KEEP = ["rush_att", "rush_yd", "rush_td", "rec", "rec_tgt", "rec_yd", "rec_td", "pass_att", "pass_cmp", "pass_yd", "pass_td", "pass_int", "fum_lost", "fgm", "fga", "xpm"];
 export async function runHistory(): Promise<{ ok: boolean; log: string[] }> {
   const log: string[] = [];
@@ -100,7 +101,11 @@ export async function runHistory(): Promise<{ ok: boolean; log: string[] }> {
     const { data: ours, error } = await db.from("players").select("id, external_id").limit(1000);
     if (error) throw new Error(`players: ${error.message}`);
     const idOf = new Map((ours ?? []).map((p) => [p.external_id as string, p.id as number]));
-    for (const y of [season - 3, season - 2, season - 1]) {
+    const started = Date.now();
+    for (let y = season - 1; y >= 2009; y--) {
+      const { count } = await db.from("player_seasons").select("player_id", { count: "exact", head: true }).eq("season", y);
+      if ((count ?? 0) > 0) { log.push(`Season ${y}: already loaded.`); continue; }
+      if (Date.now() - started > 40_000) { log.push(`Stopped early to stay within the time limit. Click again to load the rest, from ${y} back.`); break; }
       const all = await getJson<Record<string, Record<string, number>>>(`/v1/stats/nfl/regular/${y}`);
       const rows: Record<string, unknown>[] = [];
       for (const [sid, st] of Object.entries(all)) {
