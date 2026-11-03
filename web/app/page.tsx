@@ -4,6 +4,7 @@ import { PlayerLink } from "@/app/player-link";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { nowMs } from "@/lib/time";
+import { seasonLines } from "@/lib/season";
 
 type Top = {
   player_id: number; position_in_list: number; consensus_rank: number;
@@ -42,6 +43,14 @@ async function HomeView() {
   const risers = moves.filter((m) => m.change > 0).sort((a, b) => b.change - a.change).slice(0, 3);
   const fallers = moves.filter((m) => m.change < 0).sort((a, b) => a.change - b.change).slice(0, 3);
 
+  // The top scorer so far this season (PPR). Kickers and defenses are left out.
+  const lines = Object.entries(await seasonLines("ppr")).map(([id, l]) => ({ id: Number(id), points: l.points, played: l.played })).sort((a, b) => b.points - a.points).slice(0, 25);
+  const { data: scorers } = lines.length
+    ? await supabase.from("players").select("id, name, position, nfl_team").in("id", lines.map((l) => l.id)).returns<{ id: number; name: string; position: string; nfl_team: string | null }[]>()
+    : { data: null };
+  const topLine = lines.find((l) => { const p = scorers?.find((x) => x.id === l.id); return p && p.position !== "K" && p.position !== "DEF"; });
+  const topScorer = topLine ? { ...topLine, ...scorers!.find((x) => x.id === topLine.id)! } : null;
+
   const { count: total } = await supabase
     .from("consensus_current").select("player_id", { count: "exact", head: true }).match(COMBO);
 
@@ -69,12 +78,22 @@ async function HomeView() {
         <Link href="/teams" className="gl-pill on-o !px-5 !py-2.5">⟳ Sync League</Link>
       </div>
 
-      <div className="gl-hero grid min-h-[15rem] items-center gap-4 p-6 sm:p-8">
+      <div className="gl-hero grid min-h-[15rem] items-center gap-4 p-6 sm:p-8 md:grid-cols-[1fr_auto]">
         <div>
           <h2 id="h-home" className="gl-title text-5xl sm:text-6xl">Fantasy Football</h2>
           <p className="mt-4 text-sm italic tracking-[0.3em] text-zinc-300">RESEARCH. RANKINGS. ADVANTAGE.</p>
           <div className="mt-3 h-1 w-56 rounded" style={{ background: "linear-gradient(90deg,#55745D,transparent)" }} />
         </div>
+        {topScorer && (
+          <Link href={`/players/${topScorer.id}`} className="flex items-center gap-4 rounded-2xl border bg-[var(--card)] p-4 md:mr-4" style={{ borderColor: "var(--card-line)" }}>
+            <Avatar id={topScorer.id} name={topScorer.name} size={112} />
+            <span>
+              <span className="block text-xs font-bold tracking-widest" style={{ color: "var(--accent)" }}>#1 MOST POINTS SCORED</span>
+              <span className="mt-1 block text-2xl font-extrabold leading-tight">{topScorer.name}</span>
+              <span className="mt-1 flex items-center gap-2 text-sm text-zinc-500"><span className={`bd ${topScorer.position}`}>{topScorer.position}</span>{topScorer.points.toFixed(1)} pts · {topScorer.played} games</span>
+            </span>
+          </Link>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
