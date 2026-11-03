@@ -20,8 +20,8 @@ async function HomeView() {
 
   const { data: top } = await supabase
     .from("consensus_current")
-    .select("player_id, position_in_list, consensus_rank, players(name, position, nfl_team)")
-    .match(COMBO).order("position_in_list").limit(5)
+    .select("player_id, position_in_list, consensus_rank, players!inner(name, position, nfl_team)")
+    .match(COMBO).not("players.position", "in", "(K,DEF)").order("position_in_list").limit(5)
     .returns<Top[]>();
 
   const { count: total } = await supabase
@@ -71,9 +71,9 @@ async function HomeView() {
           </div>
           {top?.length ? (
             <ol className="space-y-2">
-              {top.map((r) => (
+              {top.map((r, i) => (
                 <li key={r.position_in_list} className="flex items-center gap-3 text-sm">
-                  <span className="h-7 w-7 rounded bg-zinc-800 text-center text-xs leading-7">{r.position_in_list}</span>
+                  <span className="h-7 w-7 rounded bg-zinc-800 text-center text-xs leading-7">{i + 1}</span>
                   <Avatar id={r.player_id} name={r.players?.name} size={32} />
                   <span className="flex-1"><PlayerLink id={r.player_id} name={r.players?.name} /></span>
                   <span className={`bd ${r.players?.position}`}>{r.players?.position}</span>
