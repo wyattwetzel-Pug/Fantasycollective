@@ -16,7 +16,7 @@ type AllCons = { format: string; scoring: string; qb_type: string; position_in_l
 type SetRow = { id: number; updated_at: string; contributors: { profiles: { display_name: string } | null } | null };
 type RankRow = { set_id: number; rank: number; tier: string | null; note: string | null };
 type AdpRow = { season: number; source: string; format: string; scoring: string; qb_type: string; adp: number; high: number | null; low: number | null; times_drafted: number | null; teams: number };
-type NewsRow = { id: number; headline: string; body: string | null; published_at: string };
+type NewsRow = { id: number; headline: string; body: string | null; published_at: string; url: string | null; source: string | null };
 type StatRow = { week: number; season: number; stats: Record<string, number>; pts_ppr: number | null; pts_half: number | null; pts_std: number | null };
 type GameRow = { week: number; home: string; away: string; status: string | null };
 type CallRow = {
@@ -77,7 +77,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
     supabase.from("consensus_current").select("format, scoring, qb_type, position_in_list, tier").eq("player_id", id).returns<AllCons[]>(),
     supabase.from("ranking_sets").select("id, updated_at, contributors(profiles!contributors_profile_id_fkey(display_name))").match(combo).eq("published", true).returns<SetRow[]>(),
     supabase.from("adp").select("season, source, format, scoring, qb_type, adp, high, low, times_drafted, teams").eq("player_id", id).order("season", { ascending: false }).returns<AdpRow[]>(),
-    supabase.from("news").select("id, headline, body, published_at").eq("player_id", id).order("published_at", { ascending: false }).limit(20).returns<NewsRow[]>(),
+    supabase.from("news").select("id, headline, body, published_at, url, source").eq("player_id", id).order("published_at", { ascending: false }).limit(20).returns<NewsRow[]>(),
     supabase.from("start_sit_calls")
       .select("id, week, season, player_a, player_b, pick, reason, contributors(profiles!contributors_profile_id_fkey(display_name))")
       .or(`player_a.eq.${id},player_b.eq.${id}`).order("created_at", { ascending: false }).limit(10).returns<CallRow[]>(),
@@ -458,7 +458,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
           <h3 className="mb-2 font-bold">News</h3>
           {(news ?? []).length ? (news ?? []).map((n) => (
             <div key={n.id} className="gl-row !items-start">
-              <span className="flex-1"><span className="block text-sm font-semibold">{n.headline}</span>{n.body && <span className="block text-xs text-zinc-400">{n.body}</span>}</span>
+              <span className="flex-1">{n.url ? <a href={n.url} target="_blank" rel="noopener noreferrer" className="block text-sm font-semibold hover:underline">{n.headline}</a> : <span className="block text-sm font-semibold">{n.headline}</span>}{n.body && <span className="block text-xs text-zinc-400">{n.body}</span>}<span className="block text-[11px] text-zinc-500">{n.source ? `${n.source} · ` : ""}{new Date(n.published_at).toLocaleDateString()}</span></span>
             </div>
           )) : <p className="text-sm text-zinc-400">No news on {player.name} yet.</p>}
         </div>

@@ -9,7 +9,7 @@ type Top = {
   player_id: number; position_in_list: number; consensus_rank: number;
   players: { name: string; position: string; nfl_team: string | null } | null;
 };
-type NewsRow = { id: number; headline: string; body: string | null; published_at: string };
+type NewsRow = { id: number; headline: string; body: string | null; published_at: string; url: string | null; source: string | null; external_id: string | null };
 
 const DAY = 24 * 60 * 60 * 1000;
 const COMBO = { format: "redraft", scoring: "ppr", qb_type: "1qb" };
@@ -50,11 +50,17 @@ async function HomeView() {
   const contributors = (sets ?? []).filter((s) => nowMs() - new Date(s.updated_at).getTime() < 7 * DAY).length;
 
   const { data: news } = await supabase
-    .from("news").select("id, headline, body, published_at").order("published_at", { ascending: false }).limit(1)
+    .from("news").select("id, headline, body, published_at, url, source, external_id").order("published_at", { ascending: false }).limit(30)
     .returns<NewsRow[]>();
 
   const season = new Date().getFullYear();
-  const story = news?.[0];
+  // One row per story (a story naming several players is stored once per player).
+  const seenStory = new Set<string>();
+  const stories = (news ?? []).filter((n) => { const k = n.external_id ?? String(n.id); if (seenStory.has(k)) return false; seenStory.add(k); return true; }).slice(0, 5);
+  const timeAgo = (iso: string) => {
+    const mins = Math.max(1, Math.round((nowMs() - new Date(iso).getTime()) / 60000));
+    return mins < 60 ? `${mins}m ago` : mins < 1440 ? `${Math.round(mins / 60)}h ago` : `${Math.round(mins / 1440)}d ago`;
+  };
 
   return (
     <div className="space-y-4">
@@ -122,11 +128,18 @@ async function HomeView() {
 
         <div className="gl-panel p-4">
           <div className="mb-3"><h3 className="font-bold">▤ Latest News</h3></div>
-          {story ? (
-            <div>
-              <p className="font-semibold leading-snug">{story.headline}</p>
-              {story.body && <p className="mt-2 text-xs text-zinc-400">{story.body}</p>}
-            </div>
+          {stories.length ? (
+            <ul className="space-y-3">
+              {stories.map((n) => (
+                <li key={n.external_id ?? n.id}>
+                  {n.url
+                    ? <a href={n.url} target="_blank" rel="noopener noreferrer" className="font-semibold leading-snug hover:underline">{n.headline}</a>
+                    : <p className="font-semibold leading-snug">{n.headline}</p>}
+                  {n.body && <p className="mt-0.5 line-clamp-2 text-xs text-zinc-400">{n.body}</p>}
+                  <p className="mt-0.5 text-[11px] text-zinc-500">{n.source ? `${n.source} · ` : ""}{timeAgo(n.published_at)}</p>
+                </li>
+              ))}
+            </ul>
           ) : <p className="text-sm text-zinc-400">No news yet.</p>}
         </div>
       </div>

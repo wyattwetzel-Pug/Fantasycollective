@@ -80,10 +80,50 @@ export async function runSync(opts: { weeks?: number[]; backfill?: boolean } = {
       log.push(`Projections week ${w}: ${rows.length} rows.`);
     }
     await snapshotRanks(db, log);
+    await syncNews(db, log);
     return { ok: true, log };
   } catch (e) {
     log.push(`Failed: ${e instanceof Error ? e.message : String(e)}`);
     return { ok: false, log };
+  }
+}
+
+// NFL headlines from ESPN's public news feed. Stories that name players we track are also saved
+// against those players, so they show on the player's News tab. Only new stories are added.
+type EspnArticle = {
+  id: number; headline?: string; description?: string; published?: string; type?: string;
+  links?: { web?: { href?: string } }; categories?: { type?: string; description?: string }[];
+};
+const plain = (n: string) => n.toLowerCase().replace(/\b(jr|sr|ii|iii|iv|v)\b\.?/g, "").replace(/[^a-z]/g, "");
+async function syncNews(db: SupabaseClient, log: string[]) {
+  try {
+    const res = await fetch("https://site.api.espn.com/apis/site/v2/sports/football/nfl/news?limit=40", { cache: "no-store" });
+    if (!res.ok) { log.push(`News skipped: ESPN returned ${res.status}.`); return; }
+    const feed = (await res.json()) as { articles?: EspnArticle[] };
+    const articles = (feed.articles ?? []).filter((a) => a.headline && a.type !== "Media" && a.links?.web?.href);
+    if (!articles.length) return;
+
+    const ids = articles.map((a) => String(a.id));
+    const { data: have } = await db.from("news").select("external_id").in("external_id", ids);
+    const known = new Set((have ?? []).map((r) => r.external_id as string));
+    const { data: ours } = await db.from("players").select("id, name").limit(1000);
+    const byName = new Map((ours ?? []).map((p) => [plain(p.name as string), p.id as number]));
+
+    const rows: Record<string, unknown>[] = [];
+    for (const a of articles) {
+      if (known.has(String(a.id))) continue;
+      const matched = [...new Set((a.categories ?? []).filter((c) => c.type === "athlete" && c.description).map((c) => byName.get(plain(c.description!))).filter((x): x is number => !!x))].slice(0, 3);
+      const base = { headline: a.headline, body: a.description ?? null, url: a.links!.web!.href, source: "ESPN", external_id: String(a.id), published_at: a.published ?? new Date().toISOString() };
+      if (matched.length) matched.forEach((pid) => rows.push({ ...base, player_id: pid })); else rows.push({ ...base, player_id: null });
+    }
+    if (rows.length) {
+      const { error } = await db.from("news").insert(rows);
+      if (error) { log.push(`News skipped: ${error.message}`); return; }
+    }
+    await db.from("news").delete().lt("published_at", new Date(Date.now() - 45 * 86400000).toISOString());
+    log.push(`News: ${rows.length} new rows.`);
+  } catch (e) {
+    log.push(`News skipped: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
