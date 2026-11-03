@@ -272,11 +272,15 @@ export function InlineEditor({
           const c = run.tier ? COLORS[run.tier] : "#8b8576";
           return (
             <div
-              key={ri} className={`gl-tierbox min-w-[44rem] ${over && "card" in over && over.card === run.tier ? "drop-card" : ""}`}
+              key={ri} className={`gl-tierbox min-w-[46rem] ${over && "card" in over && over.card === run.tier ? "drop-card" : ""}`}
               onDragOver={(e) => { if (dragId === null) return; e.preventDefault(); if (!over || !("card" in over) || over.card !== run.tier) setOver({ card: run.tier }); }}
               onDrop={(e) => { e.preventDefault(); dropOnTier(run.tier); endDrag(); }}
             >
-              <table className="gl-table dark">
+              <table className="gl-table dark gl-cols">
+                <colgroup>
+                  <col style={{ width: "5rem" }} /><col />
+                  <col style={{ width: "6.5rem" }} /><col style={{ width: "6rem" }} /><col style={{ width: "5rem" }} /><col style={{ width: "11.5rem" }} />
+                </colgroup>
                 <thead>
                   <tr>
                     <th scope="col" colSpan={2} className="!text-left">

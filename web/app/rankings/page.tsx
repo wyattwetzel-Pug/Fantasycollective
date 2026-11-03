@@ -294,8 +294,14 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
             {runs.map((run, i) => {
               const c = run.tier ? TIER_COLORS[run.tier] : "#8b8576";
               return (
-                <div key={i} className="gl-tierbox min-w-[40rem]">
-                  <table className="gl-table dark">
+                <div key={i} className="gl-tierbox min-w-[48rem]">
+                  <table className="gl-table dark gl-cols">
+                    <colgroup>
+                      <col style={{ width: "3.5rem" }} /><col />
+                      <col style={{ width: "6.5rem" }} />
+                      {showProj && <col style={{ width: "6.5rem" }} />}
+                      <col style={{ width: "5rem" }} /><col style={{ width: "5rem" }} /><col style={{ width: "5.5rem" }} /><col style={{ width: "6.5rem" }} />
+                    </colgroup>
                     <thead>
                       <tr>
                         <th scope="col" colSpan={2} className="!text-left">
@@ -317,7 +323,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
                         const l = lines.get(r.id);
                         return (
                           <tr key={`${r.rank}-${r.name}`}>
-                            <td className="w-10 font-semibold">{r.rank}</td>
+                            <td className="font-semibold">{r.rank}</td>
                             <td className="!text-left">
                               <span className="flex items-center gap-3">
                                 <Avatar id={r.id} name={r.name} size={44} />

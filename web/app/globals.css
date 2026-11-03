@@ -75,6 +75,7 @@ input, select, textarea { font-family: var(--font-inter), system-ui, sans-serif;
 .gl-table th { font-size: .72rem; letter-spacing: .02em; color: #77766F; padding: .45rem .5rem; text-align: center; font-weight: 600; }
 .gl-table td { padding: .4rem .5rem; text-align: center; border-top: 1px solid #EDE9DF; }
 .gl-table.dark thead th { background: var(--bar); color: var(--bar-ink); font-size: .8rem; padding: .55rem .5rem; height: 2.8rem; }
+.gl-table.gl-cols { table-layout: fixed; }
 .gl-table .hl { background: var(--hilite); }
 .tier-chip { display: inline-flex; align-items: center; justify-content: center; min-width: 3.2rem; height: 2rem; padding: 0 .9rem; border-radius: 10px; font-weight: 900; font-size: 1.2rem; color: #fff; margin-right: .6rem; }
 
