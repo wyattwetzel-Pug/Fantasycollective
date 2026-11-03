@@ -154,11 +154,11 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
           : [];
   const seasonPts = (r: SeasonRow) => Number((params.scoring === "half" ? r.pts_half : r.pts_ppr) ?? 0);
   const lastSeasons = (
-    <div className="gl-panel p-4">
-      <h3 className="mb-2 font-bold">Last 3 seasons <span className="text-xs font-normal text-zinc-400">{LABEL[params.scoring]}</span></h3>
+    <div className="gl-panel px-4 py-3">
+      <h3 className="mb-1 text-sm font-bold">Last 3 seasons <span className="text-xs font-normal text-zinc-400">{LABEL[params.scoring]}</span></h3>
       {seasonRows?.length ? (
         <div className="overflow-x-auto">
-          <table className="gl-table">
+          <table className="gl-table !text-[13px] [&_td]:!px-1.5 [&_td]:!py-1 [&_th]:!px-1.5 [&_th]:!py-0.5 [&_th]:!text-[10px]">
             <thead>
               <tr>
                 <th scope="col" className="!text-left">SEASON</th>
