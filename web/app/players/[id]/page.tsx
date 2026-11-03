@@ -1,3 +1,4 @@
+import { PointsChart } from "./points-chart";
 import { TIER_COLORS } from "@/lib/tier-config";
 import { fixTiers } from "@/lib/tiers";
 import { Avatar } from "@/app/avatar";
@@ -191,14 +192,8 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
           </div>
 
           <div className="gl-panel p-4">
-            <h3 className="mb-2 font-bold">Player info</h3>
-            <dl className="grid grid-cols-2 gap-y-2 text-sm">
-              <dt className="text-zinc-400">Position</dt><dd>{player.position}</dd>
-              <dt className="text-zinc-400">Team</dt><dd>{player.nfl_team ?? "–"}</dd>
-              <dt className="text-zinc-400">Age</dt><dd>{player.age ?? "–"}</dd>
-              <dt className="text-zinc-400">Status</dt><dd>{player.status ?? "–"}</dd>
-              <dt className="text-zinc-400">Rookie</dt><dd>{player.is_rookie ? "Yes" : "No"}</dd>
-            </dl>
+            <h3 className="mb-2 font-bold">Points by week{logSeason ? ` · ${logSeason}` : ""} <span className="text-xs font-normal text-zinc-400">{LABEL[params.scoring]}</span></h3>
+            <PointsChart data={log.map((r) => ({ week: r.week, pts: pts(r) }))} scoring={LABEL[params.scoring]} />
             {(everyCombo ?? []).length > 0 && (
               <>
                 <h4 className="mb-1 mt-4 text-sm font-bold">Consensus in every format</h4>
