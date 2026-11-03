@@ -22,7 +22,7 @@ type Row = {
 };
 
 const FORMATS = [["redraft", "Redraft"], ["dynasty", "Dynasty"]] as const;
-const SCORING = [["ppr", "PPR"], ["half", "Half PPR"], ["std", "Standard"]] as const;
+const SCORING = [["ppr", "PPR"], ["half", "Half PPR"]] as const;
 const QBS = [["1qb", "1 QB"], ["superflex", "Superflex"]] as const;
 const POSITIONS = ["All", "QB", "RB", "WR", "TE", "FLEX", "K", "DEF"];
 const GROUPS: Record<string, string[]> = { FLEX: ["RB", "WR", "TE"] };
