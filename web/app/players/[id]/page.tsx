@@ -134,7 +134,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
 
   const pill = (on: boolean) => `gl-pill !rounded-full text-xs ${on ? "on-o" : ""}`;
   const stat = (label: string, value: React.ReactNode, sub?: string) => (
-    <div className="gl-stat"><span className="text-2xl font-extrabold italic">{value}</span><span className="text-xs text-zinc-400">{label}{sub ? ` · ${sub}` : ""}</span></div>
+    <div className="gl-stat"><span className="text-xl font-extrabold italic">{value}</span><span className="text-[11px] leading-tight text-zinc-400">{label}{sub ? ` · ${sub}` : ""}</span></div>
   );
 
   const nextMatchup = (
@@ -181,7 +181,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
             {player.is_rookie && <span className="rounded bg-green-900 px-2 text-xs text-green-300">Rookie</span>}
           </p>
         </div>
-        <div className="flex w-full flex-wrap gap-3 xl:w-auto">
+        <div className="grid w-full grid-cols-3 gap-2 sm:grid-flow-col sm:auto-cols-fr [&_.gl-stat]:min-w-0 [&_.gl-stat]:px-3 [&_.gl-stat]:py-2.5">
           {stat("Consensus rank", mine ? `#${overallRank}` : "–", mine && posRank ? `${player.position} ${posRank}` : undefined)}
           {stat("ADP", adpHere ? pickLabel(adpHere.adp, adpHere.teams) : "–", adpHere ? String(adpHere.season) : undefined)}
           {stat("Trade value", mine ? playerValue(mine.position_in_list).toFixed(1) : "–")}
