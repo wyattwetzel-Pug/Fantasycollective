@@ -29,8 +29,8 @@ type Row = {
 const FORMATS = [["redraft", "Redraft"], ["dynasty", "Dynasty"]] as const;
 const SCORING = [["ppr", "PPR"], ["half", "Half PPR"], ["std", "Standard"]] as const;
 const QBS = [["1qb", "1 QB"], ["superflex", "Superflex"]] as const;
-const POSITIONS = ["All", "QB", "RB", "WR", "TE", "FLEX", "SF", "K", "DEF"];
-const GROUPS: Record<string, string[]> = { FLEX: ["RB", "WR", "TE"], SF: ["QB", "RB", "WR", "TE"] };
+const POSITIONS = ["All", "QB", "RB", "WR", "TE", "FLEX", "K", "DEF"];
+const GROUPS: Record<string, string[]> = { FLEX: ["RB", "WR", "TE"] };
 const DAY = 24 * 60 * 60 * 1000;
 
 type Params = { format: string; scoring: string; qb: string; pos: string; ranker: string; q: string; proj: string; edit: string; n: string };
@@ -125,7 +125,10 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
   const counts: Record<string, number> = {};
   rows.forEach((r) => { counts[r.position] = (counts[r.position] ?? 0) + 1; r.posRank = counts[r.position]; });
   const q = params.q.trim().toLowerCase();
-  const shown = rows.filter((r) => (params.pos === "All" || (GROUPS[params.pos] ?? [params.pos]).includes(r.position)) && (!q || r.name.toLowerCase().includes(q)));
+  // Overall leaves out kickers and defenses; they have their own K and DST views.
+  const inGroup = (pos: string) => (params.pos === "All" ? pos !== "K" && pos !== "DEF" : (GROUPS[params.pos] ?? [params.pos]).includes(pos));
+  const shown = rows.filter((r) => inGroup(r.position) && (!q || r.name.toLowerCase().includes(q)));
+  if (params.pos === "All" && !q) shown.forEach((r, i) => { r.rank = i + 1; });
   const lines = new Map(Object.entries(await seasonLines(params.scoring)).map(([k, v]) => [Number(k), v]));
   const showProj = params.proj !== "0";
   const settings = `${FORMATS.find((f) => f[0] === params.format)?.[1]} · ${SCORING.find((f) => f[0] === params.scoring)?.[1]} · ${QBS.find((f) => f[0] === params.qb)?.[1]}`;

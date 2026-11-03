@@ -180,7 +180,7 @@ export function InlineEditor({
   // Runs of the same tier share one card.
   const runs: { tier: string; idx: number[] }[] = [];
   const inView: number[] = [];
-  items.forEach((it, i) => { if (pos === "All" || it.position === pos) inView.push(i); });
+  items.forEach((it, i) => { if (pos === "All" ? it.position !== "K" && it.position !== "DEF" : it.position === pos) inView.push(i); });
   inView.slice(0, Math.max(limit, 0)).forEach((i) => {
     const it = items[i];
     const last = runs[runs.length - 1];
@@ -197,6 +197,8 @@ export function InlineEditor({
     nextTier = Math.max(nextTier, ti + 1);
   }
   for (; nextTier < ORDER.length; nextTier++) if (!used.has(ORDER[nextTier])) cards.push({ tier: ORDER[nextTier], idx: [] });
+  let shownSoFar = 0;
+  const listRank = items.map((it) => (it.position !== "K" && it.position !== "DEF" ? ++shownSoFar : 0));
   const posCount: Record<string, number> = {};
   const posRank = items.map((it) => (posCount[it.position] = (posCount[it.position] ?? 0) + 1));
   const unplaced = items.filter((i) => !i.placed).length;
@@ -288,7 +290,7 @@ export function InlineEditor({
                             }}
                             onDragEnd={endDrag}
                           >⠿</span>
-                          {i + 1}
+                          {pos === "All" ? listRank[i] : i + 1}
                         </td>
                         <td className="!text-left">
                           <span className="flex items-center gap-3">
