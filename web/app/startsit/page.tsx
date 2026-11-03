@@ -1,3 +1,5 @@
+import { positionRankMap, contributorPositionRanks } from "@/lib/position-consensus";
+import { publishedSets } from "@/lib/cached";
 import { sessionUser, profileOf } from "@/lib/session";
 import { TIER_COLORS } from "@/lib/tier-config";
 import { fixTiers } from "@/lib/tiers";
@@ -13,8 +15,6 @@ type Row = {
   player_id: number; position_in_list: number; consensus_rank: number; sources: number; tier: string | null;
   players: { name: string; position: string; nfl_team: string | null } | null;
 };
-type SetRow = { id: number; contributors: { profiles: { display_name: string } | null } | null };
-type RankRow = { set_id: number; player_id: number; rank: number };
 type StatRow = { player_id: number; season: number; week: number; pts_ppr: number | null; pts_half: number | null; pts_std: number | null };
 type ProjRow = { player_id: number; season: number; week: number; points: number };
 type CallRow = {
@@ -64,6 +64,8 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
   const posCount: Record<string, number> = {};
   const posRank = new Map<number, number>();
   rows.forEach((r) => { const k = r.players?.position ?? ""; posCount[k] = (posCount[k] ?? 0) + 1; posRank.set(r.player_id, posCount[k]); });
+  // The position rank on the consensus comes from the position lists, not the Overall order.
+  Object.entries(await positionRankMap(combo)).forEach(([id, rank]) => posRank.set(Number(id), rank));
   const list: PickerPlayer[] = rows.map((r) => ({ id: r.player_id, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", team: r.players?.nfl_team ?? "", rank: r.position_in_list }));
   const chosen = ids.map((id) => rows.find((r) => r.player_id === id)).filter((r): r is Row => !!r);
   const chosenIds = chosen.map((r) => r.player_id);
@@ -72,23 +74,14 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
   const contribRanks: { name: string; ranks: Map<number, number> }[] = [];
   let calls: CallRow[] = [];
   if (chosenIds.length) {
-    const { data: sets } = await supabase
-      .from("ranking_sets")
-      .select("id, contributors(profiles!contributors_profile_id_fkey(display_name))")
-      .match(combo).eq("published", true)
-      .returns<SetRow[]>();
-    const setIds = (sets ?? []).map((s) => s.id);
-    if (setIds.length) {
-      const { data: rk } = await supabase
-        .from("rankings").select("set_id, player_id, rank")
-        .in("set_id", setIds).in("player_id", chosenIds).eq("needs_ranking", false)
-        .returns<RankRow[]>();
-      (sets ?? []).forEach((s) => {
-        const m = new Map<number, number>();
-        (rk ?? []).filter((r) => r.set_id === s.id).forEach((r) => m.set(r.player_id, r.rank));
-        if (m.size) contribRanks.push({ name: s.contributors?.profiles?.display_name ?? "Contributor", ranks: m });
-      });
-    }
+    const sets = await publishedSets(combo);
+    const scopes = [...new Set(chosen.map((r) => r.players?.position).filter((p): p is string => !!p))];
+    await Promise.all(sets.map(async (s) => {
+      const byScope = await Promise.all(scopes.map(async (sc) => [sc, await contributorPositionRanks(s.id, sc)] as const));
+      const m = new Map<number, number>();
+      chosen.forEach((r) => { const rank = byScope.find(([sc]) => sc === r.players?.position)?.[1][r.player_id]; if (rank) m.set(r.player_id, rank); });
+      if (m.size) contribRanks.push({ name: s.contributors?.profiles?.display_name ?? "Contributor", ranks: m });
+    }));
     const { data: cs } = await supabase
       .from("start_sit_calls")
       .select("id, week, season, player_a, player_b, pick, reason, created_at, contributors(profiles!contributors_profile_id_fkey(display_name))")
@@ -291,8 +284,8 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
             const v = chosen.map((r) => c.ranks.get(r.player_id)); const lo = lowest(v);
             return (
               <tr key={c.name} className="border-t border-zinc-800">
-                <td className="px-2 py-2 text-xs text-zinc-400">{c.name}&apos;s rank</td>
-                {v.map((x, i) => cell(i, x, lo, x === undefined ? undefined : `#${x}`))}
+                <td className="px-2 py-2 text-xs text-zinc-400">{c.name}&apos;s position rank</td>
+                {v.map((x, i) => cell(i, x, lo, x === undefined ? undefined : `${x}`))}
               </tr>
             );
           })}

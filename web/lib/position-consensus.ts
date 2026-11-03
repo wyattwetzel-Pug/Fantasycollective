@@ -67,3 +67,21 @@ export async function positionRankMap(combo: Combo): Promise<Record<number, numb
   }));
   return out;
 }
+
+// One contributor's own rank at a position (their position list, or their Overall list filtered
+// to that position when they haven't made one). Player id -> rank.
+export async function contributorPositionRanks(setId: number, scope: string): Promise<Record<number, number>> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("rankings");
+  const supabase = publicClient();
+  type Row = { player_id: number; players: { position: string } | null };
+  const { data: own } = await supabase.from("position_rankings").select("player_id").eq("set_id", setId).eq("scope", scope).order("rank").limit(1000).returns<{ player_id: number }[]>();
+  let ids = (own ?? []).map((r) => r.player_id);
+  if (!ids.length) {
+    const group = GROUPS[scope] ?? [scope];
+    const { data: all } = await supabase.from("rankings").select("player_id, players!inner(position)").eq("set_id", setId).eq("needs_ranking", false).in("players.position", group).order("rank").limit(1000).returns<Row[]>();
+    ids = (all ?? []).map((r) => r.player_id);
+  }
+  return Object.fromEntries(ids.map((id, i) => [id, i + 1]));
+}
