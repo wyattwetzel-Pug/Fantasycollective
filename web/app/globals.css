@@ -8,7 +8,8 @@
   --paper: #f4efe6;
   --card: #fbf8f1;
   --card-line: #ebe5d8;
-  --bar: #2f2e2b;
+  --bar: #84ccf8;      /* logo blue */
+  --bar-ink: #05152c;  /* logo navy, text on the blue */
   --accent: #1b8a35;
   --hilite: #e4f0d8;
 
@@ -62,24 +63,24 @@ input, select, textarea { font-family: var(--font-inter), system-ui, sans-serif;
 .gl-search { width: 100%; padding: .65rem 1.1rem; border-radius: 999px; background: #fffdf8 !important; border: 1px solid #e6dfd1; font-size: .85rem; box-shadow: 0 1px 2px #3c32140a; }
 .gl-pill { display: inline-block; white-space: nowrap; padding: .5rem 1.1rem; border-radius: 999px; background: #fffdf8; border: 1px solid #e6dfd1; color: var(--ink); font-size: .82rem; }
 .gl-pill:hover { background: #f0eadc; }
-.gl-pill.on, .gl-pill.on-o { background: var(--bar); color: #fff; border-color: var(--bar); }
+.gl-pill.on, .gl-pill.on-o { background: var(--bar); color: var(--bar-ink); border-color: var(--bar); }
 .gl-src-on { border: 2px solid var(--accent); background: #eaf5df; }
 
 /* Tier cards: a dark header bar carries the tier chip and the column labels */
 .gl-tierbox { border-radius: 18px; overflow: hidden; background: var(--card); box-shadow: 0 1px 2px #3c32140a, 0 10px 28px #3c321412; }
-.gl-tier { display: flex; align-items: center; height: 2.8rem; background: var(--bar); color: #fff; }
+.gl-tier { display: flex; align-items: center; height: 2.8rem; background: var(--bar); color: var(--bar-ink); }
 .gl-tier .letter { height: 100%; width: 4.2rem; display: flex; align-items: center; justify-content: center; font-style: italic; font-weight: 900; font-size: 1.5rem; color: #fff; }
 .gl-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .gl-table th { font-size: .72rem; letter-spacing: .02em; color: #6e6a5f; padding: .45rem .5rem; text-align: center; font-weight: 600; }
 .gl-table td { padding: .4rem .5rem; text-align: center; border-top: 1px solid #efe9dc; }
-.gl-table.dark thead th { background: var(--bar); color: #fff; font-size: .8rem; padding: .55rem .5rem; height: 2.8rem; }
+.gl-table.dark thead th { background: var(--bar); color: var(--bar-ink); font-size: .8rem; padding: .55rem .5rem; height: 2.8rem; }
 .gl-table .hl { background: var(--hilite); }
 .tier-chip { display: inline-flex; align-items: center; justify-content: center; min-width: 3.2rem; height: 2rem; padding: 0 .9rem; border-radius: 10px; font-style: italic; font-weight: 900; font-size: 1.2rem; color: #fff; margin-right: .6rem; }
 
 .gl-nav { display: flex; align-items: center; gap: .75rem; width: 100%; padding: .7rem 1rem; border-radius: 999px; color: var(--ink); font-size: .95rem; text-align: left; }
 .gl-nav:hover { background: #e7e0d0; }
 .gl-nav-ico { width: 1.4rem; height: 1.4rem; flex-shrink: 0; }
-.gl-nav.on { background: var(--bar); color: #fff; }
+.gl-nav.on { background: var(--bar); color: var(--bar-ink); }
 .gl-nav.soon { opacity: .4; cursor: not-allowed; }
 
 .bd { display: inline-block; padding: .15rem .6rem; border-radius: .5rem; font-size: .78rem; font-weight: 700; color: #1d1c19; background: #cfc9bc; }
@@ -94,7 +95,7 @@ input, select, textarea { font-family: var(--font-inter), system-ui, sans-serif;
 /* Segmented control */
 .gl-seg { display: flex; padding: .25rem; gap: .15rem; border-radius: 999px; background: #fffdf8; border: 1px solid #e6dfd1; }
 .gl-seg a { flex: 1; text-align: center; padding: .45rem .6rem; border-radius: 999px; font-size: .82rem; font-weight: 600; color: var(--ink); }
-.gl-seg a.on { background: var(--bar); color: #fff; }
+.gl-seg a.on { background: var(--bar); color: var(--bar-ink); }
 
 /* Drag and drop in the Rankings editor */
 tr.dragging { opacity: .4; }

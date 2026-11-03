@@ -277,7 +277,7 @@ async function DraftView({ searchParams }: { searchParams: Promise<Record<string
           <div className="gl-panel space-y-3 p-4" style={{ borderColor: "#7fbf8a" }}>
             <h3 className="text-lg font-bold"><span style={{ color: "var(--accent)" }} aria-hidden="true">▷</span> Mock Draft</h3>
             <p className="text-sm text-zinc-300">Draft against computer teams that pick from the Ball Knowers Consensus. It&apos;s a snake draft, and nothing is saved.</p>
-            <button className="rounded-full px-5 py-2 text-sm font-bold" style={{ background: "#2f2e2b", color: "#fff" }}>Start Mock Draft →</button>
+            <button className="rounded-full px-5 py-2 text-sm font-bold" style={{ background: "var(--bar)", color: "var(--bar-ink)" }}>Start Mock Draft →</button>
           </div>
         </form>
       )}

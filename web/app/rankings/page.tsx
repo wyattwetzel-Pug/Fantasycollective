@@ -226,7 +226,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
                       <tr>
                         <th scope="col" colSpan={2} className="!text-left">
                           <span className="flex items-center">
-                            <span className="tier-chip" style={{ background: `linear-gradient(180deg, ${c}, ${c}cc)` }}>{run.tier ?? "–"}</span>
+                            <span className="tier-chip" style={{ background: `linear-gradient(180deg, ${c}, ${c})` }}>{run.tier ?? "–"}</span>
                             <span className="text-lg font-bold">{run.tier ? "TIER" : "UNSORTED"}</span>
                           </span>
                         </th>

@@ -26,7 +26,7 @@ export function LineupBoard({
 }) {
   const card = (p: P | null, slot: string, tag?: string) => (
     <div className="min-w-0 text-center">
-      <p className="mb-1 rounded-t-lg bg-[#2f2e2b] py-0.5 text-xs font-bold tracking-wider text-[#fff]">{slotLabel(slot)}</p>
+      <p className="mb-1 rounded-t-lg bg-[var(--bar)] py-0.5 text-xs font-bold tracking-wider text-[var(--bar-ink)]">{slotLabel(slot)}</p>
       <div className="gl-panel flex flex-col items-center gap-1 !rounded-t-none p-2">
         {p ? (
           <>

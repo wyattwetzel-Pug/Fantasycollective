@@ -27,9 +27,11 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
   return (
     <nav aria-label="Primary" className="fixed bottom-0 left-0 top-0 z-40 flex w-16 flex-col overflow-hidden sm:w-56"
          style={{ background: "#efe9dc", borderRight: "1px solid #e2dccf" }}>
-      <Link href="/" className="block px-3 pb-6 pt-6 text-center sm:px-5" aria-label="Fantasy Collective home">
-        <span className="gl-title block text-3xl sm:text-4xl" style={{ fontWeight: 900 }}>FC</span>
-        <span className="hidden text-sm font-bold tracking-wide sm:block">Fantasy Collective</span>
+      <Link href="/" className="flex justify-center px-3 pb-5 pt-5 sm:px-5" aria-label="FantasyForecast home">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-icon.png" alt="FantasyForecast" width={40} height={40} className="h-10 w-10 sm:hidden" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.png" alt="FantasyForecast" width={717} height={414} className="hidden h-auto w-full max-w-[11rem] sm:block" />
       </Link>
       <ul className="flex flex-col gap-1 overflow-y-auto p-2 sm:px-3">
         {items.map((it) => {

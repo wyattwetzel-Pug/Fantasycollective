@@ -10,8 +10,8 @@ const serif = Playfair_Display({ subsets: ["latin"], weight: ["700", "800", "900
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Fantasy Football Rankings",
-  description: "Rankings by contributors, plus the Ball Knowers consensus.",
+  title: "FantasyForecast",
+  description: "FantasyForecast: fantasy football rankings by contributors, plus the Ball Knowers consensus.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
