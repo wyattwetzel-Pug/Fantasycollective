@@ -138,7 +138,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
       <div className="gl-hero flex flex-wrap items-center gap-5 p-5 sm:p-6">
         <Avatar id={player.id} name={player.name} size={80} />
         <div className="min-w-[16rem] flex-1">
-          <h2 className="gl-title flex flex-wrap items-center gap-3 text-3xl sm:text-5xl">{player.name}{mine?.tier && <span className="inline-block rounded-full border px-5 py-0.5 align-middle font-sans text-base font-extrabold italic leading-snug" style={{ color: TIER_COLORS[mine.tier], borderColor: TIER_COLORS[mine.tier] }} title={`${mine.tier} tier`}>{mine.tier}</span>}</h2>
+          <h2 className="gl-title flex flex-wrap items-center gap-3 text-3xl sm:text-5xl">{player.name}{mine?.tier && <span className="relative top-[3px] inline-block rounded-full border px-5 py-0.5 align-middle font-sans text-base font-extrabold italic leading-snug" style={{ color: TIER_COLORS[mine.tier], borderColor: TIER_COLORS[mine.tier] }} title={`${mine.tier} tier`}>{mine.tier}</span>}</h2>
           <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-300">
             <span className={`bd ${player.position}`}>{player.position}</span>
             <span>{player.nfl_team ?? "Free agent"}</span>
