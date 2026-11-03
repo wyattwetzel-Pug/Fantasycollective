@@ -81,6 +81,13 @@ export async function copyListToOtherSettings(setId: number, overwrite = false) 
   }
   if (!rows.some((r) => !r.needs_ranking)) return { ok: false as const, error: "Rank some players in this list first." };
 
+  const scopeRows: { scope: string; player_id: number; rank: number; tier: string | null }[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data } = await supabase.from("position_rankings").select("scope, player_id, rank, tier").eq("set_id", setId).range(from, from + 999);
+    scopeRows.push(...(data ?? []));
+    if ((data?.length ?? 0) < 1000) break;
+  }
+
   const copied: string[] = [];
   const skipped: string[] = [];
   for (const format of FORMATS) for (const scoring of SCORINGS) for (const qb_type of QB_TYPES) {
@@ -103,8 +110,31 @@ export async function copyListToOtherSettings(setId: number, overwrite = false) 
         .upsert(rows.slice(i, i + 500).map((r) => ({ ...r, set_id: target!.id })), { onConflict: "set_id,player_id" });
       if (error) return { ok: false as const, error: error.message };
     }
+    // The position lists come along too.
+    await supabase.from("position_rankings").delete().eq("set_id", target.id);
+    for (let i = 0; i < scopeRows.length; i += 500) {
+      const { error } = await supabase.from("position_rankings").insert(scopeRows.slice(i, i + 500).map((r) => ({ ...r, set_id: target!.id })));
+      if (error) return { ok: false as const, error: error.message };
+    }
     copied.push(label);
   }
 
   return { ok: true as const, copied: copied.length, skipped: skipped.length };
+}
+
+const SCOPES = ["QB", "RB", "WR", "TE", "K", "DEF", "FLEX"];
+
+// Saves one position's own ranking (its order and tiers), separate from the Overall list.
+export async function saveScopeList(setId: number, scope: string, items: { player_id: number; rank: number; tier: string | null }[]) {
+  const { supabase, user } = await requireContributor();
+  if (!SCOPES.includes(scope)) return { ok: false as const, error: "Unknown position." };
+  const { data: set } = await supabase.from("ranking_sets").select("id").eq("id", setId).eq("contributor_id", user.id).maybeSingle();
+  if (!set) return { ok: false as const, error: "List not found." };
+
+  for (let i = 0; i < items.length; i += 500) {
+    const { error } = await supabase.from("position_rankings")
+      .upsert(items.slice(i, i + 500).map((r) => ({ ...r, set_id: setId, scope })), { onConflict: "set_id,scope,player_id" });
+    if (error) return { ok: false as const, error: error.message };
+  }
+  return { ok: true as const };
 }

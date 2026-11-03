@@ -121,14 +121,30 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
     }));
   }
 
+  // A contributor's own QB/RB/WR/TE/K/DST/Flex ranking, when they've made one, replaces the filtered Overall list.
+  let scopeData = false;
+  if (chosen && params.pos !== "All") {
+    const { data } = await supabase
+      .from("position_rankings").select("player_id, rank, tier, players(name, position, nfl_team)")
+      .eq("set_id", chosen.id).eq("scope", params.pos).order("rank").limit(1000)
+      .returns<{ player_id: number; rank: number; tier: string | null; players: Player | null }[]>();
+    if (data?.length) {
+      scopeData = true;
+      rows = fixTiers(data).map((r, i) => ({
+        id: r.player_id, rank: i + 1, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", posRank: 0,
+        team: r.players?.nfl_team ?? "", tier: r.tier, sub: "",
+      }));
+    }
+  }
+
   // Position rank across the whole list, then apply filters.
   const counts: Record<string, number> = {};
   rows.forEach((r) => { counts[r.position] = (counts[r.position] ?? 0) + 1; r.posRank = counts[r.position]; });
   const q = params.q.trim().toLowerCase();
   // Overall leaves out kickers and defenses; they have their own K and DST views.
   const inGroup = (pos: string) => (params.pos === "All" ? pos !== "K" && pos !== "DEF" : (GROUPS[params.pos] ?? [params.pos]).includes(pos));
-  const shown = rows.filter((r) => inGroup(r.position) && (!q || r.name.toLowerCase().includes(q)));
-  if (params.pos === "All" && !q) shown.forEach((r, i) => { r.rank = i + 1; });
+  const shown = rows.filter((r) => (scopeData || inGroup(r.position)) && (!q || r.name.toLowerCase().includes(q)));
+  if ((params.pos === "All" || scopeData) && !q) shown.forEach((r, i) => { r.rank = i + 1; });
   const lines = new Map(Object.entries(await seasonLines(params.scoring)).map(([k, v]) => [Number(k), v]));
   const showProj = params.proj !== "0";
   const settings = `${FORMATS.find((f) => f[0] === params.format)?.[1]} · ${SCORING.find((f) => f[0] === params.scoring)?.[1]} · ${QBS.find((f) => f[0] === params.qb)?.[1]}`;
@@ -158,12 +174,28 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
         player_id: r.player_id, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", team: r.players?.nfl_team ?? "",
         tier: r.tier ?? "", note: r.note ?? "", placed: !r.needs_ranking,
       }));
+      type ScopeRow = { scope: string; player_id: number; tier: string | null; players: Player | null };
+      const scopeRows: ScopeRow[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data } = await supabase
+          .from("position_rankings").select("scope, player_id, tier, players(name, position, nfl_team)")
+          .eq("set_id", mine.id).order("scope").order("rank").order("player_id").range(from, from + 999).returns<ScopeRow[]>();
+        scopeRows.push(...(data ?? []));
+        if ((data?.length ?? 0) < 1000) break;
+      }
+      const scopes: Record<string, Item[]> = {};
+      scopeRows.forEach((r) => {
+        (scopes[r.scope] ??= []).push({
+          player_id: r.player_id, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", team: r.players?.nfl_team ?? "",
+          tier: r.tier ?? "", note: "", placed: true,
+        });
+      });
       const lineMap: Record<number, Line> = {};
       lines.forEach((v, k) => { lineMap[k] = { proj: v.proj, played: v.played, snapPct: v.snapPct, posFinish: v.posFinish }; });
       const exit = new URLSearchParams({ format: params.format, scoring: params.scoring, qb: params.qb });
       editor = (
         <InlineEditor
-          key={`${mine.id}`} setId={mine.id} initial={items} initialPublished={mine.published} lines={lineMap} settings={settings}
+          key={`${mine.id}`} setId={mine.id} initial={items} scopes={scopes} initialPublished={mine.published} lines={lineMap} settings={settings}
           exitHref={`/rankings?${exit}`} fullEditorHref={`/lists/${mine.id}`}
         />
       );

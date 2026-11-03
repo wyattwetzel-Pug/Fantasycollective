@@ -6,13 +6,15 @@ import Link from "next/link";
 import { Avatar } from "@/app/avatar";
 import { PlayerLink } from "@/app/player-link";
 import { TeamLogo } from "@/app/team-logo";
-import { saveList, copyListToOtherSettings } from "../lists/actions";
+import { saveList, saveScopeList, copyListToOtherSettings } from "../lists/actions";
 
 export type Item = { player_id: number; name: string; position: string; team: string; tier: string; note: string; placed: boolean };
 export type Line = { proj: number | null; played: number; snapPct: number | null; posFinish: number | null };
 
 const ORDER = TIER_ORDER;
-const POSITIONS = ["All", "QB", "RB", "WR", "TE", "K", "DEF"];
+const POSITIONS = ["All", "QB", "RB", "WR", "TE", "FLEX", "K", "DEF"];
+const GROUPS: Record<string, string[]> = { FLEX: ["RB", "WR", "TE"] };
+const label = (p: string) => (p === "All" ? "Overall" : p === "DEF" ? "DST" : p === "FLEX" ? "Flex" : p);
 const COLORS = TIER_COLORS;
 
 // Players with a tier always sit above players with none, and tiers run S to F, so a tier card can
@@ -22,16 +24,19 @@ const tidy = (list: Item[]) => list.map((it, i) => ({ it, i })).sort((a, b) => t
 
 // Edit your own list right on the Rankings page: move players up and down, or up and down a tier.
 export function InlineEditor({
-  setId, initial, initialPublished, lines, settings, exitHref, fullEditorHref,
-}: { setId: number; initial: Item[]; initialPublished: boolean; lines: Record<number, Line>; settings: string; exitHref: string; fullEditorHref: string }) {
-  const [items, setItems] = useState(() => tidy(initial));
+  setId, initial, scopes, initialPublished, lines, settings, exitHref, fullEditorHref,
+}: { setId: number; initial: Item[]; scopes: Record<string, Item[]>; initialPublished: boolean; lines: Record<number, Line>; settings: string; exitHref: string; fullEditorHref: string }) {
+  // Overall and each position are separate lists, each with its own order and tiers.
+  const [store, setStore] = useState<Record<string, Item[]>>(() => ({ All: tidy(initial) }));
   const [published, setPublished] = useState(initialPublished);
   // Tidying a list whose tiers and order disagreed counts as a change you still need to save.
-  const [dirty, setDirty] = useState(() => tidy(initial).some((it, i) => it.player_id !== initial[i].player_id));
+  const [dirtyScopes, setDirtyScopes] = useState<Set<string>>(() => new Set(tidy(initial).some((it, i) => it.player_id !== initial[i].player_id) ? ["All"] : []));
+  const dirty = dirtyScopes.size > 0;
   const [message, setMessage] = useState("");
   const [pending, start] = useTransition();
   const [limit, setLimit] = useState(100);
   const [pos, setPos] = useState("All");
+  const items = store[pos] ?? [];
   const [dragId, setDragId] = useState<number | null>(null);
   const [over, setOver] = useState<{ id: number; after: boolean } | { card: string } | null>(null);
 
@@ -63,8 +68,20 @@ export function InlineEditor({
   }, [dirty]);
 
   function change(fn: (prev: Item[]) => Item[]) {
-    setItems((prev) => tidy(fn(prev)));
-    setDirty(true);
+    const scope = pos;
+    setStore((prev) => ({ ...prev, [scope]: tidy(fn(prev[scope] ?? [])) }));
+    setDirtyScopes((prev) => new Set(prev).add(scope));
+    setMessage("");
+  }
+
+  // A position's list starts as a copy of Overall for that position, until you change it.
+  function choose(p: string) {
+    setStore((prev) => prev[p] ? prev : {
+      ...prev,
+      [p]: tidy(scopes[p] ?? prev.All.filter((it) => (GROUPS[p] ?? [p]).includes(it.position)).map((it) => ({ ...it, placed: true }))),
+    });
+    setPos(p);
+    setLimit(100);
     setMessage("");
   }
 
@@ -73,8 +90,7 @@ export function InlineEditor({
   // (the tier right above or below, even if it is empty).
   function step(idx: number, dir: -1 | 1) {
     const here = items[idx];
-    let j = idx + dir;
-    while (j >= 0 && j < items.length && pos !== "All" && items[j].position !== pos) j += dir;
+    const j = idx + dir;
     if (j < 0 || j >= items.length) return;
     const neighbour = items[j];
     if (here.tier !== "" && neighbour.tier !== here.tier) { shiftTier(idx, dir); return; }
@@ -146,6 +162,19 @@ export function InlineEditor({
   function endDrag() { setDragId(null); setOver(null); }
 
   function save(publish: boolean) {
+    const scope = pos;
+    if (scope !== "All") {
+      start(async () => {
+        const res = await saveScopeList(setId, scope, items.map((it, i) => ({ player_id: it.player_id, rank: i + 1, tier: it.tier || null })));
+        if (res.ok) {
+          setDirtyScopes((prev) => { const n = new Set(prev); n.delete(scope); return n; });
+          setMessage(`Saved your ${label(scope)} ranking.`);
+        } else {
+          setMessage(`Could not save: ${res.error}`);
+        }
+      });
+      return;
+    }
     start(async () => {
       const res = await saveList(
         setId,
@@ -154,7 +183,7 @@ export function InlineEditor({
       );
       if (res.ok) {
         setPublished(publish);
-        setDirty(false);
+        setDirtyScopes((prev) => { const n = new Set(prev); n.delete("All"); return n; });
         const left = items.filter((it) => !it.placed).length;
         const base = publish ? "Saved and published." : "Saved as a draft.";
         setMessage(publish && left > 0 ? `${base} ${left} players aren't placed yet, so they don't count toward the consensus.` : base);
@@ -180,7 +209,7 @@ export function InlineEditor({
   // Runs of the same tier share one card.
   const runs: { tier: string; idx: number[] }[] = [];
   const inView: number[] = [];
-  items.forEach((it, i) => { if (pos === "All" ? it.position !== "K" && it.position !== "DEF" : it.position === pos) inView.push(i); });
+  items.forEach((it, i) => { if (pos !== "All" || (it.position !== "K" && it.position !== "DEF")) inView.push(i); });
   inView.slice(0, Math.max(limit, 0)).forEach((i) => {
     const it = items[i];
     const last = runs[runs.length - 1];
@@ -209,25 +238,31 @@ export function InlineEditor({
     <div className="space-y-4">
       <div className="gl-panel flex flex-wrap items-center gap-3 p-4">
         <div className="min-w-[14rem] flex-1">
-          <p className="font-bold">Editing your list</p>
-          <p className="text-xs text-zinc-400">{settings}. Drag players (⠿) to where you want them, or use ▲ and ▼. At the edge of a tier the arrows move a player into the next tier; ⇈ and ⇊ jump a player straight to the next tier.</p>
+          <p className="font-bold">{pos === "All" ? "Editing your list" : `Editing your ${label(pos)} ranking`}</p>
+          <p className="text-xs text-zinc-400">{settings}. {pos !== "All" && `This is its own ${label(pos)} ranking, so its tiers and order are separate from Overall. `}Drag players (⠿) to where you want them, or use ▲ and ▼. At the edge of a tier the arrows move a player into the next tier; ⇈ and ⇊ jump a player straight to the next tier.</p>
         </div>
         {message && <span className={`text-sm ${message.startsWith("Could not") ? "text-red-400" : "text-green-400"}`}>{message}</span>}
         {dirty && !message && <span className="text-sm text-yellow-400">Unsaved changes</span>}
-        <button disabled={pending} onClick={() => save(false)} className="gl-pill disabled:opacity-50">Save draft</button>
-        <button disabled={pending} onClick={() => save(true)} className="gl-pill on disabled:opacity-50">{published ? "Save and keep published" : "Save and publish"}</button>
+        {pos === "All" ? (
+          <>
+            <button disabled={pending} onClick={() => save(false)} className="gl-pill disabled:opacity-50">Save draft</button>
+            <button disabled={pending} onClick={() => save(true)} className="gl-pill on disabled:opacity-50">{published ? "Save and keep published" : "Save and publish"}</button>
+          </>
+        ) : (
+          <button disabled={pending} onClick={() => save(false)} className="gl-pill on disabled:opacity-50">Save {label(pos)} ranking</button>
+        )}
         <Link href={exitHref} onClick={(e) => { if (dirty && !window.confirm("You have unsaved changes. Leave without saving?")) e.preventDefault(); }} className="gl-pill">Done</Link>
       </div>
       <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400">
-        <span>{items.length - unplaced} of {items.length} placed</span>
-        <button onClick={() => change((prev) => prev.map((i) => ({ ...i, placed: true })))} className="text-green-400">Mark all as placed</button>
-        <button disabled={pending} onClick={copyToOthers} className="text-green-400 disabled:opacity-50">Copy this list to my other settings</button>
+        {pos === "All" && <span>{items.length - unplaced} of {items.length} placed</span>}
+        {pos === "All" && <button onClick={() => change((prev) => prev.map((i) => ({ ...i, placed: true })))} className="text-green-400">Mark all as placed</button>}
+        {pos === "All" && <button disabled={pending} onClick={copyToOthers} className="text-green-400 disabled:opacity-50">Copy this list to my other settings</button>}
         <Link href={fullEditorHref} className="text-green-400">Open the full editor (notes, sort by ADP)</Link>
       </div>
 
       <div role="group" aria-label="Position filter" className="flex flex-wrap gap-2">
         {POSITIONS.map((p) => (
-          <button key={p} onClick={() => { setPos(p); setLimit(100); }} className={`gl-pill !px-5 ${pos === p ? "on" : ""}`}>{p === "All" ? "Overall" : p === "DEF" ? "DST" : p}</button>
+          <button key={p} onClick={() => choose(p)} className={`gl-pill !px-5 ${pos === p ? "on" : ""}`}>{label(p)}</button>
         ))}
         {pos !== "All" && <span className="self-center text-xs text-zinc-400">Showing only {pos === "DEF" ? "DST" : pos}. Rank numbers are still overall.</span>}
       </div>
@@ -258,7 +293,7 @@ export function InlineEditor({
                 </thead>
                 <tbody>
                   {run.idx.length === 0 && (
-                    <tr><td colSpan={6} className="!py-4 text-sm text-zinc-400">{pos === "All" ? "No players in this tier yet." : `No ${pos === "DEF" ? "DST" : pos} players in this tier.`} Drag a player here, or move one to the edge of the tier above or below and press ▲ or ▼.</td></tr>
+                    <tr><td colSpan={6} className="!py-4 text-sm text-zinc-400">{pos === "All" ? "No players in this tier yet." : `No ${label(pos)} players in this tier.`} Drag a player here, or move one to the edge of the tier above or below and press ▲ or ▼.</td></tr>
                   )}
                   {run.idx.map((i) => {
                     const it = items[i];
