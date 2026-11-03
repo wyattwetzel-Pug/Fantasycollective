@@ -75,9 +75,6 @@ export async function LineupSection({ supabase, userId, chosen, isContributor, s
 
   const starters = roster.filter((p) => p.slot === "starter");
   const current = fillLineup(lineup, starters, (p) => (p.rank === null ? -9999 : -p.rank));
-  const placed = new Set(current.map((c) => c.player).filter(Boolean));
-  const extras = starters.filter((p) => !placed.has(p));
-  const bench = roster.filter((p) => p.slot === "bench").sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999));
   const recommended = fillLineup(lineup, roster.filter((p) => p.slot !== "ir"), score);
 
   // Pair each new starter with a current starter who comes out.
@@ -101,7 +98,7 @@ export async function LineupSection({ supabase, userId, chosen, isContributor, s
   return (
     <LineupBoard
       platform={chosen.platform} leagueId={chosen.id} source={source} isContributor={isContributor}
-      starters={starters} current={current} extras={extras} bench={bench} recommended={recommended} benchBest={benchBest} recPpg={recPpg}
+      starters={starters} recommended={recommended} benchBest={benchBest} recPpg={recPpg}
       startIds={startIds} swapFor={swapFor} changes={changes} curProj={curProj} recProj={recProj}
     />
   );

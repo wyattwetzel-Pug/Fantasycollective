@@ -18,28 +18,12 @@ const PLATFORM_NOTE: Record<string, string> = {
 };
 
 export function LineupBoard({
-  platform, leagueId, source, isContributor, starters, current, extras, bench, recommended, benchBest, startIds, swapFor, changes, curProj, recProj, recPpg,
+  platform, leagueId, source, isContributor, starters, recommended, benchBest, startIds, swapFor, changes, curProj, recProj, recPpg,
 }: {
   platform: string; leagueId: number; source: "mine" | "consensus" | "proj"; isContributor: boolean;
-  starters: P[]; current: Filled[]; extras: P[]; bench: P[]; recommended: Filled[]; benchBest: P[]; startIds: Set<number>; swapFor: Map<number, P>;
+  starters: P[]; recommended: Filled[]; benchBest: P[]; startIds: Set<number>; swapFor: Map<number, P>;
   changes: number; curProj: number; recProj: number; recPpg: number;
 }) {
-  const card = (p: P | null, slot: string, tag?: string) => (
-    <div className="min-w-0 text-center">
-      <p className="mb-1 rounded-t-lg bg-[var(--bar)] py-0.5 text-xs font-bold tracking-wider text-[var(--bar-ink)]">{slotLabel(slot)}</p>
-      <div className="gl-panel flex flex-col items-center gap-1 !rounded-t-none p-2">
-        {p ? (
-          <>
-            <Avatar id={p.id} name={p.name} size={60} />
-            <span className={`bd ${p.pos}`}>{p.pos} {p.posRank ?? "–"}</span>
-            <PlayerLink id={p.id} name={short(p.name)} className="block w-full truncate text-xs" />
-            {tag && <span className="text-[10px] text-zinc-400">{tag}</span>}
-          </>
-        ) : <span className="py-6 text-xs text-zinc-400">Empty</span>}
-      </div>
-    </div>
-  );
-
   const srcLink = (v: string, label: string) => (
     <Link href={`/teams?league=${leagueId}&tab=lineup&src=${v}`} className={`gl-pill ${source === v ? "on" : ""}`}>{label}</Link>
   );
@@ -71,22 +55,6 @@ export function LineupBoard({
   return (
     <div className="space-y-5">
 
-      <div className="gl-panel space-y-3 p-5">
-        <h3 className="text-2xl">Current Lineup</h3>
-        {starters.length ? (
-          <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(6.4rem,1fr))" }}>
-            {current.map((c, i) => <div key={i}>{card(c.player, c.slot)}</div>)}
-            {extras.map((p) => <div key={p.id}>{card(p, "EXTRA")}</div>)}
-          </div>
-        ) : <p className="text-sm text-zinc-400">{PLATFORM_NOTE[platform] ?? "This league didn't tell us who is starting."} The best lineup below still works from your whole roster.</p>}
-        {bench.length > 0 && (
-          <>
-            <p className="pt-2 text-sm font-bold">Bench</p>
-            <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(6.4rem,1fr))" }}>{bench.map((p) => <div key={p.id}>{card(p, "BN")}</div>)}</div>
-          </>
-        )}
-      </div>
-
       <div className="gl-panel space-y-4 p-5">
         <div className="flex flex-wrap items-center gap-3">
           <h3 className="mr-2 text-2xl">Best Lineup</h3>
@@ -100,7 +68,7 @@ export function LineupBoard({
         <p className="text-sm text-zinc-300">
           {starters.length
             ? changes ? <><b>{changes} change{changes === 1 ? "" : "s"}</b> from your current lineup. Projected {recProj.toFixed(1)} points vs {curProj.toFixed(1)} now.</> : <>Your lineup already matches the best one. Projected {curProj.toFixed(1)} points.</>
-            : <>Projected {recProj.toFixed(1)} points.</>}
+            : <>{PLATFORM_NOTE[platform] ?? "This league didn't tell us who is starting."} Projected {recProj.toFixed(1)} points from your whole roster.</>}
         </p>
         <div className="overflow-x-auto">
           <table className="gl-table min-w-[46rem]">
