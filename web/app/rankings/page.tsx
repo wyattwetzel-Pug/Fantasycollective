@@ -117,7 +117,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
     stale = !!data?.length && data.every((r) => r.is_stale);
     rows = fixTiers(data ?? []).map((r) => ({
       id: r.player_id, rank: r.position_in_list, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", posRank: 0,
-      team: r.players?.nfl_team ?? "", tier: r.tier, sub: `${r.sources} source${r.sources === 1 ? "" : "s"}`,
+      team: r.players?.nfl_team ?? "", tier: r.tier, sub: "",
     }));
   }
 
@@ -285,7 +285,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
                                 <Avatar id={r.id} name={r.name} size={44} />
                                 <span>
                                   <PlayerLink id={r.id} name={r.name} />
-                                  <span className="block max-w-[14rem] truncate text-xs text-zinc-400">{r.sub}</span>
+                                  {r.sub && <span className="block max-w-[14rem] truncate text-xs text-zinc-400">{r.sub}</span>}
                                 </span>
                               </span>
                             </td>
