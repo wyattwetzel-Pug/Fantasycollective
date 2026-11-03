@@ -5,9 +5,9 @@ import type { SheetTab } from "@/lib/sheets";
 export function SheetView({ leagueId, sheetId, url, tab }: { leagueId: number; sheetId: string; url: string; tab: SheetTab }) {
   const [head, ...body] = tab.rows;
   return (
-    <div className="gl-panel space-y-3 p-4">
+    <div className="gl-panel space-y-2 p-3">
       <div className="flex flex-wrap items-center gap-3">
-        <h3 className="mr-auto text-xl">{tab.name}</h3>
+        <h3 className="mr-auto text-lg">{tab.name}</h3>
         <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs" style={{ color: "var(--accent)" }}>Open in Google Sheets ↗</a>
         <form action={refreshSheet}>
           <input type="hidden" name="league" value={leagueId} /><input type="hidden" name="sheet" value={sheetId} /><input type="hidden" name="tabname" value={tab.name} />
@@ -19,15 +19,15 @@ export function SheetView({ leagueId, sheetId, url, tab }: { leagueId: number; s
         </form>
       </div>
       {tab.rows.length ? (
-        <div className="max-h-[70vh] overflow-auto rounded-xl border" style={{ borderColor: "var(--card-line)" }}>
-          <table className="gl-table min-w-full text-[13px]">
+        <div className="max-h-[78vh] overflow-auto rounded-xl border" style={{ borderColor: "var(--card-line)" }}>
+          <table className="gl-table min-w-full !text-[11px] leading-tight [&_td]:!px-2 [&_td]:!py-[3px] [&_th]:!px-2 [&_th]:!py-1">
             <thead>
-              <tr>{head.map((c, i) => <th key={i} scope="col" className="sticky top-0 whitespace-nowrap bg-[var(--bar)] !px-3 !py-2 !text-[11px] !text-[var(--bar-ink)] first:!text-left">{c}</th>)}</tr>
+              <tr>{head.map((c, i) => <th key={i} scope="col" className="sticky top-0 whitespace-nowrap bg-[var(--bar)] !text-[10px] !text-[var(--bar-ink)] first:!text-left">{c}</th>)}</tr>
             </thead>
             <tbody>
               {body.map((r, ri) => (
                 <tr key={ri} className="hover:bg-[#F1EEE5]">
-                  {r.map((c, ci) => <td key={ci} className={`whitespace-nowrap !px-3 ${ci === 0 ? "!text-left font-semibold" : ""}`}>{c}</td>)}
+                  {r.map((c, ci) => <td key={ci} className={`whitespace-nowrap ${ci === 0 ? "!text-left font-semibold" : ""}`}>{c}</td>)}
                 </tr>
               ))}
             </tbody>

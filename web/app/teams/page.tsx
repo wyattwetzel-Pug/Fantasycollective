@@ -7,6 +7,7 @@ import { nowMs } from "@/lib/time";
 import { playerValue } from "@/lib/value";
 import { refreshLeague, removeLeague, connectSheet } from "./actions";
 import { SheetView } from "./sheet-view";
+import { SheetMenu } from "./sheet-menu";
 import { loadSheet } from "@/lib/sheets";
 import { SyncForm } from "./sync-form";
 import { TeamCards } from "./team-cards";
@@ -165,21 +166,7 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
       <div role="tablist" aria-label="League sections" className="flex gap-2 border-b border-zinc-800 pb-3">
         <Link role="tab" aria-selected={tab === "lineup"} href={`/teams?league=${chosen.id}&tab=lineup`} className={`gl-pill !px-5 ${tab === "lineup" ? "on" : ""}`}>Lineup</Link>
         <Link role="tab" aria-selected={tab === "rankings"} href={`/teams?league=${chosen.id}&tab=rankings`} className={`gl-pill !px-5 ${tab === "rankings" ? "on" : ""}`}>League Rankings</Link>
-        {sheetTabs.length > 0 && (
-          <details className="group relative">
-            <summary className={`gl-pill !px-5 cursor-pointer list-none ${tab === "sheet" ? "on" : ""}`}>
-              {tab === "sheet" && sheetTab ? sheetTab.name : `Sheet tabs (${sheetTabs.length})`} <span aria-hidden="true" className="ml-1 text-xs">▾</span>
-            </summary>
-            <div className="absolute left-0 z-20 mt-2 max-h-80 w-60 overflow-auto rounded-xl border bg-[var(--card)] p-1 shadow-lg" style={{ borderColor: "var(--card-line)" }}>
-              {sheetTabs.map((t) => (
-                <Link
-                  key={t.name} href={`/teams?league=${chosen.id}&tab=sheet&sheettab=${encodeURIComponent(t.name)}`}
-                  className={`block rounded-lg px-3 py-2 text-sm hover:bg-[#EDE9DF] ${tab === "sheet" && sheetTab?.name === t.name ? "bg-[var(--hilite)] font-bold" : "font-medium"}`}
-                >{t.name}</Link>
-              ))}
-            </div>
-          </details>
-        )}
+        {sheetTabs.length > 0 && <SheetMenu leagueId={chosen.id} names={sheetTabs.map((t) => t.name)} current={sheetTab?.name} active={tab === "sheet"} />}
         {sheetLink && !sheet?.ok && <Link role="tab" aria-selected={tab === "sheet"} href={`/teams?league=${chosen.id}&tab=sheet`} className={`gl-pill !px-5 ${tab === "sheet" ? "on" : ""}`}>Sheet</Link>}
       </div>
       {!sheetLink && (
