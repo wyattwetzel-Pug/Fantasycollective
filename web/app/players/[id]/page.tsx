@@ -26,7 +26,7 @@ type CallRow = {
 };
 
 const FORMATS = [["redraft", "Redraft"], ["dynasty", "Dynasty"]] as const;
-const SCORING = [["ppr", "PPR"], ["half", "Half PPR"], ["std", "Standard"]] as const;
+const SCORING = [["ppr", "PPR"], ["half", "Half PPR"]] as const;
 const QBS = [["1qb", "1 QB"], ["superflex", "Superflex"]] as const;
 const TABS = [["overview", "Overview"], ["log", "Game Log"], ["matchup", "Matchup"], ["adp", "ADP"], ["news", "News"]] as const;
 const LABEL: Record<string, string> = { redraft: "Redraft", dynasty: "Dynasty", ppr: "PPR", half: "Half PPR", std: "Standard", "1qb": "1 QB", superflex: "Superflex" };
@@ -161,9 +161,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
           {TABS.map(([v, l]) => <Link key={v} role="tab" aria-selected={params.tab === v} href={href({ tab: v })} className={`gl-pill !px-5 ${params.tab === v ? "on" : ""}`}>{l}</Link>)}
         </div>
         <div className="flex-1" />
-        <div className="flex flex-wrap gap-2">{FORMATS.map(([v, l]) => <Link key={v} href={href({ format: v })} className={pill(params.format === v)}>{l}</Link>)}</div>
         <div className="flex flex-wrap gap-2">{SCORING.map(([v, l]) => <Link key={v} href={href({ scoring: v })} className={pill(params.scoring === v)}>{l}</Link>)}</div>
-        <div className="flex flex-wrap gap-2">{QBS.map(([v, l]) => <Link key={v} href={href({ qb: v })} className={pill(params.qb === v)}>{l}</Link>)}</div>
       </div>
 
       {params.tab === "overview" && (
