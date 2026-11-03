@@ -1,8 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { fetchSheet, sheetIdFrom } from "@/lib/sheets";
 import { makeMatcher } from "@/lib/leagues/match";
 import { importSleeper } from "@/lib/leagues/sleeper";
 import { importEspn } from "@/lib/leagues/espn";
@@ -151,4 +152,36 @@ export async function removeLeague(formData: FormData) {
   await supabase.from("leagues").delete().eq("id", Number(formData.get("id"))).eq("user_id", user.id);
   revalidatePath("/teams");
   redirect("/teams");
+}
+
+// Links a Google Sheet to a league. It has to be shared as "Anyone with the link can view".
+export async function connectSheet(formData: FormData) {
+  const { supabase } = await requireUser();
+  const leagueId = Number(formData.get("league"));
+  const url = text(formData, "url");
+  const dest = (extra: string) => `/teams?league=${leagueId}${extra}`;
+  const id = sheetIdFrom(url);
+  if (!id) redirect(dest(`&sheeterr=${encodeURIComponent("That doesn't look like a Google Sheets link. Copy it from the address bar of your sheet.")}`));
+  const check = await fetchSheet(id);
+  if (!check.ok) redirect(dest(`&sheeterr=${encodeURIComponent(check.error)}`));
+  const { error } = await supabase.from("league_sheets").upsert({ league_id: leagueId, sheet_id: id, url });
+  if (error) redirect(dest(`&sheeterr=${encodeURIComponent(error.message)}`));
+  updateTag(`sheet-${id}`);
+  redirect(dest("&tab=sheet"));
+}
+
+export async function disconnectSheet(formData: FormData) {
+  const { supabase } = await requireUser();
+  const leagueId = Number(formData.get("league"));
+  await supabase.from("league_sheets").delete().eq("league_id", leagueId);
+  redirect(`/teams?league=${leagueId}`);
+}
+
+// Pulls the sheet again right now instead of waiting for the few-minute cache.
+export async function refreshSheet(formData: FormData) {
+  await requireUser();
+  const id = text(formData, "sheet");
+  const leagueId = Number(formData.get("league"));
+  if (id) updateTag(`sheet-${id}`);
+  redirect(`/teams?league=${leagueId}&tab=sheet${formData.get("tabname") ? `&sheettab=${encodeURIComponent(text(formData, "tabname"))}` : ""}`);
 }
