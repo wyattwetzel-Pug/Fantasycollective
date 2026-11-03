@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Avatar } from "@/app/avatar";
 import { PlayerLink } from "@/app/player-link";
 import { TeamLogo } from "@/app/team-logo";
-import { saveList, saveScopeList, copyListToOtherSettings } from "../lists/actions";
+import { saveList, saveScopeList, pasteRankings, type CopiedRankings } from "../lists/actions";
 
 export type Item = { player_id: number; name: string; position: string; team: string; tier: string; note: string; placed: boolean };
 export type Line = { proj: number | null; played: number; snapPct: number | null; posFinish: number | null };
@@ -198,16 +198,33 @@ export function InlineEditor({
     });
   }
 
-  function copyToOthers() {
-    if (dirty) { setMessage("Save your list first, then copy it."); return; }
-    if (!window.confirm("Copy this list to every other setting (format, scoring, QB) that you haven't ranked yet? They are saved as drafts you can edit. Lists you've already ranked are left alone.")) return;
+  // Copy / paste between settings. The copy is kept in this browser, so it survives switching settings.
+  const CLIP = "ff-copied-rankings";
+  const [clip, setClip] = useState<CopiedRankings | null>(null);
+  useEffect(() => {
+    try { const raw = window.localStorage.getItem(CLIP); if (raw) setClip(JSON.parse(raw) as CopiedRankings); } catch { /* no saved copy */ }
+  }, []);
+
+  function copyRankings() {
+    const lists: Record<string, Item[]> = { ...scopes, ...store };
+    const made: CopiedRankings = {
+      label: settings,
+      overall: store.All.map((i) => ({ player_id: i.player_id, tier: i.tier, note: i.note, placed: i.placed })),
+      scopes: Object.fromEntries(Object.entries(lists).filter(([k]) => k !== "All").map(([k, list]) => [k, list.map((i) => ({ player_id: i.player_id, tier: i.tier }))])),
+    };
+    try { window.localStorage.setItem(CLIP, JSON.stringify(made)); } catch { setMessage("Could not copy: this browser blocked saving it."); return; }
+    setClip(made);
+    setMessage(`Copied the ${settings} rankings (Overall${Object.keys(made.scopes).length ? ` and ${Object.keys(made.scopes).length} position list${Object.keys(made.scopes).length === 1 ? "" : "s"}` : ""}). Switch settings and click Paste Copied Rankings.`);
+  }
+
+  function pasteCopied() {
+    if (!clip) return;
+    if (!window.confirm(`Paste the rankings copied from ${clip.label} into ${settings}? This replaces the Overall list${Object.keys(clip.scopes).length ? " and the copied position lists" : ""} here, and it saves right away.`)) return;
     start(async () => {
-      let res = await copyListToOtherSettings(setId);
-      if (res.ok && res.skipped > 0 && window.confirm(`${res.skipped} other settings already have players placed. Replace those lists with this one too? Their current order will be lost.`)) {
-        res = await copyListToOtherSettings(setId, true);
-      }
-      if (!res.ok) { setMessage(`Could not copy: ${res.error}`); return; }
-      setMessage(`Copied this list to your other settings. Switch the settings to edit each one.`);
+      const res = await pasteRankings(setId, clip);
+      if (!res.ok) { setMessage(`Could not paste: ${res.error}`); return; }
+      setDirtyScopes(new Set());
+      window.location.reload();
     });
   }
 
@@ -268,7 +285,8 @@ export function InlineEditor({
         {pos === "All" && <span>{items.length - unplaced} of {items.length} placed</span>}
         {pos === "All" && <button onClick={() => change((prev) => prev.map((i) => ({ ...i, placed: true })))} className="text-green-400">Mark all as placed</button>}
         <button onClick={clearTiers} className="text-red-400">Clear all tiers</button>
-        {pos === "All" && <button disabled={pending} onClick={copyToOthers} className="text-green-400 disabled:opacity-50">Copy this list to my other settings</button>}
+        <button onClick={copyRankings} className="text-green-400">Copy these rankings</button>
+        {clip && clip.label !== settings && <button disabled={pending} onClick={pasteCopied} className="text-green-400 disabled:opacity-50">Paste Copied Rankings</button>}
         <Link href={fullEditorHref} className="text-green-400">Open the full editor (notes, sort by ADP)</Link>
       </div>
 
