@@ -21,7 +21,7 @@ async function HomeView() {
   const { data: top } = await supabase
     .from("consensus_current")
     .select("player_id, position_in_list, consensus_rank, players!inner(name, position, nfl_team)")
-    .match(COMBO).not("players.position", "in", "(K,DEF)").order("position_in_list").limit(5)
+    .match(COMBO).not("players.position", "in", "(K,DEF)").order("position_in_list").limit(20)
     .returns<Top[]>();
 
   // Biggest movers: today's consensus order against the newest snapshot that is about a week old.
@@ -85,7 +85,7 @@ async function HomeView() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <div className="gl-panel p-4">
+        <div className="gl-panel flex flex-col p-4">
           <div className="mb-3 flex items-start justify-between">
             <div>
               <h3 className="font-bold">🏆 Top Ranked Players</h3>
@@ -94,7 +94,8 @@ async function HomeView() {
             <Link href="/rankings" className="text-xs" style={{ color: "var(--accent)" }}>View All →</Link>
           </div>
           {top?.length ? (
-            <ol className="space-y-2">
+            <div className="lg:relative lg:min-h-[18rem] lg:flex-1">
+            <ol className="space-y-2 max-lg:[&>li:nth-child(n+11)]:hidden lg:absolute lg:inset-0 lg:overflow-hidden lg:[mask-image:linear-gradient(to_bottom,#000_88%,transparent)]">
               {top.map((r, i) => (
                 <li key={r.position_in_list} className="flex items-center gap-3 text-sm">
                   <span className="h-7 w-7 rounded bg-zinc-800 text-center text-xs leading-7">{i + 1}</span>
@@ -104,6 +105,7 @@ async function HomeView() {
                 </li>
               ))}
             </ol>
+            </div>
           ) : <p className="text-sm text-zinc-400">No published rankings yet.</p>}
         </div>
 
