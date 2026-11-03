@@ -5,10 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { fixTiers } from "@/lib/tiers";
 import { nowMs } from "@/lib/time";
 import { playerValue } from "@/lib/value";
-import { refreshLeague, removeLeague, connectSheet } from "./actions";
-import { SheetView } from "./sheet-view";
-import { SheetMenu } from "./sheet-menu";
-import { loadSheet } from "@/lib/sheets";
+import { refreshLeague, removeLeague } from "./actions";
 import { SyncForm } from "./sync-form";
 import { TeamCards } from "./team-cards";
 import { LineupSection } from "./lineup-section";
@@ -68,11 +65,7 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
   const chosen = leagues.find((l) => String(l.id) === str("league")) ?? leagues[0] ?? null;
   const isContributor = me?.role === "contributor";
   const wanted = str("src");
-  const tab = str("tab") === "rankings" ? "rankings" : str("tab") === "sheet" ? "sheet" : "lineup";
-  const { data: sheetLink } = chosen ? await supabase.from("league_sheets").select("sheet_id, url").eq("league_id", chosen.id).maybeSingle() : { data: null };
-  const sheet = sheetLink ? await loadSheet(sheetLink.sheet_id) : null;
-  const sheetTabs = sheet?.ok ? sheet.tabs : [];
-  const sheetTab = sheetTabs.find((t) => t.name === str("sheettab")) ?? sheetTabs[0];
+  const tab = str("tab") === "rankings" ? "rankings" : "lineup";
   // The lineup can also be built from projections. League rankings only use your list or the consensus.
   const lineupSource: "mine" | "consensus" | "proj" = wanted === "proj" ? "proj" : "consensus";
 
@@ -145,11 +138,6 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
     );
   }
 
-  if (chosen && tab === "sheet" && sheetLink) {
-    content = sheet?.ok
-      ? (sheetTab ? <SheetView leagueId={chosen.id} sheetId={sheetLink.sheet_id} url={sheetLink.url} tab={sheetTab} /> : <p className="text-sm text-zinc-400">That sheet has no tabs.</p>)
-      : <p className="rounded-xl border border-red-900 bg-red-950 p-3 text-sm text-red-300">{sheet?.error}</p>;
-  }
   const teamCount = chosen?.roster_settings?.total_rosters;
   const detail = chosen ? (
     <div className="space-y-4">
@@ -166,21 +154,7 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
       <div role="tablist" aria-label="League sections" className="flex gap-2 border-b border-zinc-800 pb-3">
         <Link role="tab" aria-selected={tab === "lineup"} href={`/teams?league=${chosen.id}&tab=lineup`} className={`gl-pill !px-5 ${tab === "lineup" ? "on" : ""}`}>Lineup</Link>
         <Link role="tab" aria-selected={tab === "rankings"} href={`/teams?league=${chosen.id}&tab=rankings`} className={`gl-pill !px-5 ${tab === "rankings" ? "on" : ""}`}>League Rankings</Link>
-        {sheetTabs.length > 0 && <SheetMenu leagueId={chosen.id} names={sheetTabs.map((t) => t.name)} current={sheetTab?.name} active={tab === "sheet"} />}
-        {sheetLink && !sheet?.ok && <Link role="tab" aria-selected={tab === "sheet"} href={`/teams?league=${chosen.id}&tab=sheet`} className={`gl-pill !px-5 ${tab === "sheet" ? "on" : ""}`}>Sheet</Link>}
       </div>
-      {!sheetLink && (
-        <details className="rounded-xl border p-3 text-sm" style={{ borderColor: "var(--card-line)" }} open={!!str("sheeterr")}>
-          <summary className="cursor-pointer font-semibold">＋ Connect a Google Sheet to this league</summary>
-          <form action={connectSheet} className="mt-3 flex flex-wrap items-center gap-2">
-            <input type="hidden" name="league" value={chosen.id} />
-            <input name="url" required placeholder="Paste your Google Sheets link" className="min-w-[16rem] flex-1 rounded-lg border px-3 py-2 text-sm" style={{ borderColor: "var(--card-line)" }} />
-            <button className="gl-pill on">Connect</button>
-          </form>
-          <p className="mt-2 text-xs text-zinc-500">In Google Sheets, click Share, then under General access pick &quot;Anyone with the link&quot; as Viewer. Every tab of the sheet will show up here and stay in sync.</p>
-          {str("sheeterr") && <p className="mt-2 rounded-lg border border-red-900 bg-red-950 p-2 text-xs text-red-300">{str("sheeterr")}</p>}
-        </details>
-      )}
       {content}
     </div>
   ) : null;
