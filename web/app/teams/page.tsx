@@ -67,7 +67,6 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
   const tab = str("tab") === "rankings" ? "rankings" : "lineup";
   // The lineup can also be built from projections. League rankings only use your list or the consensus.
   const lineupSource: "mine" | "consensus" | "proj" = wanted === "proj" ? "proj" : "consensus";
-  const source = isContributor && wanted !== "consensus" ? "mine" : "consensus";
 
   let content: React.ReactNode = null;
   if (chosen && tab === "lineup") {
@@ -75,24 +74,15 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
   }
   if (chosen && tab === "rankings") {
     const combo = { format: chosen.format, scoring: chosen.scoring, qb_type: chosen.qb_type };
-    const [{ data: rosterRows }, { data: playerRows }, { data: cons }, { data: mySet }] = await Promise.all([
+    const [{ data: rosterRows }, { data: playerRows }, { data: cons }] = await Promise.all([
       supabase.from("league_rosters").select("team_name, is_mine, player_id, slot").eq("league_id", chosen.id).limit(1000).returns<RosterRow[]>(),
       supabase.from("players").select("id, name, position, nfl_team").limit(1000).returns<PlayerRow[]>(),
       supabase.from("consensus_current").select("player_id, position_in_list, tier").match(combo).order("position_in_list").limit(1000).returns<ConsensusRow[]>(),
-      isContributor ? supabase.from("ranking_sets").select("id").match({ ...combo, contributor_id: user.id }).maybeSingle() : Promise.resolve({ data: null }),
     ]);
     const info = new Map((playerRows ?? []).map((p) => [p.id, p]));
 
     const consensus = new Map<number, Rank>(fixTiers(cons ?? []).map((c) => [c.player_id, { rank: c.position_in_list, tier: c.tier }]));
-    // Your own list, in the order you ranked it. Players you haven't placed fall back to the consensus.
-    const mine = new Map<number, Rank>();
-    if (source === "mine" && mySet) {
-      const { data: own } = await supabase.from("rankings").select("player_id, tier")
-        .eq("set_id", mySet.id).eq("needs_ranking", false).order("rank").limit(2000).returns<{ player_id: number; tier: string | null }[]>();
-      (own ?? []).forEach((r, i) => mine.set(r.player_id, { rank: i + 1, tier: r.tier }));
-    }
-    const rankOf = (id: number): Rank | undefined => (source === "mine" ? mine.get(id) ?? consensus.get(id) : consensus.get(id));
-    const usingFallback = source === "mine" && (rosterRows ?? []).some((r) => !mine.has(r.player_id) && consensus.has(r.player_id));
+    const rankOf = (id: number): Rank | undefined => consensus.get(id);
 
     // Position rank: where a player sits among all players at his position on this ranking.
     const posRankOf = new Map<number, number>();
@@ -136,15 +126,7 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
 
     content = (
       <div className="space-y-4">
-        {isContributor && (
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="font-bold">Ranked by</span>
-            <Link href={`/teams?league=${chosen.id}&tab=rankings`} className={`gl-pill ${source === "mine" ? "on" : ""}`}>My rankings</Link>
-            <Link href={`/teams?league=${chosen.id}&tab=rankings&src=consensus`} className={`gl-pill ${source === "consensus" ? "on" : ""}`}>Ball Knowers Consensus</Link>
-          </div>
-        )}
-        {source === "mine" && !mySet && <p className="text-xs text-zinc-500">You don&apos;t have a list for {LABEL[chosen.format]} · {LABEL[chosen.scoring]} · {LABEL[chosen.qb_type]} yet, so this uses the consensus.</p>}
-        {usingFallback && mySet && <p className="text-xs text-zinc-500">Players you haven&apos;t placed in your list yet use their consensus rank.</p>}
+        <p className="text-sm"><span className="font-bold">Ranked by</span> Ball Knowers Consensus</p>
 
         {!list.length && <p className="text-sm text-zinc-400">No rosters stored for this league. Try refreshing.</p>}
 
