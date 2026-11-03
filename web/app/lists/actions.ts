@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { updateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 async function requireContributor() {
@@ -57,6 +58,7 @@ export async function saveList(setId: number, items: SaveItem[], published: bool
   const { error: refreshError } = await supabase.rpc("refresh_consensus");
   if (refreshError) return { ok: false as const, error: refreshError.message };
 
+  updateTag("rankings");
   return { ok: true as const };
 }
 
@@ -77,6 +79,7 @@ export async function saveScopeList(setId: number, scope: string, items: { playe
   // Counts as an edit, so the list stays fresh for the consensus (position lists don't touch it themselves).
   await supabase.from("ranking_sets").update({ updated_at: new Date().toISOString() }).eq("id", setId);
 
+  updateTag("rankings");
   return { ok: true as const };
 }
 
@@ -113,5 +116,6 @@ export async function pasteRankings(setId: number, clip: CopiedRankings) {
   await supabase.from("ranking_sets").update({ updated_at: new Date().toISOString() }).eq("id", setId);
   const { error: refreshError } = await supabase.rpc("refresh_consensus");
   if (refreshError) return { ok: false as const, error: refreshError.message };
+  updateTag("rankings");
   return { ok: true as const };
 }

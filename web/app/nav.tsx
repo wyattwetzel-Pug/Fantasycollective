@@ -1,14 +1,11 @@
+import { sessionUser, profileOf } from "@/lib/session";
 import Link from "next/link";
 import { signOut } from "./login/actions";
-import { createClient } from "@/lib/supabase/server";
 
 // Top bar: player search, plus who is signed in and log in / log out.
 export async function Nav() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: me } = user
-    ? await supabase.from("profiles").select("display_name").eq("id", user.id).single()
-    : { data: null };
+  const user = await sessionUser();
+  const me = user ? await profileOf(user.id) : null;
 
   return (
     <header className="flex items-center justify-end gap-3 px-4 py-4 text-sm md:px-10">

@@ -1,73 +1,16 @@
+import { sessionUser } from "@/lib/session";
 import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
 import { PlayerLink } from "@/app/player-link";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
 import { nowMs } from "@/lib/time";
-import { seasonLines } from "@/lib/season";
-import { TopScorers, type Scorer } from "./top-scorers";
-
-type Top = {
-  player_id: number; position_in_list: number; consensus_rank: number;
-  players: { name: string; position: string; nfl_team: string | null } | null;
-};
-type NewsRow = { id: number; headline: string; body: string | null; published_at: string; url: string | null; source: string | null; external_id: string | null };
-
-const DAY = 24 * 60 * 60 * 1000;
-const COMBO = { format: "redraft", scoring: "ppr", qb_type: "1qb" };
+import { homeData } from "@/lib/cached";
+import { TopScorers } from "./top-scorers";
 
 async function HomeView() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  const { data: top } = await supabase
-    .from("consensus_current")
-    .select("player_id, position_in_list, consensus_rank, players!inner(name, position, nfl_team)")
-    .match(COMBO).not("players.position", "in", "(K,DEF)").order("position_in_list").limit(20)
-    .returns<Top[]>();
-
-  // Biggest movers: today's consensus order against the newest snapshot that is about a week old.
-  type Snap = { player_id: number; position_in_list: number; position: string };
-  const weekAgo = new Date(nowMs() - 6 * DAY).toISOString().slice(0, 10);
-  const { data: oldDay } = await supabase.from("rank_history").select("snapshot_date").match(COMBO).lte("snapshot_date", weekAgo).order("snapshot_date", { ascending: false }).limit(1);
-  const { data: oldRows } = oldDay?.length
-    ? await supabase.from("rank_history").select("player_id, position_in_list, position").match(COMBO).eq("snapshot_date", oldDay[0].snapshot_date).limit(1000).returns<Snap[]>()
-    : { data: null };
-  const { data: nowRows } = oldRows?.length
-    ? await supabase.from("consensus_current").select("player_id, position_in_list, players!inner(name, position)").match(COMBO).not("players.position", "in", "(K,DEF)").order("position_in_list").limit(1000)
-        .returns<{ player_id: number; position_in_list: number; players: { name: string; position: string } }[]>()
-    : { data: null };
-  const rankThen = new Map<number, number>();
-  [...(oldRows ?? [])].filter((r) => r.position !== "K" && r.position !== "DEF").sort((a, b) => a.position_in_list - b.position_in_list).forEach((r, i) => rankThen.set(r.player_id, i + 1));
-  const moves = (nowRows ?? []).map((r, i) => ({ id: r.player_id, name: r.players.name, pos: r.players.position, now: i + 1, change: (rankThen.get(r.player_id) ?? NaN) - (i + 1) }))
-    .filter((m) => Number.isFinite(m.change) && m.change !== 0);
-  const risers = moves.filter((m) => m.change > 0).sort((a, b) => b.change - a.change).slice(0, 3);
-  const fallers = moves.filter((m) => m.change < 0).sort((a, b) => a.change - b.change).slice(0, 3);
-
-  // The top scorer at each position so far this season (PPR).
-  const lines = await seasonLines("ppr");
-  const { data: skill } = await supabase.from("players").select("id, name, position").in("position", ["QB", "RB", "WR", "TE", "K"]).limit(1000)
-    .returns<{ id: number; name: string; position: string }[]>();
-  const scorers: Scorer[] = ["QB", "RB", "WR", "TE", "K"].flatMap((pos) => {
-    const best = (skill ?? []).filter((p) => p.position === pos && lines[p.id]).sort((a, b) => lines[b.id].points - lines[a.id].points)[0];
-    return best ? [{ id: best.id, name: best.name, position: pos, points: lines[best.id].points, played: lines[best.id].played }] : [];
-  });
-
-  const { count: total } = await supabase
-    .from("consensus_current").select("player_id", { count: "exact", head: true }).match(COMBO);
-
-  const { data: sets } = await supabase
-    .from("ranking_sets").select("updated_at").eq("published", true);
-  const contributors = (sets ?? []).filter((s) => nowMs() - new Date(s.updated_at).getTime() < 7 * DAY).length;
-
-  const { data: news } = await supabase
-    .from("news").select("id, headline, body, published_at, url, source, external_id").order("published_at", { ascending: false }).limit(30)
-    .returns<NewsRow[]>();
-
+  const user = await sessionUser();
+  const { top, risers, fallers, scorers, hasHistory, total, contributors, stories } = await homeData();
   const season = new Date().getFullYear();
-  // One row per story (a story naming several players is stored once per player).
-  const seenStory = new Set<string>();
-  const stories = (news ?? []).filter((n) => { const k = n.external_id ?? String(n.id); if (seenStory.has(k)) return false; seenStory.add(k); return true; }).slice(0, 5);
   const timeAgo = (iso: string) => {
     const mins = Math.max(1, Math.round((nowMs() - new Date(iso).getTime()) / 60000));
     return mins < 60 ? `${mins}m ago` : mins < 1440 ? `${Math.round(mins / 60)}h ago` : `${Math.round(mins / 1440)}d ago`;
@@ -111,9 +54,9 @@ async function HomeView() {
               {top.map((r, i) => (
                 <li key={r.position_in_list} className="flex items-center gap-3 text-sm">
                   <span className="h-7 w-7 rounded bg-zinc-800 text-center text-xs leading-7">{i + 1}</span>
-                  <Avatar id={r.player_id} name={r.players?.name} size={32} />
-                  <span className="flex-1"><PlayerLink id={r.player_id} name={r.players?.name} /></span>
-                  <span className={`bd ${r.players?.position}`}>{r.players?.position}</span>
+                  <Avatar id={r.player_id} name={r.name} size={32} />
+                  <span className="flex-1"><PlayerLink id={r.player_id} name={r.name} /></span>
+                  <span className={`bd ${r.position}`}>{r.position}</span>
                 </li>
               ))}
             </ol>
@@ -137,7 +80,7 @@ async function HomeView() {
                 </li>
               ))}
             </ul>
-          ) : <p className="text-sm text-zinc-400">{oldRows?.length ? "No changes in the rankings since last week." : "Movers show up once rankings have a week of history to compare."}</p>}
+          ) : <p className="text-sm text-zinc-400">{hasHistory ? "No changes in the rankings since last week." : "Movers show up once rankings have a week of history to compare."}</p>}
         </div>
 
         <div className="gl-panel p-4">
@@ -159,7 +102,7 @@ async function HomeView() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        <div className="gl-stat"><span className="text-2xl font-extrabold italic">{total ?? 0}</span><span className="text-sm">Player Rankings</span></div>
+        <div className="gl-stat"><span className="text-2xl font-extrabold italic">{total}</span><span className="text-sm">Player Rankings</span></div>
         <div className="gl-stat"><span className="text-2xl font-extrabold italic">{contributors}</span><span className="text-sm">Contributors</span></div>
         <div className="gl-stat"><span className="text-2xl font-extrabold italic">{season}</span><span className="text-sm">Season</span></div>
       </div>

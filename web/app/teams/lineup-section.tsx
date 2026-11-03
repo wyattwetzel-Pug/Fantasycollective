@@ -45,7 +45,7 @@ export async function LineupSection({ supabase, userId, chosen, isContributor, s
   const counts: Record<string, number> = {};
   [...info.values()].map((p) => ({ p, r: rankOf(p.id) })).filter((x) => x.r !== null).sort((a, b) => a.r! - b.r!)
     .forEach(({ p }) => { counts[p.position] = (counts[p.position] ?? 0) + 1; posRank.set(p.id, counts[p.position]); });
-  (await positionRankMap(supabase, combo)).forEach((rank, id) => posRank.set(id, rank));
+  Object.entries(await positionRankMap(combo)).forEach(([id, rank]) => posRank.set(Number(id), rank));
 
   // Who starts follows the position consensus. Within a position, the best position rank gets the best
   // overall slot that position's players hold, so a QB and a WR can still be compared for a FLEX spot.

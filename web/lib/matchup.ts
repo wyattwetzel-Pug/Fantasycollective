@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { cacheLife } from "next/cache";
+import { publicClient } from "@/lib/supabase/public";
 
 // Sleeper stores "fantasy points allowed" on each team's DEF row, per position, in PPR.
 const KEYS: Record<string, string> = { QB: "fan_pts_allow_qb", RB: "fan_pts_allow_rb", WR: "fan_pts_allow_wr", TE: "fan_pts_allow_te", K: "fan_pts_allow_k" };
@@ -10,7 +12,7 @@ export type DefenseVs = Record<string, Map<string, Allowed>>;
 
 type Raw = { week: number; players: { nfl_team: string | null } | null; [k: string]: unknown };
 
-export async function defenseVsPosition(db: SupabaseClient, season: number): Promise<DefenseVs> {
+async function computeDefense(db: SupabaseClient, season: number): Promise<DefenseVs> {
   const alias = Object.entries(KEYS).map(([pos, key]) => `${pos.toLowerCase()}:stats->>${key}`).join(", ");
   const { data } = await db
     .from("player_stats")
@@ -33,6 +35,21 @@ export async function defenseVsPosition(db: SupabaseClient, season: number): Pro
     out[pos] = new Map(ranked.map((r, i) => [r.team, { avg: r.avg, games: r.games, rank: i + 1, of: ranked.length }]));
   }
   return out;
+}
+
+// Public numbers that change as games are played, so they are worked out once and kept for a few minutes.
+async function defenseEntries(season: number): Promise<Record<string, [string, Allowed][]>> {
+  "use cache";
+  cacheLife("minutes");
+  const all = await computeDefense(publicClient(), season);
+  return Object.fromEntries(Object.entries(all).map(([pos, m]) => [pos, [...m.entries()]]));
+}
+
+// (The first argument is no longer needed; it stays so the callers don't change.)
+export async function defenseVsPosition(_db: unknown, season: number): Promise<DefenseVs> {
+  void _db;
+  const e = await defenseEntries(season);
+  return Object.fromEntries(Object.entries(e).map(([pos, list]) => [pos, new Map(list)]));
 }
 
 export type Grade = { label: string; color: string };

@@ -7,22 +7,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { pickLabel } from "@/lib/adp";
+import { playerPublic, consensusRows, publishedSets, offListRanks, contributorRanks, teamGames } from "@/lib/cached";
 import { playerValue } from "@/lib/value";
 import { defenseVsPosition, matchupGrade, ordinal, isOpen, opponentOf, average } from "@/lib/matchup";
 
-type Player = { id: number; name: string; position: string; nfl_team: string | null; age: number | null; status: string | null; is_rookie: boolean };
-type Cons = { player_id: number; position_in_list: number; consensus_rank: number; sources: number; tier: string | null; is_stale: boolean; players: { position: string } | null };
 type AllCons = { format: string; scoring: string; qb_type: string; position_in_list: number; tier: string | null };
-type SetRow = { id: number; updated_at: string; contributors: { profiles: { display_name: string } | null } | null };
-type RankRow = { set_id: number; rank: number; tier: string | null; note: string | null };
-type AdpRow = { season: number; source: string; format: string; scoring: string; qb_type: string; adp: number; high: number | null; low: number | null; times_drafted: number | null; teams: number };
 type NewsRow = { id: number; headline: string; body: string | null; published_at: string; url: string | null; source: string | null };
 type StatRow = { week: number; season: number; stats: Record<string, number>; pts_ppr: number | null; pts_half: number | null; pts_std: number | null };
 type GameRow = { week: number; home: string; away: string; status: string | null };
-type CallRow = {
-  id: number; week: number; season: number; player_a: number; player_b: number; pick: number; reason: string | null;
-  contributors: { profiles: { display_name: string } | null } | null;
-};
 
 const FORMATS = [["redraft", "Redraft"], ["dynasty", "Dynasty"]] as const;
 const SCORING = [["ppr", "PPR"], ["half", "Half PPR"]] as const;
@@ -66,22 +58,11 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
   };
 
   const supabase = await createClient();
-  const { data: player } = await supabase.from("players").select("id, name, position, nfl_team, age, status, is_rookie").eq("id", id).maybeSingle<Player>();
-  if (!player) notFound();
-
   const combo = { format: params.format, scoring: params.scoring, qb_type: params.qb };
-  const [{ data: statRows }, { data: projRows }, { data: consAll }, { data: everyCombo }, { data: sets }, { data: adpRows }, { data: news }, { data: calls }] = await Promise.all([
-    supabase.from("player_stats").select("week, season, stats, pts_ppr, pts_half, pts_std").eq("player_id", id).order("season", { ascending: false }).order("week").returns<StatRow[]>(),
-    supabase.from("projections").select("week, season, points").eq("player_id", id).eq("scoring", params.scoring).order("season", { ascending: false }).order("week", { ascending: false }).limit(2),
-    supabase.from("consensus_current").select("player_id, position_in_list, consensus_rank, sources, tier, is_stale, players(position)").match(combo).order("position_in_list").limit(1000).returns<Cons[]>(),
-    supabase.from("consensus_current").select("format, scoring, qb_type, position_in_list, tier").eq("player_id", id).returns<AllCons[]>(),
-    supabase.from("ranking_sets").select("id, updated_at, contributors(profiles!contributors_profile_id_fkey(display_name))").match(combo).eq("published", true).returns<SetRow[]>(),
-    supabase.from("adp").select("season, source, format, scoring, qb_type, adp, high, low, times_drafted, teams").eq("player_id", id).order("season", { ascending: false }).returns<AdpRow[]>(),
-    supabase.from("news").select("id, headline, body, published_at, url, source").eq("player_id", id).order("published_at", { ascending: false }).limit(20).returns<NewsRow[]>(),
-    supabase.from("start_sit_calls")
-      .select("id, week, season, player_a, player_b, pick, reason, contributors(profiles!contributors_profile_id_fkey(display_name))")
-      .or(`player_a.eq.${id},player_b.eq.${id}`).order("created_at", { ascending: false }).limit(10).returns<CallRow[]>(),
-  ]);
+  const [pub, consensus, sets] = await Promise.all([playerPublic(id, params.scoring), consensusRows(combo), publishedSets(combo)]);
+  const { player, statRows, projRows, everyCombo, adpRows, news, calls, others } = pub;
+  if (!player) notFound();
+  const consAll = consensus.rows;
 
   const fixedCons = fixTiers(consAll ?? []);
   const mine = fixedCons.find((c) => c.player_id === id);
@@ -94,15 +75,11 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
   const posRank = mine ? samePos.findIndex((c) => c.player_id === id) + 1 : 0;
 
   // Same rule for the other formats: take out the kickers and defenses ranked ahead.
-  const { data: offAll } = offList(player.position) ? { data: [] as { format: string; scoring: string; qb_type: string; position_in_list: number }[] } : await supabase
-    .from("consensus_current").select("format, scoring, qb_type, position_in_list, players!inner(position)").in("players.position", ["K", "DEF"]).limit(1000)
-    .returns<{ format: string; scoring: string; qb_type: string; position_in_list: number }[]>();
+  const offAll = offList(player.position) ? [] : await offListRanks();
   const overallIn = (c: AllCons) => c.position_in_list - (offAll ?? []).filter((o) => o.format === c.format && o.scoring === c.scoring && o.qb_type === c.qb_type && o.position_in_list < c.position_in_list).length;
 
   const setIds = (sets ?? []).map((s) => s.id);
-  const { data: theirRanks } = setIds.length
-    ? await supabase.from("rankings").select("set_id, rank, tier, note").eq("player_id", id).in("set_id", setIds).eq("needs_ranking", false).returns<RankRow[]>()
-    : { data: [] as RankRow[] };
+  const theirRanks = await contributorRanks(id, setIds);
   const contributorRows = (sets ?? []).map((s) => ({ s, r: (theirRanks ?? []).find((r) => r.set_id === s.id) })).filter((x) => x.r);
 
   // Game log for the newest season we have stats for.
@@ -112,9 +89,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
   const total = log.reduce((sum, r) => sum + pts(r), 0);
   const ppg = log.length ? total / log.length : null;
   const best = log.length ? Math.max(...log.map(pts)) : null;
-  const { data: games } = player.nfl_team && logSeason
-    ? await supabase.from("games").select("week, home, away, status").eq("season", logSeason).or(`home.eq.${player.nfl_team},away.eq.${player.nfl_team}`).order("week").returns<GameRow[]>()
-    : { data: [] as GameRow[] };
+  const games = player.nfl_team && logSeason ? await teamGames(logSeason, player.nfl_team) : [];
   const oppFor = (g: GameRow) => (g.home === player.nfl_team ? `vs ${g.away}` : `@ ${g.home}`);
   const next = (games ?? []).find(isOpen);
   const proj = projRows?.[0];
@@ -128,8 +103,6 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
 
   const adpHere = (adpRows ?? []).find((a) => a.format === params.format && a.scoring === params.scoring && a.qb_type === params.qb);
 
-  const otherIds = [...new Set((calls ?? []).flatMap((c) => [c.player_a, c.player_b]).filter((x) => x !== id))];
-  const { data: others } = otherIds.length ? await supabase.from("players").select("id, name").in("id", otherIds) : { data: [] as { id: number; name: string }[] };
   const nameOf = (x: number) => (x === id ? player.name : others?.find((o) => o.id === x)?.name ?? "Unknown");
 
   const pill = (on: boolean) => `gl-pill !rounded-full text-xs ${on ? "on-o" : ""}`;
@@ -139,7 +112,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
 
   // Last three seasons, set by the Admin page's "Load past seasons" button.
   type SeasonRow = { season: number; gp: number | null; stats: Record<string, number>; pts_ppr: number | null; pts_half: number | null };
-  const { data: seasonRows } = await supabase.from("player_seasons").select("season, gp, stats, pts_ppr, pts_half").eq("player_id", id).order("season", { ascending: false }).limit(3).returns<SeasonRow[]>();
+  const seasonRows = pub.seasons.slice(0, 3);
   const n0 = (v: number | undefined) => (v === undefined ? "–" : Math.round(v).toLocaleString());
   const div1 = (a: number | undefined, b: number | undefined) => (a === undefined || !b ? "–" : (a / b).toFixed(1));
   type Col = [string, (r: SeasonRow) => string];
@@ -200,8 +173,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
         : [];
   let careerRows: SeasonRow[] = [];
   if (params.tab === "career") {
-    const { data: all } = await supabase.from("player_seasons").select("season, gp, stats, pts_ppr, pts_half").eq("player_id", id).order("season", { ascending: false }).limit(40).returns<SeasonRow[]>();
-    careerRows = all ?? [];
+    careerRows = [...pub.seasons];
     if (logSeason && log.length && !careerRows.some((r) => r.season === logSeason)) {
       const sum: Record<string, number> = {};
       log.forEach((r) => Object.entries(r.stats).forEach(([k, v]) => { if (typeof v === "number") sum[k] = (sum[k] ?? 0) + v; }));

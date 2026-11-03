@@ -1,5 +1,7 @@
+import { sessionUser, profileOf } from "@/lib/session";
 import { TIER_COLORS, tierInk } from "@/lib/tier-config";
 import { positionConsensus } from "@/lib/position-consensus";
+import { publishedSets, consensusRows } from "@/lib/cached";
 import { fixTiers } from "@/lib/tiers";
 import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
@@ -13,15 +15,7 @@ import { seasonLines } from "@/lib/season";
 import { InlineEditor, type Item, type Line } from "./inline-editor";
 
 type Player = { name: string; position: string; nfl_team: string | null };
-type ConsensusRow = {
-  player_id: number; consensus_rank: number; sources: number; tier: string | null;
-  is_stale: boolean; position_in_list: number; players: Player | null;
-};
 type ListRow = { player_id: number; rank: number; tier: string | null; note: string | null; players: Player | null };
-type SetRow = {
-  id: number; updated_at: string;
-  contributors: { slug: string; profiles: { display_name: string } | null } | null;
-};
 type Row = {
   id: number; rank: number; name: string; position: string; posRank: number; team: string;
   tier: string | null; sub: string;
@@ -73,19 +67,13 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
   const combo = { format: params.format, scoring: params.scoring, qb_type: params.qb };
 
   // Contributors (the admin is one too) get a small Edit button.
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: me } = user
-    ? await supabase.from("profiles").select("role").eq("id", user.id).single()
-    : { data: null };
+  const user = await sessionUser();
+  const me = user ? await profileOf(user.id) : null;
   const canEdit = me?.role === "contributor";
   const editing = canEdit && params.edit === "1";
 
   // Everyone with a published list for this combination (for the Expert Sources panel).
-  const { data: sets } = await supabase
-    .from("ranking_sets")
-    .select("id, updated_at, contributors(slug, profiles!contributors_profile_id_fkey(display_name))")
-    .match(combo).eq("published", true)
-    .returns<SetRow[]>();
+  const sets = await publishedSets(combo);
   const sources = (sets ?? []).filter((s) => s.contributors);
   const fresh = sources.filter((s) => nowMs() - new Date(s.updated_at).getTime() < 7 * DAY);
 
@@ -109,14 +97,10 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
       team: r.players?.nfl_team ?? "", tier: r.tier, sub: r.note ?? "",
     }));
   } else {
-    const { data, error } = await supabase
-      .from("consensus_current")
-      .select("player_id, consensus_rank, sources, tier, is_stale, position_in_list, players(name, position, nfl_team)")
-      .match(combo).order("position_in_list").limit(1000)
-      .returns<ConsensusRow[]>();
-    if (error) loadError = error.message;
-    stale = !!data?.length && data.every((r) => r.is_stale);
-    rows = fixTiers(data ?? []).map((r) => ({
+    const { rows: data, error } = await consensusRows(combo);
+    if (error) loadError = error;
+    stale = !!data.length && data.every((r) => r.is_stale);
+    rows = fixTiers(data).map((r) => ({
       id: r.player_id, rank: r.position_in_list, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", posRank: 0,
       team: r.players?.nfl_team ?? "", tier: r.tier, sub: "",
     }));
@@ -140,7 +124,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
 
   // The consensus for a position is the average of the contributors' own position rankings.
   if (!chosen && params.pos !== "All") {
-    const byPos = await positionConsensus(supabase, combo, params.pos);
+    const byPos = await positionConsensus(combo, params.pos);
     if (byPos?.length) {
       scopeData = true;
       rows = byPos.map((r, i) => ({ id: r.id, rank: i + 1, name: r.name, position: r.position, posRank: 0, team: r.team ?? "", tier: r.tier, sub: "" }));

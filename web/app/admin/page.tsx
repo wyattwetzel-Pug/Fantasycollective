@@ -1,3 +1,4 @@
+import { sessionUser, profileOf } from "@/lib/session";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -15,9 +16,9 @@ async function AdminPanel({ searchParams }: { searchParams: Promise<Record<strin
   const sp = await searchParams;
   const syncMsg = typeof sp.sync === "string" ? sp.sync : "";
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await sessionUser();
   if (!user) redirect("/login");
-  const { data: me } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
+  const me = await profileOf(user.id);
   if (!me?.is_admin) redirect("/rankings");
 
   const { data: invites } = await supabase

@@ -1,3 +1,4 @@
+import { sessionUser, profileOf } from "@/lib/session";
 import { TIER_COLORS } from "@/lib/tier-config";
 import { fixTiers } from "@/lib/tiers";
 import { Suspense } from "react";
@@ -50,8 +51,8 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
   const supabase = await createClient();
   const combo = { format: params.format, scoring: params.scoring, qb_type: params.qb };
 
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: me } = user ? await supabase.from("profiles").select("role").eq("id", user.id).single() : { data: null };
+  const user = await sessionUser();
+  const me = user ? await profileOf(user.id) : null;
 
   const { data: all, error } = await supabase
     .from("consensus_current")

@@ -1,3 +1,4 @@
+import { sessionUser, profileOf } from "@/lib/session";
 import { positionRankMap } from "@/lib/position-consensus";
 import { Suspense } from "react";
 import Link from "next/link";
@@ -36,7 +37,7 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
   const sp = await searchParams;
   const str = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await sessionUser();
 
   const hero = (
     <div className="gl-hero p-5 sm:p-7">
@@ -57,8 +58,8 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
     );
   }
 
-  const [{ data: me }, { data: leagueRows }] = await Promise.all([
-    supabase.from("profiles").select("role").eq("id", user.id).single(),
+  const [me, { data: leagueRows }] = await Promise.all([
+    profileOf(user.id),
     supabase.from("leagues").select("id, name, platform, scoring, qb_type, format, synced_at, roster_settings").order("name").returns<League[]>(),
   ]);
   const leagues = leagueRows ?? [];
@@ -92,7 +93,7 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
       .sort((a, b) => a.r!.rank - b.r!.rank)
       .forEach(({ p }) => { seen[p.position] = (seen[p.position] ?? 0) + 1; posRankOf.set(p.id, seen[p.position]); });
     // The position consensus (your position lists, averaged with other contributors') wins over the Overall order.
-    (await positionRankMap(supabase, combo)).forEach((rank, id) => posRankOf.set(id, rank));
+    Object.entries(await positionRankMap(combo)).forEach(([id, rank]) => posRankOf.set(Number(id), rank));
 
     type TeamPlayer = { id: number; name: string; pos: string; slot: string; rank: Rank | undefined; posRank: number | null; value: number };
     const teams = new Map<string, { name: string; mine: boolean; players: TeamPlayer[] }>();
