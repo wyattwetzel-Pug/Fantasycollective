@@ -79,11 +79,32 @@ export async function runSync(opts: { weeks?: number[]; backfill?: boolean } = {
       await upsertChunks("projections", rows, "player_id,season,week,scoring", db);
       log.push(`Projections week ${w}: ${rows.length} rows.`);
     }
+    await snapshotRanks(db, log);
     return { ok: true, log };
   } catch (e) {
     log.push(`Failed: ${e instanceof Error ? e.message : String(e)}`);
     return { ok: false, log };
   }
+}
+
+// Saves today's consensus order for the home page's Biggest Movers (the redraft PPR 1QB list).
+// Safe to run more than once a day: it just replaces today's snapshot. Keeps about two months.
+async function snapshotRanks(db: SupabaseClient, log: string[]) {
+  const combo = { format: "redraft", scoring: "ppr", qb_type: "1qb" };
+  const { data, error } = await db.from("consensus_current")
+    .select("player_id, position_in_list, players!inner(position)").match(combo).limit(1000)
+    .returns<{ player_id: number; position_in_list: number; players: { position: string } | { position: string }[] }[]>();
+  if (error) { log.push(`Rank snapshot skipped: ${error.message}`); return; }
+  const today = new Date().toISOString().slice(0, 10);
+  const rows = (data ?? []).map((r) => ({
+    snapshot_date: today, ...combo, player_id: r.player_id, position_in_list: r.position_in_list,
+    position: Array.isArray(r.players) ? r.players[0]?.position : r.players?.position,
+  }));
+  if (!rows.length) return;
+  const up = await db.from("rank_history").upsert(rows, { onConflict: "snapshot_date,format,scoring,qb_type,player_id" });
+  if (up.error) { log.push(`Rank snapshot skipped: ${up.error.message}`); return; }
+  await db.from("rank_history").delete().lt("snapshot_date", new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10));
+  log.push(`Rank snapshot: ${rows.length} players.`);
 }
 
 // Season totals for every season before the current one, back to 2009 (one request per season).

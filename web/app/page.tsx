@@ -24,6 +24,24 @@ async function HomeView() {
     .match(COMBO).not("players.position", "in", "(K,DEF)").order("position_in_list").limit(5)
     .returns<Top[]>();
 
+  // Biggest movers: today's consensus order against the newest snapshot that is about a week old.
+  type Snap = { player_id: number; position_in_list: number; position: string };
+  const weekAgo = new Date(nowMs() - 6 * DAY).toISOString().slice(0, 10);
+  const { data: oldDay } = await supabase.from("rank_history").select("snapshot_date").match(COMBO).lte("snapshot_date", weekAgo).order("snapshot_date", { ascending: false }).limit(1);
+  const { data: oldRows } = oldDay?.length
+    ? await supabase.from("rank_history").select("player_id, position_in_list, position").match(COMBO).eq("snapshot_date", oldDay[0].snapshot_date).limit(1000).returns<Snap[]>()
+    : { data: null };
+  const { data: nowRows } = oldRows?.length
+    ? await supabase.from("consensus_current").select("player_id, position_in_list, players!inner(name, position)").match(COMBO).not("players.position", "in", "(K,DEF)").order("position_in_list").limit(1000)
+        .returns<{ player_id: number; position_in_list: number; players: { name: string; position: string } }[]>()
+    : { data: null };
+  const rankThen = new Map<number, number>();
+  [...(oldRows ?? [])].filter((r) => r.position !== "K" && r.position !== "DEF").sort((a, b) => a.position_in_list - b.position_in_list).forEach((r, i) => rankThen.set(r.player_id, i + 1));
+  const moves = (nowRows ?? []).map((r, i) => ({ id: r.player_id, name: r.players.name, pos: r.players.position, now: i + 1, change: (rankThen.get(r.player_id) ?? NaN) - (i + 1) }))
+    .filter((m) => Number.isFinite(m.change) && m.change !== 0);
+  const risers = moves.filter((m) => m.change > 0).sort((a, b) => b.change - a.change).slice(0, 3);
+  const fallers = moves.filter((m) => m.change < 0).sort((a, b) => a.change - b.change).slice(0, 3);
+
   const { count: total } = await supabase
     .from("consensus_current").select("player_id", { count: "exact", head: true }).match(COMBO);
 
@@ -88,7 +106,18 @@ async function HomeView() {
             <h3 className="font-bold">↗ Biggest Movers</h3>
             <p className="text-xs text-zinc-500">Since last week</p>
           </div>
-          <p className="text-sm text-zinc-400">Movers show up once rankings have a week of history to compare.</p>
+          {risers.length || fallers.length ? (
+            <ul className="space-y-2">
+              {[...risers, ...fallers].map((m) => (
+                <li key={m.id} className="flex items-center gap-3 text-sm">
+                  <Avatar id={m.id} name={m.name} size={32} />
+                  <span className="flex-1"><PlayerLink id={m.id} name={m.name} /><span className="block text-xs text-zinc-500">Now #{m.now}</span></span>
+                  <span className={`bd ${m.pos}`}>{m.pos}</span>
+                  <span className="w-12 text-right text-sm font-bold" style={{ color: m.change > 0 ? "#4a9d2f" : "#d92d20" }}>{m.change > 0 ? "▲" : "▼"} {Math.abs(m.change)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="text-sm text-zinc-400">{oldRows?.length ? "No changes in the rankings since last week." : "Movers show up once rankings have a week of history to compare."}</p>}
         </div>
 
         <div className="gl-panel p-4">
