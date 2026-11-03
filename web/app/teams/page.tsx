@@ -66,7 +66,7 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
   const wanted = str("src");
   const tab = str("tab") === "rankings" ? "rankings" : "lineup";
   // The lineup can also be built from projections. League rankings only use your list or the consensus.
-  const lineupSource: "mine" | "consensus" | "proj" = wanted === "proj" ? "proj" : wanted === "consensus" || !isContributor ? "consensus" : "mine";
+  const lineupSource: "mine" | "consensus" | "proj" = wanted === "proj" ? "proj" : "consensus";
   const source = isContributor && wanted !== "consensus" ? "mine" : "consensus";
 
   let content: React.ReactNode = null;

@@ -18,9 +18,9 @@ const PLATFORM_NOTE: Record<string, string> = {
 };
 
 export function LineupBoard({
-  platform, leagueId, source, isContributor, starters, recommended, benchBest, startIds, swapFor, changes, curProj, recProj, recPpg,
+  platform, leagueId, source, starters, recommended, benchBest, startIds, swapFor, changes, curProj, recProj, recPpg,
 }: {
-  platform: string; leagueId: number; source: "mine" | "consensus" | "proj"; isContributor: boolean;
+  platform: string; leagueId: number; source: "mine" | "consensus" | "proj";
   starters: P[]; recommended: Filled[]; benchBest: P[]; startIds: Set<number>; swapFor: Map<number, P>;
   changes: number; curProj: number; recProj: number; recPpg: number;
 }) {
@@ -60,7 +60,6 @@ export function LineupBoard({
           <h3 className="mr-2 text-2xl">Best Lineup</h3>
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-bold">Based on</span>
-            {isContributor && srcLink("mine", "My rankings")}
             {srcLink("consensus", "Consensus")}
             {srcLink("proj", "Projections")}
           </div>

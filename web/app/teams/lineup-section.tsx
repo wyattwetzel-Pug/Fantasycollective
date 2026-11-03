@@ -97,7 +97,7 @@ export async function LineupSection({ supabase, userId, chosen, isContributor, s
 
   return (
     <LineupBoard
-      platform={chosen.platform} leagueId={chosen.id} source={source} isContributor={isContributor}
+      platform={chosen.platform} leagueId={chosen.id} source={source}
       starters={starters} recommended={recommended} benchBest={benchBest} recPpg={recPpg}
       startIds={startIds} swapFor={swapFor} changes={changes} curProj={curProj} recProj={recProj}
     />
