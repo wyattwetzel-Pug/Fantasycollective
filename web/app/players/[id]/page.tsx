@@ -6,7 +6,6 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { nowMs } from "@/lib/time";
 import { pickLabel } from "@/lib/adp";
 import { playerValue } from "@/lib/value";
 import { defenseVsPosition, matchupGrade, ordinal, isOpen, opponentOf, average } from "@/lib/matchup";
@@ -30,7 +29,6 @@ const SCORING = [["ppr", "PPR"], ["half", "Half PPR"]] as const;
 const QBS = [["1qb", "1 QB"], ["superflex", "Superflex"]] as const;
 const TABS = [["overview", "Overview"], ["log", "Game Log"], ["matchup", "Matchup"], ["adp", "ADP"], ["news", "News"]] as const;
 const LABEL: Record<string, string> = { redraft: "Redraft", dynasty: "Dynasty", ppr: "PPR", half: "Half PPR", std: "Standard", "1qb": "1 QB", superflex: "Superflex" };
-const DAY = 24 * 60 * 60 * 1000;
 
 type Params = { tab: string; format: string; scoring: string; qb: string };
 
@@ -46,11 +44,6 @@ function statLine(pos: string, s: Record<string, number>) {
   if (pos === "K") return `${n(s.fgm)}/${n(s.fga)} FG, ${n(s.xpm)}/${n(s.xpa)} XP`;
   if (pos === "DEF") return `${n(s.sack)} sacks, ${n(s.int)} INT, ${n(s.fum_rec)} FR, ${n(s.pts_allow)} pts allowed`;
   return [rush, rec].filter(Boolean).join(" · ") || "–";
-}
-
-function TierBadge({ tier }: { tier: string | null | undefined }) {
-  if (!tier) return <span className="text-zinc-500">–</span>;
-  return <span className="inline-block rounded-full border px-3 text-xs" style={{ color: TIER_COLORS[tier], borderColor: TIER_COLORS[tier] }}>{tier}</span>;
 }
 
 async function Profile({ params: pp, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
@@ -110,16 +103,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
   const { data: theirRanks } = setIds.length
     ? await supabase.from("rankings").select("set_id, rank, tier, note").eq("player_id", id).in("set_id", setIds).eq("needs_ranking", false).returns<RankRow[]>()
     : { data: [] as RankRow[] };
-  const contributorRows = await Promise.all((sets ?? []).map((s) => ({ s, r: (theirRanks ?? []).find((r) => r.set_id === s.id) })).filter((x) => x.r).map(async ({ s, r }) => {
-    // Kickers and defenses ranked ahead of them don't count toward the Overall number.
-    let ahead = 0;
-    if (!offList(player.position)) {
-      const { count } = await supabase.from("rankings").select("player_id, players!inner(position)", { count: "exact", head: true })
-        .eq("set_id", s.id).eq("needs_ranking", false).lt("rank", r!.rank).in("players.position", ["K", "DEF"]);
-      ahead = count ?? 0;
-    }
-    return { s, r, shownRank: r!.rank - ahead };
-  }));
+  const contributorRows = (sets ?? []).map((s) => ({ s, r: (theirRanks ?? []).find((r) => r.set_id === s.id) })).filter((x) => x.r);
 
   // Game log for the newest season we have stats for.
   const logSeason = statRows?.[0]?.season;
@@ -136,7 +120,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
   const proj = projRows?.[0];
 
   // Matchup tab: how the next opponents' defenses do against this position.
-  const defense = params.tab === "matchup" && logSeason ? await defenseVsPosition(supabase, logSeason) : null;
+  const defense = (params.tab === "matchup" || params.tab === "overview") && logSeason ? await defenseVsPosition(supabase, logSeason) : null;
   const vsPos = defense?.[player.position];
   const upcoming = (games ?? []).filter(isOpen).slice(0, 5);
   const recent = log.slice(-3).map(pts);
@@ -151,6 +135,36 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
   const pill = (on: boolean) => `gl-pill !rounded-full text-xs ${on ? "on-o" : ""}`;
   const stat = (label: string, value: React.ReactNode, sub?: string) => (
     <div className="gl-stat"><span className="text-2xl font-extrabold italic">{value}</span><span className="text-xs text-zinc-400">{label}{sub ? ` · ${sub}` : ""}</span></div>
+  );
+
+  const nextMatchup = (
+      <div className="gl-panel space-y-3 p-4">
+        <h3 className="font-bold">Next matchup</h3>
+        {next && player.nfl_team ? (() => {
+          const opp = opponentOf(next, player.nfl_team);
+          const a = vsPos?.get(opp);
+          const grade = matchupGrade(a);
+          return (
+            <>
+              <p className="text-2xl font-extrabold italic">{oppFor(next)} <span className="text-sm font-normal not-italic text-zinc-400">week {next.week}</span></p>
+              {vsPos ? (
+                a ? (
+                  <p className="text-sm text-zinc-300">
+                    {opp} gives up <span className="font-semibold text-white">{a.avg.toFixed(1)}</span> PPR points a game to {player.position}s,
+                    {" "}<span className="font-semibold text-white">{ordinal(a.rank)} most</span> of {a.of} defenses.
+                    {" "}Matchup: <span className="font-bold" style={{ color: grade.color }}>{grade.label}</span>.
+                  </p>
+                ) : <p className="text-sm text-zinc-400">No points-allowed data for {player.position}s against {opp} yet.</p>
+              ) : <p className="text-sm text-zinc-400">Matchup ratings aren&apos;t available for {player.position}s.</p>}
+              <dl className="grid grid-cols-2 gap-y-2 text-sm">
+                <dt className="text-zinc-400">Projected ({LABEL[params.scoring]})</dt><dd>{proj ? `${Number(proj.points).toFixed(1)} (week ${proj.week})` : "–"}</dd>
+                <dt className="text-zinc-400">Season average</dt><dd>{ppg === null ? "–" : ppg.toFixed(1)}</dd>
+                <dt className="text-zinc-400">Last {recent.length || 3} games</dt><dd>{recentAvg === null ? "–" : recentAvg.toFixed(1)}</dd>
+              </dl>
+            </>
+          );
+        })() : <p className="text-sm text-zinc-400">{player.nfl_team ? "No upcoming game found." : `${player.name} is not on a team.`} Load the schedule from the Admin page.</p>}
+      </div>
   );
 
   return (
@@ -186,27 +200,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
 
       {params.tab === "overview" && (
         <div className="grid items-start gap-4 md:grid-cols-2">
-          <div className="gl-panel p-4">
-            <h3 className="mb-2 font-bold">Rank by source</h3>
-            <table className="gl-table">
-              <thead><tr><th scope="col" className="!text-left">SOURCE</th><th scope="col">RANK</th><th scope="col">TIER</th></tr></thead>
-              <tbody>
-                <tr>
-                  <td className="!text-left font-semibold">Ball Knowers Consensus{mine?.is_stale && <span className="ml-2 text-xs text-yellow-400">stale</span>}</td>
-                  <td>{mine ? `#${overallRank}` : "–"}</td>
-                  <td><TierBadge tier={mine?.tier} /></td>
-                </tr>
-                {contributorRows.map(({ s, r, shownRank }) => (
-                  <tr key={s.id}>
-                    <td className="!text-left">{s.contributors?.profiles?.display_name ?? "Contributor"}{nowMs() - new Date(s.updated_at).getTime() >= 7 * DAY && <span className="ml-2 text-xs text-yellow-400">stale</span>}</td>
-                    <td>#{shownRank}</td>
-                    <td><TierBadge tier={r!.tier} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {!mine && <p className="mt-2 text-xs text-zinc-500">Nobody has ranked {player.name} for {LABEL[params.format]} · {LABEL[params.scoring]} · {LABEL[params.qb]} yet.</p>}
-          </div>
+          {nextMatchup}
 
           <div className="gl-panel p-4">
             <h3 className="mb-2 font-bold">Points by week{logSeason ? ` · ${logSeason}` : ""} <span className="text-xs font-normal text-zinc-400">{LABEL[params.scoring]}</span></h3>
@@ -293,33 +287,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
 
       {params.tab === "matchup" && (
         <div className="grid items-start gap-4 md:grid-cols-2">
-          <div className="gl-panel space-y-3 p-4">
-            <h3 className="font-bold">Next matchup</h3>
-            {next && player.nfl_team ? (() => {
-              const opp = opponentOf(next, player.nfl_team);
-              const a = vsPos?.get(opp);
-              const grade = matchupGrade(a);
-              return (
-                <>
-                  <p className="text-2xl font-extrabold italic">{oppFor(next)} <span className="text-sm font-normal not-italic text-zinc-400">week {next.week}</span></p>
-                  {vsPos ? (
-                    a ? (
-                      <p className="text-sm text-zinc-300">
-                        {opp} gives up <span className="font-semibold text-white">{a.avg.toFixed(1)}</span> PPR points a game to {player.position}s,
-                        {" "}<span className="font-semibold text-white">{ordinal(a.rank)} most</span> of {a.of} defenses.
-                        {" "}Matchup: <span className="font-bold" style={{ color: grade.color }}>{grade.label}</span>.
-                      </p>
-                    ) : <p className="text-sm text-zinc-400">No points-allowed data for {player.position}s against {opp} yet.</p>
-                  ) : <p className="text-sm text-zinc-400">Matchup ratings aren&apos;t available for {player.position}s.</p>}
-                  <dl className="grid grid-cols-2 gap-y-2 text-sm">
-                    <dt className="text-zinc-400">Projected ({LABEL[params.scoring]})</dt><dd>{proj ? `${Number(proj.points).toFixed(1)} (week ${proj.week})` : "–"}</dd>
-                    <dt className="text-zinc-400">Season average</dt><dd>{ppg === null ? "–" : ppg.toFixed(1)}</dd>
-                    <dt className="text-zinc-400">Last {recent.length || 3} games</dt><dd>{recentAvg === null ? "–" : recentAvg.toFixed(1)}</dd>
-                  </dl>
-                </>
-              );
-            })() : <p className="text-sm text-zinc-400">{player.nfl_team ? "No upcoming game found." : `${player.name} is not on a team.`} Load the schedule from the Admin page.</p>}
-          </div>
+          {nextMatchup}
 
           <div className="gl-panel p-4">
             <h3 className="mb-2 font-bold">Upcoming schedule</h3>
