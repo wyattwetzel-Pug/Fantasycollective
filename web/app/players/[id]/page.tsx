@@ -191,9 +191,11 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
   // Career tab: every season we have, plus the season in progress (added up from the weekly stats).
   const careerCols: Col[] = player.position === "QB"
     ? [["CMP", (r) => n0(r.stats.pass_cmp)], ["ATT", (r) => n0(r.stats.pass_att)], ["PCT", (r) => (r.stats.pass_att ? `${((r.stats.pass_cmp ?? 0) / r.stats.pass_att * 100).toFixed(1)}%` : "–")], ["YDS", (r) => n0(r.stats.pass_yd)], ["TD", (r) => n0(r.stats.pass_td)], ["INT", (r) => n0(r.stats.pass_int)], ["CAR", (r) => n0(r.stats.rush_att)], ["RUSH YDS", (r) => n0(r.stats.rush_yd)], ["RUSH TD", (r) => n0(r.stats.rush_td)]]
-    : player.position === "RB" || player.position === "WR" || player.position === "TE"
+    : player.position === "RB"
       ? [["CAR", (r) => n0(r.stats.rush_att)], ["RUSH YDS", (r) => n0(r.stats.rush_yd)], ["AVG", (r) => div1(r.stats.rush_yd, r.stats.rush_att)], ["RUSH TD", (r) => n0(r.stats.rush_td)], ["TGT", (r) => n0(r.stats.rec_tgt)], ["REC", (r) => n0(r.stats.rec)], ["REC YDS", (r) => n0(r.stats.rec_yd)], ["AVG", (r) => div1(r.stats.rec_yd, r.stats.rec)], ["REC TD", (r) => n0(r.stats.rec_td)], ["FUM", (r) => n0(r.stats.fum_lost)]]
-      : player.position === "K"
+      : player.position === "WR" || player.position === "TE"
+        ? [["TGT", (r) => n0(r.stats.rec_tgt)], ["REC", (r) => n0(r.stats.rec)], ["REC YDS", (r) => n0(r.stats.rec_yd)], ["AVG", (r) => div1(r.stats.rec_yd, r.stats.rec)], ["REC TD", (r) => n0(r.stats.rec_td)], ["CAR", (r) => n0(r.stats.rush_att)], ["RUSH YDS", (r) => n0(r.stats.rush_yd)], ["AVG", (r) => div1(r.stats.rush_yd, r.stats.rush_att)], ["RUSH TD", (r) => n0(r.stats.rush_td)], ["FUM", (r) => n0(r.stats.fum_lost)]]
+        : player.position === "K"
         ? [["FGM", (r) => n0(r.stats.fgm)], ["FGA", (r) => n0(r.stats.fga)], ["XPM", (r) => n0(r.stats.xpm)]]
         : [];
   let careerRows: SeasonRow[] = [];
