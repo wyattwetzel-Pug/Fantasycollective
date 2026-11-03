@@ -29,7 +29,8 @@ type Row = {
 const FORMATS = [["redraft", "Redraft"], ["dynasty", "Dynasty"]] as const;
 const SCORING = [["ppr", "PPR"], ["half", "Half PPR"], ["std", "Standard"]] as const;
 const QBS = [["1qb", "1 QB"], ["superflex", "Superflex"]] as const;
-const POSITIONS = ["All", "QB", "RB", "WR", "TE", "K", "DEF"];
+const POSITIONS = ["All", "QB", "RB", "WR", "TE", "FLEX", "SF", "K", "DEF"];
+const GROUPS: Record<string, string[]> = { FLEX: ["RB", "WR", "TE"], SF: ["QB", "RB", "WR", "TE"] };
 const DAY = 24 * 60 * 60 * 1000;
 
 type Params = { format: string; scoring: string; qb: string; pos: string; ranker: string; q: string; proj: string; edit: string; n: string };
@@ -124,7 +125,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
   const counts: Record<string, number> = {};
   rows.forEach((r) => { counts[r.position] = (counts[r.position] ?? 0) + 1; r.posRank = counts[r.position]; });
   const q = params.q.trim().toLowerCase();
-  const shown = rows.filter((r) => (params.pos === "All" || r.position === params.pos) && (!q || r.name.toLowerCase().includes(q)));
+  const shown = rows.filter((r) => (params.pos === "All" || (GROUPS[params.pos] ?? [params.pos]).includes(r.position)) && (!q || r.name.toLowerCase().includes(q)));
   const lines = new Map(Object.entries(await seasonLines(params.scoring)).map(([k, v]) => [Number(k), v]));
   const showProj = params.proj !== "0";
   const settings = `${FORMATS.find((f) => f[0] === params.format)?.[1]} · ${SCORING.find((f) => f[0] === params.scoring)?.[1]} · ${QBS.find((f) => f[0] === params.qb)?.[1]}`;
@@ -187,7 +188,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
         <h2 id="h-rank" className="gl-title text-5xl sm:text-7xl">Rankings</h2>
         <p className="mt-2 text-base text-zinc-300">{editing ? "Editing your own list. The settings on the right choose which list you edit; pick a position below to edit just that position." : "Expert player rankings, projections, and tiers."}</p>
         <div role="group" aria-label="Position filter" className="mt-5 flex flex-wrap gap-2">
-          {!editing && POSITIONS.map((p) => <Link key={p} href={href(params, { pos: p })} className={`gl-pill !px-5 ${params.pos === p ? "on" : ""}`}>{p === "All" ? "Overall" : p === "DEF" ? "DST" : p}</Link>)}
+          {!editing && POSITIONS.map((p) => <Link key={p} href={href(params, { pos: p })} className={`gl-pill !px-5 ${params.pos === p ? "on" : ""}`}>{p === "All" ? "Overall" : p === "DEF" ? "DST" : p === "FLEX" ? "Flex" : p}</Link>)}
           <span className="flex-1" />
           <span className="self-center text-xs text-zinc-400">{rows.length} players · {fresh.length} contributor{fresh.length === 1 ? "" : "s"} · {season}</span>
           {canEdit && !editing && (
