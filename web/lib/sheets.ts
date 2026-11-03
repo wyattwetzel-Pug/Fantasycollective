@@ -1,10 +1,11 @@
 import { cacheLife, cacheTag } from "next/cache";
 import ExcelJS from "exceljs";
+import JSZip from "jszip";
 
 // One cell, with the parts of its formatting we copy: colors, bold, alignment, borders and merges.
 export type SheetCell = {
   v: string; b?: boolean; i?: boolean; c?: string; bg?: string; a?: "left" | "center" | "right";
-  bt?: string; br?: string; bb?: string; bl?: string; cs?: number; rs?: number; skip?: boolean;
+  bt?: string; br?: string; bb?: string; bl?: string; cs?: number; rs?: number; skip?: boolean; chip?: string;
 };
 export type SheetTab = { name: string; cols: number[]; rows: { h: number; cells: SheetCell[] }[] };
 export type SheetResult = { ok: true; tabs: SheetTab[] } | { ok: false; error: string };
@@ -18,10 +19,46 @@ export function sheetIdFrom(url: string): string | null {
   return m ? m[1] : null;
 }
 
-const hex = (c: { argb?: string } | undefined): string | undefined => {
-  const a = c?.argb;
-  return a && a.length === 8 ? `#${a.slice(2)}` : undefined;
+type Color = { argb?: string; theme?: number; tint?: number } | undefined;
+
+// Excel's theme slots: 0 and 1 and 2 and 3 are light1, dark1, light2, dark2; then the six accents.
+const THEME_ORDER = ["lt1", "dk1", "lt2", "dk2", "accent1", "accent2", "accent3", "accent4", "accent5", "accent6", "hlink", "folHlink"];
+const shade = (rgb: string, tint: number) => {
+  const n = [0, 2, 4].map((i) => parseInt(rgb.slice(i, i + 2), 16));
+  const out = n.map((v) => Math.round(tint >= 0 ? v + (255 - v) * tint : v * (1 + tint)));
+  return `#${out.map((v) => v.toString(16).padStart(2, "0")).join("")}`.toUpperCase();
 };
+const lum = (h: string) => { const [r, g, b] = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; };
+
+type Style = { header?: string; stripe1?: string; stripe2?: string; edge?: string };
+
+// Google keeps the green headers, row stripes and table outlines in the table styles, not in the cells.
+async function readStyles(buffer: ArrayBuffer | Buffer) {
+  const zip = await JSZip.loadAsync(buffer);
+  const theme = (await zip.file("xl/theme/theme1.xml")?.async("string")) ?? "";
+  const palette = new Map<string, string>();
+  for (const k of THEME_ORDER) { const m = theme.match(new RegExp(`<a:${k}>\\s*<a:\\w+ (?:val|lastClr)="([0-9A-Fa-f]{6})"`)); if (m) palette.set(k, m[1].toUpperCase()); }
+
+  const stylesXml = (await zip.file("xl/styles.xml")?.async("string")) ?? "";
+  const dxfs = [...stylesXml.matchAll(/<dxf>([\s\S]*?)<\/dxf>/g)].map((m) => ({
+    fill: m[1].match(/<fgColor rgb="[0-9A-F]{2}([0-9A-F]{6})"/)?.[1],
+    edge: m[1].match(/<border>[\s\S]*?<color rgb="[0-9A-F]{2}([0-9A-F]{6})"/)?.[1],
+  }));
+  const styles = new Map<string, Style>();
+  for (const m of stylesXml.matchAll(/<tableStyle [^>]*name="([^"]+)"[^>]*>([\s\S]*?)<\/tableStyle>/g)) {
+    const byType: Record<string, number> = {};
+    for (const e of m[2].matchAll(/<tableStyleElement ([^>]*)\/>/g)) {
+      const id = e[1].match(/dxfId="(\d+)"/)?.[1], type = e[1].match(/type="(\w+)"/)?.[1];
+      if (id !== undefined && type) byType[type] = Number(id);
+    }
+    const f = (t: string) => { const c = dxfs[byType[t]]?.fill; return c ? `#${c}` : undefined; };
+    const edge = dxfs[byType.wholeTable]?.edge;
+    styles.set(m[1], { header: f("headerRow"), stripe1: f("firstRowStripe"), stripe2: f("secondRowStripe"), edge: edge ? `#${edge}` : undefined });
+  }
+  return { palette, styles };
+}
+
+const POS_CHIP: Record<string, string> = { QB: "#4F7FD1", RB: "#4F7F5C", WR: "#8A63C7", TE: "#C95757", K: "#8B6B4A", DEF: "#8D8A80", DST: "#8D8A80" };
 
 const group = (n: number, d: number, commas: boolean) => {
   const s = Math.abs(n).toFixed(d);
@@ -67,6 +104,13 @@ const range = (ref: string) => {
 export async function parseWorkbook(buffer: ArrayBuffer | Buffer): Promise<SheetTab[]> {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer as ArrayBuffer);
+  const { palette, styles } = await readStyles(buffer);
+  const hex = (c: Color): string | undefined => {
+    if (!c) return undefined;
+    if (c.argb && c.argb.length === 8) return `#${c.argb.slice(2).toUpperCase()}`;
+    if (c.theme !== undefined) { const base = palette.get(THEME_ORDER[c.theme]); return base ? (c.tint ? shade(base, c.tint) : `#${base}`) : undefined; }
+    return undefined;
+  };
   return wb.worksheets.map((ws) => {
     const nCols = Math.min(MAX_COLS, ws.columnCount);
     let nRows = Math.min(MAX_ROWS, ws.rowCount);
@@ -76,7 +120,7 @@ export async function parseWorkbook(buffer: ArrayBuffer | Buffer): Promise<Sheet
     for (let r = 1; r <= nRows; r++) {
       for (let c = 1; c <= nCols; c++) {
         const cell = ws.getCell(r, c);
-        if (cellText(cell).v !== "" || hex((cell.fill as { fgColor?: { argb?: string } } | undefined)?.fgColor)) { lastRow = Math.max(lastRow, r); lastCol = Math.max(lastCol, c); }
+        if (cellText(cell).v !== "") { lastRow = Math.max(lastRow, r); lastCol = Math.max(lastCol, c); }
       }
     }
     nRows = lastRow;
@@ -90,6 +134,29 @@ export async function parseWorkbook(buffer: ArrayBuffer | Buffer): Promise<Sheet
       for (let r = g.r1; r <= g.r2; r++) for (let c = g.c1; c <= g.c2; c++) if (r !== g.r1 || c !== g.c1) covered.add(`${r},${c}`);
     });
 
+    // Table styling: header row, row stripes and the outline, by position inside each table.
+    type Look = { bg?: string; header?: boolean; bt?: string; br?: string; bb?: string; bl?: string };
+    const looks = new Map<string, Look>();
+    type TableModel = { tableRef?: string; style?: { theme?: string } };
+    for (const t of Object.values((ws as unknown as { tables?: Record<string, { table?: TableModel }> }).tables ?? {})) {
+      const model = t.table;
+      const g = range(model?.tableRef ?? "");
+      const st = styles.get(model?.style?.theme ?? "");
+      if (!g || !st) continue;
+      for (let r = g.r1; r <= g.r2; r++) for (let c = g.c1; c <= g.c2; c++) {
+        const look: Look = {};
+        if (r === g.r1) { look.header = true; look.bg = st.header; }
+        else look.bg = (r - g.r1) % 2 === 1 ? st.stripe1 : st.stripe2;
+        if (st.edge) {
+          if (r === g.r1) look.bt = st.edge;
+          if (r === g.r2) look.bb = st.edge;
+          if (c === g.c1) look.bl = st.edge;
+          if (c === g.c2) look.br = st.edge;
+        }
+        looks.set(`${r},${c}`, look);
+      }
+    }
+
     const cols = Array.from({ length: lastCol }, (_, i) => Math.round((ws.getColumn(i + 1).width ?? 8.43) * 7 + 5));
     const rows = Array.from({ length: nRows }, (_, ri) => {
       const r = ri + 1;
@@ -100,17 +167,25 @@ export async function parseWorkbook(buffer: ArrayBuffer | Buffer): Promise<Sheet
         const cell = ws.getCell(r, c);
         const { v, num } = cellText(cell);
         const out: SheetCell = { v };
-        if (cell.font?.bold) out.b = true;
+        const look = looks.get(`${r},${c}`);
+        const fill = cell.fill as { type?: string; pattern?: string; fgColor?: Color } | undefined;
+        const explicit = fill?.type === "pattern" && fill.pattern === "solid" ? hex(fill.fgColor) : undefined;
+        const bg = explicit ?? look?.bg;
+        if (bg && bg !== "#FFFFFF") out.bg = bg;
+        if (cell.font?.bold || look?.header) out.b = true;
         if (cell.font?.italic) out.i = true;
-        const fc = hex(cell.font?.color as { argb?: string } | undefined);
-        if (fc && fc !== "#000000") out.c = fc;
-        const fill = cell.fill as { type?: string; pattern?: string; fgColor?: { argb?: string } } | undefined;
-        if (fill?.type === "pattern" && fill.pattern === "solid") { const bg = hex(fill.fgColor); if (bg && bg !== "#FFFFFF") out.bg = bg; }
+        let fc = hex(cell.font?.color as Color);
+        if (look?.header) fc = "#FFFFFF";
+        else if (fc === "#000000") fc = undefined;
+        const POS = POS_CHIP[v];
+        if (POS && !look?.header) { out.chip = POS; fc = undefined; }
+        else if (fc && lum(fc) > 0.75 && (!bg || lum(bg) > 0.6)) fc = undefined;
+        if (fc) out.c = fc;
         const h = cell.alignment?.horizontal;
         out.a = h === "center" || h === "right" || h === "left" ? h : num ? "right" : "left";
-        const side = (s: { style?: string; color?: { argb?: string } } | undefined) => (s?.style ? hex(s.color) ?? "#000000" : undefined);
+        const side = (s: { style?: string; color?: Color } | undefined) => (s?.style ? hex(s.color) ?? "#000000" : undefined);
         const bd = cell.border;
-        out.bt = side(bd?.top); out.br = side(bd?.right); out.bb = side(bd?.bottom); out.bl = side(bd?.left);
+        out.bt = side(bd?.top) ?? look?.bt; out.br = side(bd?.right) ?? look?.br; out.bb = side(bd?.bottom) ?? look?.bb; out.bl = side(bd?.left) ?? look?.bl;
         const sp = spans.get(`${r},${c}`);
         if (sp) { out.cs = sp.cs; out.rs = sp.rs; }
         return out;

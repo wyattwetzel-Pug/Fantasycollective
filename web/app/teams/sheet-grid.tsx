@@ -13,7 +13,7 @@ export function SheetGrid({ tab }: { tab: SheetTab }) {
   useEffect(() => {
     const el = box.current;
     if (!el) return;
-    const measure = () => setFit(Math.max(0.35, Math.min(1, (el.clientWidth - 2) / width)));
+    const measure = () => setFit(Math.max(0.8, Math.min(1, (el.clientWidth - 2) / width)));
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
@@ -47,7 +47,7 @@ export function SheetGrid({ tab }: { tab: SheetTab }) {
                         border: "1px solid #e2e3e3", borderTop: c.bt ? `1px solid ${c.bt}` : undefined, borderRight: c.br ? `1px solid ${c.br}` : undefined,
                         borderBottom: c.bb ? `1px solid ${c.bb}` : undefined, borderLeft: c.bl ? `1px solid ${c.bl}` : undefined,
                       }}
-                    >{c.v}</td>
+                    >{c.chip ? <span style={{ background: c.chip, color: "#fff", borderRadius: 999, padding: "1px 9px", fontWeight: 700, fontSize: "0.9em" }}>{c.v}</span> : c.v}</td>
                   ))}
                 </tr>
               ))}
