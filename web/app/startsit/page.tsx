@@ -149,9 +149,8 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
   const closeCall = best.length >= 2 && (usePoints ? ptsGap <= 1.5 : Math.abs(gap) <= 3);
   const splitFromConsensus = usePoints && best[0].player_id !== byConsensus[0].player_id;
   const topInfo = best.length >= 2 ? infoOf(best[0].player_id) : undefined;
-  const lowest = (vals: (number | undefined)[]) => Math.min(...vals.filter((v): v is number => v !== undefined));
-  const cell = (key: number, v: number | undefined, lo: number, text?: string) => (
-    <td key={key} className="px-2 py-2 text-center" style={v !== undefined && v === lo && chosen.length > 1 ? { color: "var(--accent)", fontWeight: 700 } : undefined}>{v === undefined ? "–" : text ?? v}</td>
+  const cell = (key: number, v: number | undefined, text?: string) => (
+    <td key={key} className="px-2 py-2 text-center">{v === undefined ? "–" : text ?? v}</td>
   );
   const pill = (on: boolean) => `gl-pill !rounded-full text-xs ${on ? "on-o" : ""}`;
   const pair = chosen.length === 2 ? chosen : null;
@@ -257,14 +256,14 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
         <tbody>
           {[
             ["Consensus rank", chosen.map((r) => r.position_in_list), (v: number) => `#${v}`],
-            ["Position rank", chosen.map((r) => posRank.get(r.player_id)), (v: number) => `${v}`],
+            ["Position rank", chosen.map((r) => posRank.get(r.player_id)), (v: number) => `#${v}`],
             ["Avg rank", chosen.map((r) => Number(r.consensus_rank)), (v: number) => `${v}`],
           ].map(([label, vals, f]) => {
-            const v = vals as (number | undefined)[]; const lo = lowest(v);
+            const v = vals as (number | undefined)[];
             return (
               <tr key={label as string} className="border-t border-zinc-800">
                 <td className="px-2 py-2 text-xs text-zinc-400">{label as string}</td>
-                {v.map((x, i) => cell(i, x, lo, x === undefined ? undefined : (f as (n: number) => string)(x)))}
+                {v.map((x, i) => cell(i, x, x === undefined ? undefined : (f as (n: number) => string)(x)))}
               </tr>
             );
           })}
@@ -281,11 +280,11 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
             {chosen.map((r) => <td key={r.player_id} className="px-2 py-2 text-center">{r.sources}</td>)}
           </tr>
           {contribRanks.map((c) => {
-            const v = chosen.map((r) => c.ranks.get(r.player_id)); const lo = lowest(v);
+            const v = chosen.map((r) => c.ranks.get(r.player_id));
             return (
               <tr key={c.name} className="border-t border-zinc-800">
                 <td className="px-2 py-2 text-xs text-zinc-400">{c.name}&apos;s position rank</td>
-                {v.map((x, i) => cell(i, x, lo, x === undefined ? undefined : `${x}`))}
+                {v.map((x, i) => cell(i, x, x === undefined ? undefined : `#${x}`))}
               </tr>
             );
           })}
