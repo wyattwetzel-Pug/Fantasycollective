@@ -1,3 +1,4 @@
+import { positionRankMap } from "@/lib/position-consensus";
 import { createClient } from "@/lib/supabase/server";
 import { defaultLineup, fillLineup } from "@/lib/lineup";
 import { defenseVsPosition, isOpen, opponentOf, type GameRow } from "@/lib/matchup";
@@ -44,6 +45,7 @@ export async function LineupSection({ supabase, userId, chosen, isContributor, s
   const counts: Record<string, number> = {};
   [...info.values()].map((p) => ({ p, r: rankOf(p.id) })).filter((x) => x.r !== null).sort((a, b) => a.r! - b.r!)
     .forEach(({ p }) => { counts[p.position] = (counts[p.position] ?? 0) + 1; posRank.set(p.id, counts[p.position]); });
+  (await positionRankMap(supabase, combo)).forEach((rank, id) => posRank.set(id, rank));
 
   // Next game and how that defense does against each position.
   const teams = [...new Set(rosterRows.map((r) => info.get(r.player_id)?.nfl_team).filter((t): t is string => !!t))];

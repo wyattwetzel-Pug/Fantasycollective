@@ -1,3 +1,4 @@
+import { positionRankMap } from "@/lib/position-consensus";
 import { Suspense } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -90,6 +91,8 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
     [...info.values()].map((p) => ({ p, r: rankOf(p.id) })).filter((x) => x.r)
       .sort((a, b) => a.r!.rank - b.r!.rank)
       .forEach(({ p }) => { seen[p.position] = (seen[p.position] ?? 0) + 1; posRankOf.set(p.id, seen[p.position]); });
+    // The position consensus (your position lists, averaged with other contributors') wins over the Overall order.
+    (await positionRankMap(supabase, combo)).forEach((rank, id) => posRankOf.set(id, rank));
 
     type TeamPlayer = { id: number; name: string; pos: string; slot: string; rank: Rank | undefined; posRank: number | null; value: number };
     const teams = new Map<string, { name: string; mine: boolean; players: TeamPlayer[] }>();
