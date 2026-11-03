@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Avatar } from "@/app/avatar";
 import { PlayerLink } from "@/app/player-link";
 import { TeamLogo } from "@/app/team-logo";
-import { saveList } from "../lists/actions";
+import { saveList, copyListToOtherSettings } from "../lists/actions";
 
 export type Item = { player_id: number; name: string; position: string; team: string; tier: string; note: string; placed: boolean };
 export type Line = { proj: number | null; played: number; snapPct: number | null; posFinish: number | null };
@@ -164,6 +164,16 @@ export function InlineEditor({
     });
   }
 
+  function copyToOthers() {
+    if (dirty) { setMessage("Save your list first, then copy it."); return; }
+    if (!window.confirm("Copy this list to every other setting (format, scoring, QB) that you haven't ranked yet? They are saved as drafts you can edit. Lists you've already ranked are left alone.")) return;
+    start(async () => {
+      const res = await copyListToOtherSettings(setId);
+      if (!res.ok) { setMessage(`Could not copy: ${res.error}`); return; }
+      setMessage(`Copied to ${res.copied} other settings${res.skipped ? ` (${res.skipped} you'd already ranked were left alone)` : ""}. Switch the settings to edit each one.`);
+    });
+  }
+
   // Runs of the same tier share one card.
   const runs: { tier: string; idx: number[] }[] = [];
   const inView: number[] = [];
@@ -206,6 +216,7 @@ export function InlineEditor({
       <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400">
         <span>{items.length - unplaced} of {items.length} placed</span>
         <button onClick={() => change((prev) => prev.map((i) => ({ ...i, placed: true })))} className="text-green-400">Mark all as placed</button>
+        <button disabled={pending} onClick={copyToOthers} className="text-green-400 disabled:opacity-50">Copy this list to my other settings</button>
         <Link href={fullEditorHref} className="text-green-400">Open the full editor (notes, sort by ADP)</Link>
       </div>
 
