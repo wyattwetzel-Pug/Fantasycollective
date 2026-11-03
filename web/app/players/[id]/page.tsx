@@ -138,7 +138,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
       <div className="gl-hero flex flex-wrap items-center gap-5 p-5 sm:p-6">
         <Avatar id={player.id} name={player.name} size={80} />
         <div className="min-w-[16rem] flex-1">
-          <h2 className="gl-title text-3xl sm:text-5xl">{player.name}</h2>
+          <h2 className="gl-title flex flex-wrap items-center gap-3 text-3xl sm:text-5xl">{player.name}{mine?.tier && <span className="inline-block rounded-full border-2 px-4 py-1 text-xl font-extrabold not-italic leading-none" style={{ color: TIER_COLORS[mine.tier], borderColor: TIER_COLORS[mine.tier] }} title={`${mine.tier} tier`}>{mine.tier}</span>}</h2>
           <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-300">
             <span className={`bd ${player.position}`}>{player.position}</span>
             <span>{player.nfl_team ?? "Free agent"}</span>
@@ -149,7 +149,6 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
         </div>
         <div className="flex w-full flex-wrap gap-3 xl:w-auto">
           {stat("Consensus rank", mine ? `#${mine.position_in_list}` : "–", mine && posRank ? `${player.position} ${posRank}` : undefined)}
-          <div className="gl-stat"><span className="text-2xl font-extrabold italic"><TierBadge tier={mine?.tier} /></span><span className="text-xs text-zinc-400">Tier</span></div>
           {stat("ADP", adpHere ? pickLabel(adpHere.adp, adpHere.teams) : "–", adpHere ? String(adpHere.season) : undefined)}
           {stat("Trade value", mine ? playerValue(mine.position_in_list).toFixed(1) : "–")}
           {stat("Pts / game", ppg === null ? "–" : ppg.toFixed(1), log.length ? `${log.length} games` : undefined)}
