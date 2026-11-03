@@ -1,4 +1,4 @@
-import { TIER_COLORS, tierInk } from "@/lib/tier-config";
+import { TIER_COLORS, TIER_ORDER, tierInk } from "@/lib/tier-config";
 import { fixTiers } from "@/lib/tiers";
 import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
@@ -134,6 +134,44 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
         id: r.player_id, rank: i + 1, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", posRank: 0,
         team: r.players?.nfl_team ?? "", tier: r.tier, sub: "",
       }));
+    }
+  }
+
+  // The consensus for a position is the average of the contributors' own position rankings.
+  // A contributor who hasn't made one for that position counts with their Overall list for it.
+  if (!chosen && params.pos !== "All" && sources.length) {
+    const group = params.pos === "FLEX" ? ["RB", "WR", "TE"] : [params.pos];
+    type Entry = { rank: number; tier: string | null };
+    const info = new Map<number, Player>();
+    const perPlayer = new Map<number, Entry[]>();
+    for (const src of fresh.length ? fresh : sources) {
+      const { data: own } = await supabase
+        .from("position_rankings").select("player_id, rank, tier, players(name, position, nfl_team)")
+        .eq("set_id", src.id).eq("scope", params.pos).order("rank").limit(1000)
+        .returns<{ player_id: number; rank: number; tier: string | null; players: Player | null }[]>();
+      let list = own ?? [];
+      if (!list.length) {
+        const { data: all } = await supabase
+          .from("rankings").select("player_id, rank, tier, players(name, position, nfl_team)")
+          .eq("set_id", src.id).eq("needs_ranking", false).order("rank").limit(1000)
+          .returns<{ player_id: number; rank: number; tier: string | null; players: Player | null }[]>();
+        list = (all ?? []).filter((r) => r.players && group.includes(r.players.position)).map((r, i) => ({ ...r, rank: i + 1 }));
+      }
+      list.forEach((r) => {
+        if (r.players) info.set(r.player_id, r.players);
+        perPlayer.set(r.player_id, [...(perPlayer.get(r.player_id) ?? []), { rank: r.rank, tier: r.tier }]);
+      });
+    }
+    if (perPlayer.size) {
+      scopeData = true;
+      const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+      rows = fixTiers([...perPlayer.entries()].map(([pid, es]) => {
+        const tiers = es.map((e) => (e.tier ? TIER_ORDER.indexOf(e.tier) : -1)).filter((i) => i >= 0);
+        return { player_id: pid, avg: avg(es.map((e) => e.rank)), tier: tiers.length ? TIER_ORDER[Math.round(avg(tiers))] : null };
+      }).sort((a, b) => a.avg - b.avg)).map((r, i) => {
+        const pl = info.get(r.player_id);
+        return { id: r.player_id, rank: i + 1, name: pl?.name ?? "Unknown", position: pl?.position ?? "", posRank: 0, team: pl?.nfl_team ?? "", tier: r.tier, sub: "" };
+      });
     }
   }
 

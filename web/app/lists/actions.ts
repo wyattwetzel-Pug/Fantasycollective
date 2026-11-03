@@ -136,5 +136,8 @@ export async function saveScopeList(setId: number, scope: string, items: { playe
       .upsert(items.slice(i, i + 500).map((r) => ({ ...r, set_id: setId, scope })), { onConflict: "set_id,scope,player_id" });
     if (error) return { ok: false as const, error: error.message };
   }
+  // Counts as an edit, so the list stays fresh for the consensus (position lists don't touch it themselves).
+  await supabase.from("ranking_sets").update({ updated_at: new Date().toISOString() }).eq("id", setId);
+
   return { ok: true as const };
 }
