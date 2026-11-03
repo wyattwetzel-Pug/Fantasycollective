@@ -93,13 +93,33 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
   const fixedCons = fixTiers(consAll ?? []);
   const mine = fixedCons.find((c) => c.player_id === id);
   const samePos = fixedCons.filter((c) => c.players?.position === player.position);
+  // Overall ranks leave out kickers and defenses, so only count the players who are on that list.
+  const offList = (pos: string | undefined) => pos === "K" || pos === "DEF";
+  const overallRank = mine
+    ? offList(player.position) ? mine.position_in_list : fixedCons.filter((c) => !offList(c.players?.position) && c.position_in_list <= mine.position_in_list).length
+    : 0;
   const posRank = mine ? samePos.findIndex((c) => c.player_id === id) + 1 : 0;
+
+  // Same rule for the other formats: take out the kickers and defenses ranked ahead.
+  const { data: offAll } = offList(player.position) ? { data: [] as { format: string; scoring: string; qb_type: string; position_in_list: number }[] } : await supabase
+    .from("consensus_current").select("format, scoring, qb_type, position_in_list, players!inner(position)").in("players.position", ["K", "DEF"]).limit(1000)
+    .returns<{ format: string; scoring: string; qb_type: string; position_in_list: number }[]>();
+  const overallIn = (c: AllCons) => c.position_in_list - (offAll ?? []).filter((o) => o.format === c.format && o.scoring === c.scoring && o.qb_type === c.qb_type && o.position_in_list < c.position_in_list).length;
 
   const setIds = (sets ?? []).map((s) => s.id);
   const { data: theirRanks } = setIds.length
     ? await supabase.from("rankings").select("set_id, rank, tier, note").eq("player_id", id).in("set_id", setIds).eq("needs_ranking", false).returns<RankRow[]>()
     : { data: [] as RankRow[] };
-  const contributorRows = (sets ?? []).map((s) => ({ s, r: (theirRanks ?? []).find((r) => r.set_id === s.id) })).filter((x) => x.r);
+  const contributorRows = await Promise.all((sets ?? []).map((s) => ({ s, r: (theirRanks ?? []).find((r) => r.set_id === s.id) })).filter((x) => x.r).map(async ({ s, r }) => {
+    // Kickers and defenses ranked ahead of them don't count toward the Overall number.
+    let ahead = 0;
+    if (!offList(player.position)) {
+      const { count } = await supabase.from("rankings").select("player_id, players!inner(position)", { count: "exact", head: true })
+        .eq("set_id", s.id).eq("needs_ranking", false).lt("rank", r!.rank).in("players.position", ["K", "DEF"]);
+      ahead = count ?? 0;
+    }
+    return { s, r, shownRank: r!.rank - ahead };
+  }));
 
   // Game log for the newest season we have stats for.
   const logSeason = statRows?.[0]?.season;
@@ -148,7 +168,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
           </p>
         </div>
         <div className="flex w-full flex-wrap gap-3 xl:w-auto">
-          {stat("Consensus rank", mine ? `#${mine.position_in_list}` : "–", mine && posRank ? `${player.position} ${posRank}` : undefined)}
+          {stat("Consensus rank", mine ? `#${overallRank}` : "–", mine && posRank ? `${player.position} ${posRank}` : undefined)}
           {stat("ADP", adpHere ? pickLabel(adpHere.adp, adpHere.teams) : "–", adpHere ? String(adpHere.season) : undefined)}
           {stat("Trade value", mine ? playerValue(mine.position_in_list).toFixed(1) : "–")}
           {stat("Pts / game", ppg === null ? "–" : ppg.toFixed(1), log.length ? `${log.length} games` : undefined)}
@@ -173,13 +193,13 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
               <tbody>
                 <tr>
                   <td className="!text-left font-semibold">Ball Knowers Consensus{mine?.is_stale && <span className="ml-2 text-xs text-yellow-400">stale</span>}</td>
-                  <td>{mine ? `#${mine.position_in_list}` : "–"}</td>
+                  <td>{mine ? `#${overallRank}` : "–"}</td>
                   <td><TierBadge tier={mine?.tier} /></td>
                 </tr>
-                {contributorRows.map(({ s, r }) => (
+                {contributorRows.map(({ s, r, shownRank }) => (
                   <tr key={s.id}>
                     <td className="!text-left">{s.contributors?.profiles?.display_name ?? "Contributor"}{nowMs() - new Date(s.updated_at).getTime() >= 7 * DAY && <span className="ml-2 text-xs text-yellow-400">stale</span>}</td>
-                    <td>#{r!.rank}</td>
+                    <td>#{shownRank}</td>
                     <td><TierBadge tier={r!.tier} /></td>
                   </tr>
                 ))}
@@ -198,7 +218,7 @@ async function Profile({ params: pp, searchParams }: { params: Promise<{ id: str
                   {(everyCombo ?? []).map((c) => (
                     <li key={`${c.format}${c.scoring}${c.qb_type}`} className="flex justify-between">
                       <span className="text-zinc-300">{LABEL[c.format]} · {LABEL[c.scoring]} · {LABEL[c.qb_type]}</span>
-                      <span>#{c.position_in_list}</span>
+                      <span>#{overallIn(c)}</span>
                     </li>
                   ))}
                 </ul>
