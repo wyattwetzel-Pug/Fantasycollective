@@ -142,8 +142,13 @@ export function InlineEditor({
 
   function dropOnTier(tier: string) {
     if (dragId === null) return;
+    moveToTier(dragId, tier);
+  }
+
+  // Put a player at the top of a tier (or Unsorted when the tier is empty text).
+  function moveToTier(id: number, tier: string) {
     change((prev) => {
-      const from = prev.findIndex((i) => i.player_id === dragId);
+      const from = prev.findIndex((i) => i.player_id === id);
       if (from < 0) return prev;
       const next = [...prev];
       const [moved] = next.splice(from, 1);
@@ -206,6 +211,12 @@ export function InlineEditor({
     });
   }
 
+  // Everyone goes back to Unsorted. The order stays.
+  function clearTiers() {
+    if (!window.confirm(`Clear every tier in this ${pos === "All" ? "Overall" : label(pos)} list? Everyone goes to Unsorted. Their order stays, and it isn't saved until you press save.`)) return;
+    change((prev) => prev.map((i) => ({ ...i, tier: "" })));
+  }
+
   // Runs of the same tier share one card.
   const runs: { tier: string; idx: number[] }[] = [];
   const inView: number[] = [];
@@ -256,6 +267,7 @@ export function InlineEditor({
       <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400">
         {pos === "All" && <span>{items.length - unplaced} of {items.length} placed</span>}
         {pos === "All" && <button onClick={() => change((prev) => prev.map((i) => ({ ...i, placed: true })))} className="text-green-400">Mark all as placed</button>}
+        <button onClick={clearTiers} className="text-red-400">Clear all tiers</button>
         {pos === "All" && <button disabled={pending} onClick={copyToOthers} className="text-green-400 disabled:opacity-50">Copy this list to my other settings</button>}
         <Link href={fullEditorHref} className="text-green-400">Open the full editor (notes, sort by ADP)</Link>
       </div>
@@ -272,14 +284,14 @@ export function InlineEditor({
           const c = run.tier ? COLORS[run.tier] : "#8b8576";
           return (
             <div
-              key={ri} className={`gl-tierbox min-w-[46rem] ${over && "card" in over && over.card === run.tier ? "drop-card" : ""}`}
+              key={ri} className={`gl-tierbox min-w-[50rem] ${over && "card" in over && over.card === run.tier ? "drop-card" : ""}`}
               onDragOver={(e) => { if (dragId === null) return; e.preventDefault(); if (!over || !("card" in over) || over.card !== run.tier) setOver({ card: run.tier }); }}
               onDrop={(e) => { e.preventDefault(); dropOnTier(run.tier); endDrag(); }}
             >
               <table className="gl-table dark gl-cols">
                 <colgroup>
                   <col style={{ width: "5rem" }} /><col />
-                  <col style={{ width: "6.5rem" }} /><col style={{ width: "6rem" }} /><col style={{ width: "5rem" }} /><col style={{ width: "11.5rem" }} />
+                  <col style={{ width: "6.5rem" }} /><col style={{ width: "6rem" }} /><col style={{ width: "5rem" }} /><col style={{ width: "15.5rem" }} />
                 </colgroup>
                 <thead>
                   <tr>
@@ -342,6 +354,14 @@ export function InlineEditor({
                         <td><TeamLogo team={it.team} /></td>
                         <td>
                           <span className="inline-flex gap-1">
+                            <select
+                              className={`${btn} w-[4.25rem] cursor-pointer !px-1 text-xs`} value="" aria-label={`Put ${it.name} in a tier`} title="Put in a tier"
+                              onChange={(e) => { if (e.target.value !== "") moveToTier(it.player_id, e.target.value === "__none" ? "" : e.target.value); }}
+                            >
+                              <option value="" disabled>Tier</option>
+                              {ORDER.map((t) => <option key={t} value={t}>{t}</option>)}
+                              <option value="__none">Unsorted</option>
+                            </select>
                             <button className={btn} onClick={() => shiftTier(i, -1)} aria-label={`Move ${it.name} up a tier`} title="Up a tier">⇈</button>
                             <button className={btn} onClick={() => step(i, -1)} disabled={i === 0} aria-label={`Move ${it.name} up`} title="Up">▲</button>
                             <button className={btn} onClick={() => step(i, 1)} disabled={i === items.length - 1} aria-label={`Move ${it.name} down`} title="Down">▼</button>
