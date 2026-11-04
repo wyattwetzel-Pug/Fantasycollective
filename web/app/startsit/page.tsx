@@ -8,7 +8,7 @@ import { PlayerLink } from "@/app/player-link";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { postCall } from "./actions";
-import { Picker, type PickerPlayer } from "./picker";
+import { PlayerList, SelectedCards, type PickerPlayer } from "./picker";
 import { defenseVsPosition, matchupGrade, ordinal, isOpen, opponentOf, average, type GameRow } from "@/lib/matchup";
 
 type Row = {
@@ -66,7 +66,7 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
   rows.forEach((r) => { const k = r.players?.position ?? ""; posCount[k] = (posCount[k] ?? 0) + 1; posRank.set(r.player_id, posCount[k]); });
   // The position rank on the consensus comes from the position lists, not the Overall order.
   Object.entries(await positionRankMap(combo)).forEach(([id, rank]) => posRank.set(Number(id), rank));
-  const list: PickerPlayer[] = rows.map((r) => ({ id: r.player_id, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", team: r.players?.nfl_team ?? "", rank: r.position_in_list }));
+  const list: PickerPlayer[] = rows.map((r) => ({ id: r.player_id, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", team: r.players?.nfl_team ?? "", rank: r.position_in_list, posRank: posRank.get(r.player_id) ?? null, tier: r.tier }));
   const chosen = ids.map((id) => rows.find((r) => r.player_id === id)).filter((r): r is Row => !!r);
   const chosenIds = chosen.map((r) => r.player_id);
 
@@ -312,20 +312,13 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
         </div>
       </div>
 
-      <div className="grid items-start gap-4 lg:grid-cols-[1fr_21rem]">
+      <div className="grid items-start gap-4 lg:grid-cols-[16rem_1fr] xl:grid-cols-[16rem_1fr_20rem]">
+        {error ? <p className="text-sm text-red-300">Could not load players: {error.message}</p>
+          : list.length ? <PlayerList players={list} selected={chosenIds} base={{ format: params.format, scoring: params.scoring, qb: params.qb, ...(params.tab !== "rankings" ? { tab: params.tab } : {}) }} />
+          : <p className="text-sm text-zinc-400">No published rankings yet for these settings, so there is nobody to compare.</p>}
+
         <div className="min-w-0 space-y-4">
-          <div className="gl-panel space-y-4 p-4">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl" style={{ color: "var(--accent)" }} aria-hidden="true">⇄</span>
-              <div>
-                <h3 className="text-lg font-bold">Compare Players</h3>
-                <p className="text-xs text-zinc-400">Add 2-4 players to see who you should start.</p>
-              </div>
-            </div>
-            {error ? <p className="text-sm text-red-300">Could not load players: {error.message}</p>
-              : list.length ? <Picker players={list} selected={chosenIds} base={{ format: params.format, scoring: params.scoring, qb: params.qb, ...(params.tab !== "rankings" ? { tab: params.tab } : {}) }} />
-              : <p className="text-sm text-zinc-400">No published rankings yet for these settings, so there is nobody to compare.</p>}
-          </div>
+          <SelectedCards players={list} selected={chosenIds} startId={best.length >= 2 ? best[0].player_id : null} base={{ format: params.format, scoring: params.scoring, qb: params.qb, ...(params.tab !== "rankings" ? { tab: params.tab } : {}) }} />
 
           <div className="gl-panel space-y-3 p-4">
             <h3 className="text-lg font-bold"><span style={{ color: "var(--accent)" }} aria-hidden="true">▮</span> Comparison</h3>
@@ -370,7 +363,7 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 lg:col-span-2 xl:col-span-1">
           <div className="gl-panel space-y-2 p-4" style={{ borderColor: "var(--accent)" }}>
             <h3 className="font-bold">Recommendation</h3>
             {best.length >= 2 ? (

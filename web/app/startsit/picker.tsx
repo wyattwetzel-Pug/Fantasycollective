@@ -1,73 +1,119 @@
 "use client";
 
 import { Avatar } from "@/app/avatar";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { TIER_COLORS } from "@/lib/tier-config";
 
-export type PickerPlayer = { id: number; name: string; position: string; team: string; rank: number };
+export type PickerPlayer = { id: number; name: string; position: string; team: string; rank: number; posRank: number | null; tier: string | null };
+type Base = Record<string, string>;
 
-// Chooses 2 to 4 players. The choice lives in the URL (?p=1,2,3) so the server can load the comparison.
-export function Picker({ players, selected, base }: { players: PickerPlayer[]; selected: number[]; base: Record<string, string> }) {
+// The choice lives in the URL (?p=1,2,3) so the server can load the comparison.
+// Quick clicks before the page has reloaded build on each other instead of on the old choice.
+let pending: number[] | null = null;
+const current = (selected: number[]) => pending ?? selected;
+
+function useGo(base: Base, selected: number[]) {
   const router = useRouter();
-  const [q, setQ] = useState("");
-  const [open, setOpen] = useState(false);
-  const byId = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
-
-  function go(ids: number[]) {
+  useEffect(() => { pending = null; }, [selected.join(",")]);
+  return (ids: number[]) => {
+    pending = ids;
+    setTimeout(() => { pending = null; }, 2500);
     const qs = new URLSearchParams(base);
     if (ids.length) qs.set("p", ids.join(","));
-    router.replace(`/startsit${qs.size ? `?${qs}` : ""}`);
-  }
+    router.replace(`/startsit${qs.size ? `?${qs}` : ""}`, { scroll: false });
+  };
+}
 
-  const matches = useMemo(() => {
+const POSITIONS = ["All", "QB", "RB", "WR", "TE"];
+const MAX = 4;
+
+// Ranked players down the left side with a search box. Click a player to add or remove them.
+export function PlayerList({ players, selected, base }: { players: PickerPlayer[]; selected: number[]; base: Base }) {
+  const go = useGo(base, selected);
+  const [q, setQ] = useState("");
+  const [pos, setPos] = useState("All");
+  const shown = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return players.filter((p) => !selected.includes(p.id) && (!s || p.name.toLowerCase().includes(s))).slice(0, 8);
-  }, [players, selected, q]);
+    return players.filter((p) => (pos === "All" || p.position === pos) && (!s || p.name.toLowerCase().includes(s))).slice(0, 120);
+  }, [players, q, pos]);
 
   return (
-    <div className="space-y-3">
-      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(12rem,1fr))" }}>
-        {selected.map((id) => {
-          const p = byId.get(id);
-          if (!p) return null;
+    <div className="gl-panel flex max-h-[34rem] flex-col gap-3 p-3 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)]">
+      <div>
+        <h3 className="text-lg font-bold">Players</h3>
+        <p className="text-xs text-zinc-400">Pick 2-4 to compare.</p>
+      </div>
+      <input value={q} onChange={(e) => setQ(e.target.value)} type="search" placeholder="Search players..." aria-label="Search players" className="gl-search" />
+      <div className="flex gap-1.5" role="group" aria-label="Position">
+        {POSITIONS.map((p) => (
+          <button key={p} type="button" onClick={() => setPos(p)} className={`gl-pill !rounded-full !px-3 !py-1 text-xs ${pos === p ? "on" : ""}`}>{p}</button>
+        ))}
+      </div>
+      <ul className="-mx-1 min-h-0 flex-1 space-y-1 overflow-y-auto px-1">
+        {shown.map((p) => {
+          const on = selected.includes(p.id);
+          const full = !on && selected.length >= MAX;
           return (
-            <div key={id} className="relative flex min-h-[5.5rem] items-center gap-3 rounded-xl border p-3" style={{ borderColor: "var(--accent)", background: "#EBF0E5", boxShadow: "0 1px 4px #3c321418" }}>
-              <button className="absolute right-2 top-2 h-5 w-5 rounded-full bg-zinc-700 text-[10px] leading-5" aria-label={`Remove ${p.name}`} onClick={() => go(selected.filter((x) => x !== id))}>✕</button>
-              <Avatar id={id} name={p.name} size={48} />
-              <span className="min-w-0 flex-1 pt-3">
-                <span className="pn block text-sm leading-tight">{p.name}</span>
-                <span className="block text-xs text-zinc-400">{p.position} - {p.team}</span>
-              </span>
-            </div>
+            <li key={p.id}>
+              <button
+                type="button" disabled={full}
+                onClick={() => { const now = current(selected); go(now.includes(p.id) ? now.filter((x) => x !== p.id) : now.length >= MAX ? now : [...now, p.id]); }}
+                className="flex w-full items-center gap-2 rounded-xl border p-1.5 text-left disabled:opacity-40"
+                style={on ? { borderColor: "var(--accent)", background: "#EBF0E5" } : { borderColor: "#DEDAD0", background: "#FBFAF6" }}
+              >
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs leading-none" style={{ borderColor: on ? "var(--accent)" : "#B9B5A9" }} aria-hidden="true">{on ? "✓" : "+"}</span>
+                <Avatar id={p.id} name={p.name} size={36} />
+                <span className="min-w-0 flex-1">
+                  <span className="pn block truncate text-xs leading-tight">{p.rank}. {p.name}</span>
+                  <span className="mt-0.5 flex items-center gap-1">
+                    <span className={`bd !px-1.5 !text-[10px] ${p.position}`}>{p.position}{p.posRank ? ` ${p.posRank}` : ""}</span>
+                    <span className="rounded bg-[#EDE9DF] px-1.5 text-[10px] font-semibold leading-4">{p.team || "FA"}</span>
+                  </span>
+                </span>
+              </button>
+            </li>
           );
         })}
-      </div>
-      {selected.length < 4 && (
-        <div className="relative max-w-md">
-          <input
-            value={q} placeholder={selected.length < 2 ? "+ Add a player to compare" : "+ Add another player"} aria-label="Add a player"
-            onChange={(e) => { setQ(e.target.value); setOpen(true); }}
-            onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
-            className="w-full rounded-[10px] border border-dashed border-zinc-600 bg-black px-3 py-3 text-sm"
-          />
-          {open && matches.length > 0 && (
-            <ul className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-950 shadow-xl">
-              {matches.map((p) => (
-                <li key={p.id}>
-                  <button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-zinc-800"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => { go([...selected, p.id]); setQ(""); setOpen(false); }}>
-                    <span className="w-7 text-xs text-zinc-500">{p.rank}</span>
-                    <span className="pn flex-1">{p.name}</span>
-                    <span className={`bd ${p.position}`}>{p.position}</span>
-                    <span className="w-9 text-right text-xs text-zinc-400">{p.team}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+        {!shown.length && <li className="p-2 text-xs text-zinc-400">Nobody matches that search.</li>}
+      </ul>
+    </div>
+  );
+}
+
+// The chosen players as compact cards. The one the calculator says to start gets a START tab.
+export function SelectedCards({ players, selected, base, startId }: { players: PickerPlayer[]; selected: number[]; base: Base; startId: number | null }) {
+  const go = useGo(base, selected);
+  const byId = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
+  if (!selected.length) {
+    return <p className="rounded-xl border border-dashed border-zinc-600 p-6 text-center text-sm text-zinc-400">Pick players from the list to compare them.</p>;
+  }
+  return (
+    <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(11rem,1fr))" }}>
+      {selected.map((id) => {
+        const p = byId.get(id);
+        if (!p) return null;
+        const start = startId === id;
+        const tc = p.tier ? TIER_COLORS[p.tier] : undefined;
+        return (
+          <div key={id} className="relative pt-4">
+            {start && <span className="absolute left-3 top-0 rounded-t-lg px-3 text-xs font-extrabold leading-4 tracking-wider" style={{ background: "var(--accent)", color: "#fff", paddingTop: 2 }}>START</span>}
+            <div className="relative flex items-center gap-3 rounded-xl border-2 p-3" style={{ borderColor: start ? "var(--accent)" : "#DEDAD0", background: start ? "#EBF0E5" : "#FBFAF6" }}>
+              <button type="button" className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-700 text-[10px]" aria-label={`Remove ${p.name}`} onClick={() => go(current(selected).filter((x) => x !== id))}>✕</button>
+              <Avatar id={id} name={p.name} size={56} />
+              <span className="min-w-0 flex-1 pr-3">
+                <span className="pn block text-sm leading-tight">{p.name}</span>
+                <span className="mt-1 flex flex-wrap items-center gap-1">
+                  <span className={`bd !px-1.5 !text-[10px] ${p.position}`}>{p.position}{p.posRank ? ` ${p.posRank}` : ""}</span>
+                  <span className="text-[11px] text-zinc-400">{p.team || "FA"}</span>
+                  {tc && <span className="rounded-full border px-1.5 text-[10px] font-bold" style={{ borderColor: tc, color: tc }}>{p.tier}</span>}
+                </span>
+                <span className="mt-0.5 block text-[11px] text-zinc-400">Overall #{p.rank}</span>
+              </span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
