@@ -1,3 +1,4 @@
+import { fetchAll } from "@/lib/fetch-all";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { cacheLife } from "next/cache";
 
@@ -35,8 +36,8 @@ async function compute(db: SupabaseClient, scoring: string): Promise<Map<number,
     agg.set(r.player_id, a);
   }
 
-  const { data: players } = await db.from("players").select("id, position").limit(1000);
-  const posOf = new Map((players ?? []).map((p) => [p.id as number, p.position as string]));
+  const players = await fetchAll<{ id: number; position: string }>((a, b) => db.from("players").select("id, position").order("id").range(a, b).returns<{ id: number; position: string }[]>());
+  const posOf = new Map(players.map((p) => [p.id as number, p.position as string]));
   const byPos = new Map<string, { id: number; points: number }[]>();
   for (const [id, a] of agg) {
     const pos = posOf.get(id);

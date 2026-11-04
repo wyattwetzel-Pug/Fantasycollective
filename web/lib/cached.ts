@@ -1,3 +1,4 @@
+import { fetchAll } from "@/lib/fetch-all";
 import { cacheLife, cacheTag } from "next/cache";
 import { publicClient } from "@/lib/supabase/public";
 import { seasonLines } from "@/lib/season";
@@ -67,7 +68,7 @@ export async function homeData(): Promise<HomeData> {
       .returns<{ player_id: number; position_in_list: number; players: { name: string; position: string } }[]>(),
     db.from("rank_history").select("snapshot_date").match(HOME_COMBO).lte("snapshot_date", weekAgo).order("snapshot_date", { ascending: false }).limit(1),
     seasonLines("ppr"),
-    db.from("players").select("id, name, position").in("position", ["QB", "RB", "WR", "TE", "K"]).limit(1000).returns<{ id: number; name: string; position: string }[]>(),
+    fetchAll<{ id: number; name: string; position: string }>((a, b) => db.from("players").select("id, name, position").in("position", ["QB", "RB", "WR", "TE", "K"]).order("id").range(a, b).returns<{ id: number; name: string; position: string }[]>()).then((data) => ({ data })),
     db.from("consensus_current").select("player_id", { count: "exact", head: true }).match(HOME_COMBO),
     db.from("ranking_sets").select("updated_at, contributor_id").eq("published", true),
     db.from("news").select("id, headline, body, published_at, url, source, external_id").order("published_at", { ascending: false }).limit(30)

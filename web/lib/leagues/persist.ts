@@ -1,3 +1,4 @@
+import { fetchAll } from "@/lib/fetch-all";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { makeMatcher } from "./match";
 import type { Format, ImportedLeague, QbType, Scoring } from "./types";
@@ -8,8 +9,8 @@ export type Overrides = { scoring: Scoring | null; qb: QbType | null; format: Fo
 // Saves imported leagues and every team's roster. Returns how many leagues were stored and
 // how many players we skipped because they aren't in our player list.
 export async function persist(supabase: Db, userId: string, platform: string, leagues: ImportedLeague[], over: Overrides) {
-  const { data: ours } = await supabase.from("players").select("id, name, position, nfl_team, external_id").limit(1000);
-  const match = makeMatcher(ours ?? []);
+  const ours = await fetchAll<{ id: number; name: string; position: string; nfl_team: string | null; external_id: string | null }>((a, b) => supabase.from("players").select("id, name, position, nfl_team, external_id").order("id").range(a, b).returns<{ id: number; name: string; position: string; nfl_team: string | null; external_id: string | null }[]>());
+  const match = makeMatcher(ours);
 
   let synced = 0, unmatched = 0;
   for (const lg of leagues) {

@@ -1,3 +1,4 @@
+import { fetchAll } from "@/lib/fetch-all";
 import { positionRankMap } from "@/lib/position-consensus";
 import { createClient } from "@/lib/supabase/server";
 import { defaultLineup, fillLineup } from "@/lib/lineup";
@@ -27,7 +28,7 @@ export async function LineupSection({ supabase, userId, chosen, isContributor, s
   }
 
   const [{ data: playerRows }, { data: cons }, { data: mySet }, lineMap] = await Promise.all([
-    supabase.from("players").select("id, name, position, nfl_team").limit(1000).returns<PlayerRow[]>(),
+    fetchAll<PlayerRow>((a, b) => supabase.from("players").select("id, name, position, nfl_team").order("id").range(a, b).returns<PlayerRow[]>()).then((data) => ({ data })),
     supabase.from("consensus_current").select("player_id, position_in_list, tier").match(combo).order("position_in_list").limit(1000).returns<ConsensusRow[]>(),
     isContributor ? supabase.from("ranking_sets").select("id").match({ ...combo, contributor_id: userId }).maybeSingle() : Promise.resolve({ data: null }),
     seasonLines(chosen.scoring),

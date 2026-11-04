@@ -1,3 +1,4 @@
+import { fetchAll } from "@/lib/fetch-all";
 import { sessionUser, profileOf } from "@/lib/session";
 import { TIER_COLORS, tierInk } from "@/lib/tier-config";
 import { positionConsensus } from "@/lib/position-consensus";
@@ -162,11 +163,11 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
         </div>
       );
     } else {
-      const { data: own } = await supabase
+      type OwnRow = { player_id: number; tier: string | null; note: string | null; needs_ranking: boolean; players: Player | null };
+      const own = await fetchAll<OwnRow>((a, b) => supabase
         .from("rankings").select("player_id, tier, note, needs_ranking, players(name, position, nfl_team)")
-        .eq("set_id", mine.id).order("rank").limit(2000)
-        .returns<{ player_id: number; tier: string | null; note: string | null; needs_ranking: boolean; players: Player | null }[]>();
-      const items: Item[] = (own ?? []).map((r) => ({
+        .eq("set_id", mine.id).order("rank").order("player_id").range(a, b).returns<OwnRow[]>());
+      const items: Item[] = own.map((r) => ({
         player_id: r.player_id, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", team: r.players?.nfl_team ?? "",
         tier: r.tier ?? "", note: r.note ?? "", placed: !r.needs_ranking,
       }));

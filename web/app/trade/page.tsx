@@ -1,3 +1,4 @@
+import { fetchAll } from "@/lib/fetch-all";
 import { fixTiers } from "@/lib/tiers";
 import { Suspense } from "react";
 import Link from "next/link";
@@ -80,8 +81,8 @@ async function TradeView({ searchParams }: { searchParams: Promise<Record<string
     teams = [...new Set((ros ?? []).filter((r) => !r.is_mine).map((r) => r.team_name))].sort();
   }
   // Everyone in the player table the rankings don't cover (unsorted players, rostered or not).
-  const { data: pool } = await supabase.from("players").select("id, name, position, nfl_team").order("search_rank", { nullsFirst: false }).limit(1000).returns<PlayerRow[]>();
-  const extra = (pool ?? []).filter((p) => !have.has(p.id));
+  const pool = await fetchAll<PlayerRow>((a, b) => supabase.from("players").select("id, name, position, nfl_team").order("search_rank", { nullsFirst: false }).order("id").range(a, b).returns<PlayerRow[]>());
+  const extra = pool.filter((p) => !have.has(p.id));
   const players: P[] = [
     ...rows.map((r) => ({ id: r.player_id, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", team: r.players?.nfl_team ?? "", rank: r.position_in_list, posRank: posRank.get(r.player_id) ?? 0, tier: r.tier })),
     // Players the rankings don't cover count after everyone who is ranked.

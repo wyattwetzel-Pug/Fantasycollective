@@ -1,3 +1,4 @@
+import { fetchAll } from "@/lib/fetch-all";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const SLEEPER = "https://api.sleeper.app";
@@ -19,21 +20,37 @@ async function upsertChunks(table: string, rows: Record<string, unknown>[], onCo
   }
 }
 
-type SleeperPlayer = { player_id: string; full_name?: string; first_name?: string; last_name?: string; position?: string; team?: string | null; age?: number | null; status?: string | null; active?: boolean; years_exp?: number | null; search_rank?: number | null };
+type SleeperPlayer = { player_id: string; full_name?: string; first_name?: string; last_name?: string; position?: string; team?: string | null; age?: number | null; status?: string | null; injury_status?: string | null; active?: boolean; years_exp?: number | null; search_rank?: number | null };
 
-// The app reads the player table 1000 rows at a time, so the pool stays under that.
-const POOL_LIMIT = 990;
+// The app reads the player table a page at a time, so the pool can be big. This keeps it to the players people use.
+const POOL_LIMIT = 2500;
 
-// Adds active players Sleeper has that we don't (free agents included), most popular first. Existing players
-// are left alone. The database appends each new player to the bottom of every list, unsorted, so no ranking moves.
-async function addMissingPlayers(db: SupabaseClient, log: string[]) {
-  const { data: ours, error } = await db.from("players").select("external_id").limit(1000);
-  if (error) throw new Error(`players: ${error.message}`);
-  const have = new Set((ours ?? []).map((p) => p.external_id as string));
-  const room = POOL_LIMIT - have.size;
-  if (room <= 0) { log.push("Players: pool is full, none added."); return; }
+// What the profile shows as a player's status: the injury designation when there is one.
+const statusOf = (p: SleeperPlayer) => p.injury_status || p.status || null;
 
+// Keeps the player table in step with Sleeper: current team (trades, signings, releases), injury status,
+// age and popularity for players we have, plus any active player we are missing (free agents included),
+// most popular first. New players are appended to the bottom of every list as unsorted by the database,
+// so no ranking moves.
+async function syncPlayers(db: SupabaseClient, log: string[]) {
+  const ours = await fetchAll<{ id: number; external_id: string | null; name: string; position: string; nfl_team: string | null; age: number | null; status: string | null; is_rookie: boolean; search_rank: number | null }>((a, b) =>
+    db.from("players").select("id, external_id, name, position, nfl_team, age, status, is_rookie, search_rank").order("id").range(a, b));
   const all = await getJson<Record<string, SleeperPlayer>>("/v1/players/nfl");
+  const have = new Set(ours.map((p) => p.external_id));
+
+  // Update the players we have, only where something changed.
+  const changed = ours.flatMap((o) => {
+    const sp = o.external_id ? all[o.external_id] : undefined;
+    if (!sp) return [];
+    const team = sp.team ?? null, status = statusOf(sp), age = sp.age ?? null, rank = sp.search_rank ?? null;
+    if (team === o.nfl_team && status === o.status && age === o.age && rank === o.search_rank) return [];
+    return [{ external_id: o.external_id, name: o.name, position: o.position, nfl_team: team, status, age, is_rookie: o.is_rookie, search_rank: rank }];
+  });
+  if (changed.length) await upsertChunks("players", changed, "external_id", db);
+  log.push(`Players: updated team/status/age for ${changed.length}.`);
+
+  const room = POOL_LIMIT - ours.length;
+  if (room <= 0) { log.push("Players: pool is full, none added."); return; }
   const fresh = Object.entries(all)
     .map(([id, p]) => ({ ...p, player_id: id }))
     .filter((p) => p.active && ["QB", "RB", "WR", "TE", "K"].includes(p.position ?? "") && !have.has(p.player_id) && (p.full_name || p.last_name))
@@ -42,7 +59,7 @@ async function addMissingPlayers(db: SupabaseClient, log: string[]) {
   if (!fresh.length) { log.push("Players: nobody new."); return; }
   await upsertChunks("players", fresh.map((p) => ({
     external_id: p.player_id, name: p.full_name ?? `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim(), position: p.position, nfl_team: p.team ?? null,
-    age: p.age ?? null, status: p.status ?? null, is_rookie: p.years_exp === 0, search_rank: p.search_rank ?? null,
+    age: p.age ?? null, status: statusOf(p), is_rookie: p.years_exp === 0, search_rank: p.search_rank ?? null,
   })), "external_id", db);
   log.push(`Players: added ${fresh.length} new, e.g. ${fresh.slice(0, 3).map((p) => p.full_name).join(", ")}.`);
 }
@@ -64,11 +81,10 @@ export async function runSync(opts: { weeks?: number[]; backfill?: boolean } = {
     const current = Math.max(1, state.display_week ?? state.week ?? 1);
     log.push(`Sleeper says it is ${season} week ${current} (${state.season_type}).`);
 
-    await addMissingPlayers(db, log);
+    await syncPlayers(db, log);
 
-    const { data: ours, error: pErr } = await db.from("players").select("id, external_id").limit(1000);
-    if (pErr) throw new Error(`players: ${pErr.message}`);
-    const idOf = new Map((ours ?? []).map((p) => [p.external_id as string, p.id as number]));
+    const ours = await fetchAll<{ id: number; external_id: string }>((a, b) => db.from("players").select("id, external_id").order("id").range(a, b));
+    const idOf = new Map(ours.map((p) => [p.external_id as string, p.id as number]));
 
     // Schedule
     const schedule = await getJson<Game[]>(`/schedule/nfl/regular/${season}`);
@@ -162,8 +178,8 @@ async function syncNews(db: SupabaseClient, log: string[]) {
       const { data: have } = await db.from("news").select("external_id").in("external_id", ids.slice(i, i + 200));
       (have ?? []).forEach((r) => known.add(r.external_id as string));
     }
-    const { data: ours } = await db.from("players").select("id, name").limit(1000);
-    const byName = new Map((ours ?? []).map((p) => [plain(p.name as string), p.id as number]));
+    const ours = await fetchAll<{ id: number; name: string }>((a, b) => db.from("players").select("id, name").order("id").range(a, b));
+    const byName = new Map(ours.map((p) => [plain(p.name as string), p.id as number]));
 
     const rows: Record<string, unknown>[] = [];
     for (const { a, teams } of stories.values()) {
@@ -218,9 +234,8 @@ export async function runHistory(): Promise<{ ok: boolean; log: string[] }> {
   try {
     const state = await getJson<State>("/v1/state/nfl");
     const season = Number(state.season);
-    const { data: ours, error } = await db.from("players").select("id, external_id").limit(1000);
-    if (error) throw new Error(`players: ${error.message}`);
-    const idOf = new Map((ours ?? []).map((p) => [p.external_id as string, p.id as number]));
+    const ours = await fetchAll<{ id: number; external_id: string }>((a, b) => db.from("players").select("id, external_id").order("id").range(a, b));
+    const idOf = new Map(ours.map((p) => [p.external_id as string, p.id as number]));
     const started = Date.now();
     for (let y = season - 1; y >= 2009; y--) {
       const { count } = await db.from("player_seasons").select("player_id", { count: "exact", head: true }).eq("season", y);

@@ -1,3 +1,4 @@
+import { fetchAll } from "@/lib/fetch-all";
 import { sessionUser, profileOf } from "@/lib/session";
 import { positionRankMap } from "@/lib/position-consensus";
 import { Suspense } from "react";
@@ -82,7 +83,7 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
     const combo = { format: chosen.format, scoring: chosen.scoring, qb_type: chosen.qb_type };
     const [{ data: rosterRows }, { data: playerRows }, { data: cons }] = await Promise.all([
       supabase.from("league_rosters").select("team_name, is_mine, player_id, slot").eq("league_id", chosen.id).limit(1000).returns<RosterRow[]>(),
-      supabase.from("players").select("id, name, position, nfl_team").limit(1000).returns<PlayerRow[]>(),
+      fetchAll<PlayerRow>((a, b) => supabase.from("players").select("id, name, position, nfl_team").order("id").range(a, b).returns<PlayerRow[]>()).then((data) => ({ data })),
       supabase.from("consensus_current").select("player_id, position_in_list, tier").match(combo).order("position_in_list").limit(1000).returns<ConsensusRow[]>(),
     ]);
     const info = new Map((playerRows ?? []).map((p) => [p.id, p]));

@@ -1,3 +1,4 @@
+import { fetchAll } from "@/lib/fetch-all";
 import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -24,13 +25,13 @@ async function Loaded({ params }: { params: Promise<{ id: string }> }) {
     .from("ranking_sets").select("id, format, scoring, qb_type, published, contributor_id").eq("id", setId).maybeSingle();
   if (!set || set.contributor_id !== user.id) notFound();
 
-  const { data: rows } = await supabase
+  const rows = await fetchAll<Row>((a, b) => supabase
     .from("rankings")
     .select("player_id, tier, note, needs_ranking, players(name, position, nfl_team)")
     .eq("set_id", setId)
-    .order("rank")
-    .limit(2000)
-    .returns<Row[]>();
+    .order("rank").order("player_id")
+    .range(a, b)
+    .returns<Row[]>());
 
   // ADP for this list's settings, so the contributor can start from the market order.
   const combo = { format: set.format, scoring: set.scoring, qb_type: set.qb_type };
@@ -45,7 +46,7 @@ async function Loaded({ params }: { params: Promise<{ id: string }> }) {
     }
   }
 
-  const items: Item[] = (rows ?? []).map((r) => ({
+  const items: Item[] = rows.map((r) => ({
     player_id: r.player_id,
     name: r.players?.name ?? "Unknown",
     position: r.players?.position ?? "",
