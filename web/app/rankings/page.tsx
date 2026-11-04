@@ -6,6 +6,7 @@ import { fixTiers } from "@/lib/tiers";
 import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
 import Link from "next/link";
+import { Face } from "@/app/face";
 import { PlayerLink } from "@/app/player-link";
 import { createClient } from "@/lib/supabase/server";
 import { nowMs } from "@/lib/time";
@@ -351,7 +352,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
                 const isStale = nowMs() - new Date(s.updated_at).getTime() >= 7 * DAY;
                 return (
                   <Link key={s.id} href={href(params, { ranker: slug })} className={`rounded-xl p-2 ${chosen?.id === s.id ? "gl-src-on" : ""}`}>
-                    <span className="mx-auto mb-1 flex h-10 w-10 items-center justify-center rounded-full bg-zinc-700 text-sm font-bold">{name.slice(0, 1).toUpperCase()}</span>
+                    <span className="mb-1 flex justify-center"><Face url={s.contributors?.profiles?.avatar_url ?? null} name={name} size={40} /></span>
                     {name}
                     <span className={`block text-[10px] ${isStale ? "text-yellow-400" : "text-zinc-500"}`}>{isStale ? "stale" : ago(s.updated_at)}</span>
                   </Link>

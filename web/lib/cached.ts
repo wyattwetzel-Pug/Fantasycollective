@@ -10,7 +10,7 @@ type Combo = { format: string; scoring: string; qb_type: string };
 const DAY = 24 * 60 * 60 * 1000;
 
 export type PlayerInfo = { name: string; position: string; nfl_team: string | null };
-export type SetRow = { id: number; updated_at: string; contributors: { slug: string; profiles: { display_name: string } | null } | null };
+export type SetRow = { id: number; updated_at: string; contributors: { slug: string; profiles: { display_name: string; avatar_url: string | null } | null } | null };
 export type ConsensusRow = {
   player_id: number; consensus_rank: number; sources: number; tier: string | null;
   is_stale: boolean; position_in_list: number; players: PlayerInfo | null;
@@ -22,7 +22,7 @@ export async function publishedSets(combo: Combo): Promise<SetRow[]> {
   cacheTag("rankings");
   const { data } = await publicClient()
     .from("ranking_sets")
-    .select("id, updated_at, contributors(slug, profiles!contributors_profile_id_fkey(display_name))")
+    .select("id, updated_at, contributors(slug, profiles!contributors_profile_id_fkey(display_name, avatar_url))")
     .match(combo).eq("published", true)
     .returns<SetRow[]>();
   return data ?? [];
@@ -119,7 +119,7 @@ export type AdpRow = { season: number; source: string; format: string; scoring: 
 export type NewsItem = { id: number; headline: string; body: string | null; published_at: string; url: string | null; source: string | null };
 export type CallItem = {
   id: number; week: number; season: number; player_a: number; player_b: number; pick: number; reason: string | null;
-  contributors: { profiles: { display_name: string } | null } | null;
+  contributors: { profiles: { display_name: string; avatar_url: string | null } | null } | null;
 };
 export type SeasonItem = { season: number; gp: number | null; stats: Record<string, number>; pts_ppr: number | null; pts_half: number | null };
 export type AllCons = { format: string; scoring: string; qb_type: string; position_in_list: number; tier: string | null };
@@ -139,7 +139,7 @@ export async function playerPublic(id: number, scoring: string) {
     db.from("adp").select("season, source, format, scoring, qb_type, adp, high, low, times_drafted, teams").eq("player_id", id).order("season", { ascending: false }).returns<AdpRow[]>(),
     db.from("news").select("id, headline, body, published_at, url, source").eq("player_id", id).order("published_at", { ascending: false }).limit(20).returns<NewsItem[]>(),
     db.from("start_sit_calls")
-      .select("id, week, season, player_a, player_b, pick, reason, contributors(profiles!contributors_profile_id_fkey(display_name))")
+      .select("id, week, season, player_a, player_b, pick, reason, contributors(profiles!contributors_profile_id_fkey(display_name, avatar_url))")
       .or(`player_a.eq.${id},player_b.eq.${id}`).order("created_at", { ascending: false }).limit(10).returns<CallItem[]>(),
     db.from("player_seasons").select("season, gp, stats, pts_ppr, pts_half").eq("player_id", id).order("season", { ascending: false }).limit(40).returns<SeasonItem[]>(),
   ]);
