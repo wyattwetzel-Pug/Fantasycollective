@@ -313,13 +313,16 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
       </div>
 
       <div className="grid items-start gap-4 lg:grid-cols-[16rem_1fr] xl:grid-cols-[16rem_1fr_20rem]">
+        <div className="lg:row-span-2">
         {error ? <p className="text-sm text-red-300">Could not load players: {error.message}</p>
           : list.length ? <PlayerList players={list} selected={chosenIds} base={{ format: params.format, scoring: params.scoring, qb: params.qb, ...(params.tab !== "rankings" ? { tab: params.tab } : {}) }} />
           : <p className="text-sm text-zinc-400">No published rankings yet for these settings, so there is nobody to compare.</p>}
+        </div>
+        <div className="min-w-0 xl:col-span-2">
+          <SelectedCards players={list} selected={chosenIds} startId={best.length >= 2 ? best[0].player_id : null} base={{ format: params.format, scoring: params.scoring, qb: params.qb, ...(params.tab !== "rankings" ? { tab: params.tab } : {}) }} />
+        </div>
 
         <div className="min-w-0 space-y-4">
-          <SelectedCards players={list} selected={chosenIds} startId={best.length >= 2 ? best[0].player_id : null} base={{ format: params.format, scoring: params.scoring, qb: params.qb, ...(params.tab !== "rankings" ? { tab: params.tab } : {}) }} />
-
           <div className="gl-panel space-y-3 p-4">
             <h3 className="text-lg font-bold"><span style={{ color: "var(--accent)" }} aria-hidden="true">▮</span> Comparison</h3>
             {comparison}

@@ -89,27 +89,25 @@ export function SelectedCards({ players, selected, base, startId }: { players: P
     return <p className="rounded-xl border border-dashed border-zinc-600 p-6 text-center text-sm text-zinc-400">Pick players from the list to compare them.</p>;
   }
   return (
-    <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(11rem,1fr))" }}>
+    <div className="grid grid-cols-2 items-stretch gap-3 sm:grid-cols-4">
       {selected.map((id) => {
         const p = byId.get(id);
         if (!p) return null;
         const start = startId === id;
         const tc = p.tier ? TIER_COLORS[p.tier] : undefined;
         return (
-          <div key={id} className="relative pt-4">
+          <div key={id} className="relative flex flex-col pt-4">
             {start && <span className="absolute left-3 top-0 rounded-t-lg px-3 text-xs font-extrabold leading-4 tracking-wider" style={{ background: "var(--accent)", color: "#fff", paddingTop: 2 }}>START</span>}
-            <div className="relative flex items-center gap-3 rounded-xl border-2 p-3" style={{ borderColor: start ? "var(--accent)" : "#DEDAD0", background: start ? "#EBF0E5" : "#FBFAF6" }}>
+            <div className="relative flex flex-1 flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-center" style={{ borderColor: start ? "var(--accent)" : "#DEDAD0", background: start ? "#EBF0E5" : "#FBFAF6" }}>
               <button type="button" className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-700 text-[10px]" aria-label={`Remove ${p.name}`} onClick={() => go(current(selected).filter((x) => x !== id))}>✕</button>
-              <Avatar id={id} name={p.name} size={56} />
-              <span className="min-w-0 flex-1 pr-3">
-                <span className="pn block text-sm leading-tight">{p.name}</span>
-                <span className="mt-1 flex flex-wrap items-center gap-1">
-                  <span className={`bd !px-1.5 !text-[10px] ${p.position}`}>{p.position}{p.posRank ? ` ${p.posRank}` : ""}</span>
-                  <span className="text-[11px] text-zinc-400">{p.team || "FA"}</span>
-                  {tc && <span className="rounded-full border px-1.5 text-[10px] font-bold" style={{ borderColor: tc, color: tc }}>{p.tier}</span>}
-                </span>
-                <span className="mt-0.5 block text-[11px] text-zinc-400">Overall #{p.rank}</span>
+              <Avatar id={id} name={p.name} size={60} />
+              <span className="pn block min-h-[2.4rem] text-sm leading-tight">{p.name}</span>
+              <span className="flex flex-wrap items-center justify-center gap-1">
+                <span className={`bd !px-1.5 !text-[10px] ${p.position}`}>{p.position}{p.posRank ? ` ${p.posRank}` : ""}</span>
+                <span className="text-[11px] text-zinc-400">{p.team || "FA"}</span>
+                {tc && <span className="rounded-full border px-1.5 text-[10px] font-bold" style={{ borderColor: tc, color: tc }}>{p.tier}</span>}
               </span>
+              <span className="mt-auto text-[11px] text-zinc-400">Overall #{p.rank}</span>
             </div>
           </div>
         );
