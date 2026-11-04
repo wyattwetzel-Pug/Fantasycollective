@@ -7,7 +7,7 @@ import { matchupGrade, ordinal, type Allowed, type GameRow } from "@/lib/matchup
 export type P = {
   id: number; name: string; pos: string; team: string | null; slot: string;
   rank: number | null; posRank: number | null; proj: number | null; ppg: number | null;
-  next: GameRow | null; opp: string | null; allowed: Allowed | undefined;
+  next: GameRow | null; opp: string | null; unavailable?: boolean; allowed: Allowed | undefined;
 };
 type Filled = { slot: string; player: P | null };
 

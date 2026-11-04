@@ -11,7 +11,7 @@ import { LineupBoard, type P } from "./lineup-board";
 type Db = Awaited<ReturnType<typeof createClient>>;
 export type LineupLeague = { id: number; name: string | null; platform: string; scoring: string; qb_type: string; format: string; roster_settings: { lineup?: string[] } | null };
 type RosterRow = { team_name: string; player_id: number; slot: string };
-type PlayerRow = { id: number; name: string; position: string; nfl_team: string | null };
+type PlayerRow = { id: number; name: string; position: string; nfl_team: string | null; status: string | null };
 type ConsensusRow = { player_id: number; position_in_list: number; tier: string | null };
 
 // Your starters, bench, and the best lineup your roster can field, for one synced league.
@@ -28,7 +28,7 @@ export async function LineupSection({ supabase, userId, chosen, isContributor, s
   }
 
   const [{ data: playerRows }, { data: cons }, { data: mySet }, lineMap] = await Promise.all([
-    fetchAll<PlayerRow>((a, b) => supabase.from("players").select("id, name, position, nfl_team").order("id").range(a, b).returns<PlayerRow[]>()).then((data) => ({ data })),
+    fetchAll<PlayerRow>((a, b) => supabase.from("players").select("id, name, position, nfl_team, status").order("id").range(a, b).returns<PlayerRow[]>()).then((data) => ({ data })),
     supabase.from("consensus_current").select("player_id, position_in_list, tier").match(combo).order("position_in_list").limit(1000).returns<ConsensusRow[]>(),
     isContributor ? supabase.from("ranking_sets").select("id").match({ ...combo, contributor_id: userId }).maybeSingle() : Promise.resolve({ data: null }),
     seasonLines(chosen.scoring),
@@ -70,6 +70,11 @@ export async function LineupSection({ supabase, userId, chosen, isContributor, s
   const teams = [...new Set(rosterRows.map((r) => info.get(r.player_id)?.nfl_team).filter((t): t is string => !!t))];
   const { data: latest } = await supabase.from("games").select("season").order("season", { ascending: false }).limit(1);
   const season = latest?.[0]?.season as number | undefined;
+  // This week is the first week with a game still to finish. A team with no game that week is on its bye.
+  const { data: wk } = season ? await supabase.from("games").select("week").eq("season", season).or("status.is.null,status.neq.complete").order("week").limit(1) : { data: null };
+  const thisWeek = wk?.[0]?.week as number | undefined;
+  const { data: thisGames } = thisWeek ? await supabase.from("games").select("home, away").eq("season", season!).eq("week", thisWeek) : { data: null };
+  const playing = new Set((thisGames ?? []).flatMap((g) => [g.home as string, g.away as string]));
   const [{ data: gm }, defense] = await Promise.all([
     season && teams.length
       ? supabase.from("games").select("week, home, away, status").eq("season", season).or(`home.in.(${teams.join(",")}),away.in.(${teams.join(",")})`).order("week").returns<GameRow[]>()
@@ -82,10 +87,12 @@ export async function LineupSection({ supabase, userId, chosen, isContributor, s
     if (!p) return [];
     const l = lineMap[p.id];
     const next = p.nfl_team ? (gm ?? []).find((g) => (g.home === p.nfl_team || g.away === p.nfl_team) && isOpen(g)) ?? null : null;
-    const opp = next && p.nfl_team ? opponentOf(next, p.nfl_team) : null;
+    const bye = !!thisWeek && !!p.nfl_team && playing.size > 0 && !playing.has(p.nfl_team);
+    const out = ["Out", "IR", "PUP", "Sus"].includes(p.status ?? "");
+    const opp = next && p.nfl_team && !bye ? opponentOf(next, p.nfl_team) : null;
     return [{
       id: p.id, name: p.name, pos: p.position, team: p.nfl_team, slot: r.slot, rank: rankFor(p.id), posRank: posRank.get(p.id) ?? null,
-      proj: l?.proj ?? null, ppg: l && l.played ? l.points / l.played : null, next, opp,
+      proj: l?.proj ?? null, ppg: l && l.played ? l.points / l.played : null, next: bye ? null : next, opp, unavailable: bye || out,
       allowed: opp ? defense[p.position]?.get(opp) : undefined,
     }];
   });
@@ -96,7 +103,8 @@ export async function LineupSection({ supabase, userId, chosen, isContributor, s
 
   const starters = roster.filter((p) => p.slot === "starter");
   const current = fillLineup(lineup, starters, (p) => (p.rank === null ? -9999 : -p.rank));
-  const recommended = fillLineup(lineup, roster.filter((p) => p.slot !== "ir"), score);
+  // Players on a bye or ruled out can't start, so the best lineup skips them.
+  const recommended = fillLineup(lineup, roster.filter((p) => p.slot !== "ir" && !p.unavailable), score);
 
   // Pair each new starter with a current starter who comes out.
   const startIds = new Set(starters.map((p) => p.id));
