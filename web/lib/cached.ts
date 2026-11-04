@@ -69,7 +69,7 @@ export async function homeData(): Promise<HomeData> {
     seasonLines("ppr"),
     db.from("players").select("id, name, position").in("position", ["QB", "RB", "WR", "TE", "K"]).limit(1000).returns<{ id: number; name: string; position: string }[]>(),
     db.from("consensus_current").select("player_id", { count: "exact", head: true }).match(HOME_COMBO),
-    db.from("ranking_sets").select("updated_at").eq("published", true),
+    db.from("ranking_sets").select("updated_at, contributor_id").eq("published", true),
     db.from("news").select("id, headline, body, published_at, url, source, external_id").order("published_at", { ascending: false }).limit(30)
       .returns<HomeData["stories"]>(),
     db.from("consensus_current").select("player_id, position_in_list, players!inner(name, position)").match(HOME_COMBO).not("players.position", "in", "(K,DEF)").order("position_in_list").limit(1000)
@@ -106,7 +106,7 @@ export async function homeData(): Promise<HomeData> {
     scorers,
     hasHistory: !!oldRows?.length,
     total: totalRes.count ?? 0,
-    contributors: (setsRes.data ?? []).filter((s) => nowMs() - new Date(s.updated_at).getTime() < 7 * DAY).length,
+    contributors: new Set((setsRes.data ?? []).filter((s) => nowMs() - new Date(s.updated_at).getTime() < 7 * DAY).map((s) => s.contributor_id)).size,
     stories,
   };
 }
