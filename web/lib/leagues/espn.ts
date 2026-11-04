@@ -54,16 +54,16 @@ export async function importEspn(input: { leagueId: string; s2: string; swid: st
   const nameOfTeam = (t: Team) => t.name || [t.location, t.nickname].filter(Boolean).join(" ") || `Team ${t.id}`;
   const games = data.settings?.scheduleSettings?.matchupPeriodCount ?? 14;
   const byId = new Map(data.teams.map((t) => [t.id, nameOfTeam(t)]));
-  const season: Season = { games, records: {}, remaining: {} };
+  const sched: Season = { games, records: {}, remaining: {} };
   data.teams.forEach((t) => {
     const o = t.record?.overall;
-    season.records[nameOfTeam(t)] = { w: o?.wins ?? 0, l: o?.losses ?? 0, t: o?.ties ?? 0 };
-    season.remaining[nameOfTeam(t)] = [];
+    sched.records[nameOfTeam(t)] = { w: o?.wins ?? 0, l: o?.losses ?? 0, t: o?.ties ?? 0 };
+    sched.remaining[nameOfTeam(t)] = [];
   });
   (data.schedule ?? []).forEach((g) => {
     if (!g.matchupPeriodId || g.matchupPeriodId > games || (g.winner && g.winner !== "UNDECIDED")) return;
     const a = byId.get(g.home?.teamId ?? -1), b = byId.get(g.away?.teamId ?? -1);
-    if (a && b) { season.remaining[a].push(b); season.remaining[b].push(a); }
+    if (a && b) { sched.remaining[a].push(b); sched.remaining[b].push(a); }
   });
 
   return [{
@@ -72,7 +72,7 @@ export async function importEspn(input: { leagueId: string; s2: string; swid: st
     scoring: rec >= 1 ? "ppr" : rec >= 0.5 ? "half" : "std",
     qbType: (data.settings?.rosterSettings?.lineupSlotCounts?.[OP] ?? 0) > 0 ? "superflex" : "1qb",
     format: null,
-    settings: { total_rosters: data.teams.length, lineup: espnLineup(data.settings?.rosterSettings?.lineupSlotCounts), season },
+    settings: { total_rosters: data.teams.length, lineup: espnLineup(data.settings?.rosterSettings?.lineupSlotCounts), season: sched },
     teams: data.teams.map((t) => {
       const name = nameOfTeam(t);
       const owned = !!swidClean && (t.owners ?? []).some((o) => o.replace(/[{}]/g, "").toLowerCase() === swidClean);
