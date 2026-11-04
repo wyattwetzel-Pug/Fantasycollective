@@ -344,7 +344,8 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
             <h3 className="mb-3 text-2xl">Expert Sources</h3>
             <div className="grid grid-cols-3 gap-2 text-center text-xs">
               <Link href={href(params, { ranker: "consensus" })} className={`rounded-xl p-2 ${!chosen ? "gl-src-on" : ""}`}>
-                <span className="mx-auto mb-1 flex h-10 w-10 items-center justify-center rounded-full bg-zinc-700 text-sm font-bold">∑</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/consensus-logo.png" alt="" width={40} height={40} className="mx-auto mb-1 h-10 w-10 rounded-full" />
                 Ball Knowers Consensus
               </Link>
               {sources.map((s) => {
