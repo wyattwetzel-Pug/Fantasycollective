@@ -1,4 +1,4 @@
-import { ImportError, currentSeason, fetchJson, isMyTeam, type ImportedLeague, type Slot } from "./types";
+import { ImportError, type Season, currentSeason, fetchJson, isMyTeam, type ImportedLeague, type Slot } from "./types";
 
 const POS: Record<number, string> = { 1: "QB", 2: "RB", 3: "WR", 4: "TE", 5: "K", 16: "DEF" };
 const TEAMS: Record<number, string> = {
@@ -10,14 +10,17 @@ const BENCH = 20, IR = 21, OP = "7";
 const PTS_PER_RECEPTION = 53;
 
 type Entry = { lineupSlotId: number; playerPoolEntry?: { player?: { fullName?: string; defaultPositionId?: number; proTeamId?: number } } };
-type Team = { id: number; name?: string; location?: string; nickname?: string; owners?: string[]; roster?: { entries?: Entry[] } };
+type Game = { matchupPeriodId?: number; home?: { teamId?: number }; away?: { teamId?: number }; winner?: string };
+type Team = { record?: { overall?: { wins?: number; losses?: number; ties?: number } }; id: number; name?: string; location?: string; nickname?: string; owners?: string[]; roster?: { entries?: Entry[] } };
 type Resp = {
   settings?: {
     name?: string;
     scoringSettings?: { scoringItems?: { statId: number; points?: number }[] };
     rosterSettings?: { lineupSlotCounts?: Record<string, number> };
+    scheduleSettings?: { matchupPeriodCount?: number };
   };
   teams?: Team[];
+  schedule?: Game[];
 };
 
 // ESPN's starting slot ids, in the order they appear in a lineup.
@@ -35,7 +38,7 @@ export async function importEspn(input: { leagueId: string; s2: string; swid: st
   const swid = input.swid.trim();
   if (s2 && swid) headers.Cookie = `espn_s2=${s2}; SWID=${swid.startsWith("{") ? swid : `{${swid}}`}`;
 
-  const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/${leagueId}?view=mTeam&view=mRoster&view=mSettings`;
+  const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/${leagueId}?view=mTeam&view=mRoster&view=mSettings&view=mMatchup`;
   const { status, data } = await fetchJson<Resp>(url, { headers });
   if (status === 401 || status === 403) {
     throw new ImportError(s2 && swid
@@ -48,15 +51,30 @@ export async function importEspn(input: { leagueId: string; s2: string; swid: st
   const rec = data.settings?.scoringSettings?.scoringItems?.find((i) => i.statId === PTS_PER_RECEPTION)?.points ?? 0;
   const swidClean = swid.replace(/[{}]/g, "").toLowerCase();
 
+  const nameOfTeam = (t: Team) => t.name || [t.location, t.nickname].filter(Boolean).join(" ") || `Team ${t.id}`;
+  const games = data.settings?.scheduleSettings?.matchupPeriodCount ?? 14;
+  const byId = new Map(data.teams.map((t) => [t.id, nameOfTeam(t)]));
+  const season: Season = { games, records: {}, remaining: {} };
+  data.teams.forEach((t) => {
+    const o = t.record?.overall;
+    season.records[nameOfTeam(t)] = { w: o?.wins ?? 0, l: o?.losses ?? 0, t: o?.ties ?? 0 };
+    season.remaining[nameOfTeam(t)] = [];
+  });
+  (data.schedule ?? []).forEach((g) => {
+    if (!g.matchupPeriodId || g.matchupPeriodId > games || (g.winner && g.winner !== "UNDECIDED")) return;
+    const a = byId.get(g.home?.teamId ?? -1), b = byId.get(g.away?.teamId ?? -1);
+    if (a && b) { season.remaining[a].push(b); season.remaining[b].push(a); }
+  });
+
   return [{
     externalId: leagueId,
     name: data.settings?.name || `ESPN league ${leagueId}`,
     scoring: rec >= 1 ? "ppr" : rec >= 0.5 ? "half" : "std",
     qbType: (data.settings?.rosterSettings?.lineupSlotCounts?.[OP] ?? 0) > 0 ? "superflex" : "1qb",
     format: null,
-    settings: { total_rosters: data.teams.length, lineup: espnLineup(data.settings?.rosterSettings?.lineupSlotCounts) },
+    settings: { total_rosters: data.teams.length, lineup: espnLineup(data.settings?.rosterSettings?.lineupSlotCounts), season },
     teams: data.teams.map((t) => {
-      const name = t.name || [t.location, t.nickname].filter(Boolean).join(" ") || `Team ${t.id}`;
+      const name = nameOfTeam(t);
       const owned = !!swidClean && (t.owners ?? []).some((o) => o.replace(/[{}]/g, "").toLowerCase() === swidClean);
       return {
         name,

@@ -22,6 +22,9 @@ export type ImportedLeague = {
   teams: ImportedTeam[];
 };
 
+// Records so far and who each team still plays, saved with the league so standings can be projected.
+export type Season = { games: number; records: Record<string, { w: number; l: number; t: number }>; remaining: Record<string, string[]> };
+
 export type LeagueOptions = { scoring: Scoring | null; qbType: QbType | null; format: Format; myTeam: string };
 
 // Provider errors carry a message that is safe to show the user.

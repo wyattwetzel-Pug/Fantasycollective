@@ -10,12 +10,12 @@ import { refreshLeague, removeLeague } from "./actions";
 import { SyncForm } from "./sync-form";
 import { TeamCards } from "./team-cards";
 import { LineupSection } from "./lineup-section";
-import { Standings } from "./standings";
+import { Standings, type SeasonData } from "./standings";
 import { defaultLineup, fillLineup } from "@/lib/lineup";
 
 type League = {
   id: number; name: string | null; platform: string; scoring: string; qb_type: string; format: string; synced_at: string | null;
-  roster_settings: { lineup?: string[]; total_rosters?: number } | null;
+  roster_settings: { lineup?: string[]; total_rosters?: number; season?: SeasonData | null } | null;
 };
 type RosterRow = { team_name: string; is_mine: boolean; player_id: number; slot: string };
 type PlayerRow = { id: number; name: string; position: string; nfl_team: string | null };
@@ -151,7 +151,7 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
         const picked = fillLineup(lineup, usable, val);
         return { name: t.name, mine: t.mine, strength: picked.reduce((s, x) => s + (x.player ? val(x.player) : 0), 0) };
       });
-      content = <Standings teams={strengths} games={14} />;
+      content = <Standings teams={strengths} games={14} season={chosen.roster_settings?.season ?? null} />;
     } else content = (
       <div className="space-y-4">
         <p className="text-sm"><span className="font-bold">Ranked by</span> Ball Knowers Consensus</p>
