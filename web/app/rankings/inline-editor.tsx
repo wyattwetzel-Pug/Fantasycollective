@@ -43,11 +43,29 @@ export function InlineEditor({
   const [sel, setSel] = useState<number[]>([]);
   const [selecting, setSelecting] = useState(false);
   const anchor = useRef<number | null>(null);
+  const base = useRef<number | null>(null);   // where the last selection started, for Shift+click
+  const extendRef = useRef<(id: number) => void>(() => {});
+  // While connecting rows, the page scrolls when the pointer nears the top or bottom edge, so a selection
+  // can run as long as you like.
   useEffect(() => {
     if (!selecting) return;
+    const pt = { x: 0, y: -1 };
+    const move = (e: MouseEvent) => { pt.x = e.clientX; pt.y = e.clientY; };
     const up = () => { setSelecting(false); anchor.current = null; setSel((cur) => (cur.length > 1 ? cur : [])); };
+    const ZONE = 120, MAX = 30;
+    let frame = requestAnimationFrame(function tick() {
+      const h = window.innerHeight;
+      const v = pt.y < 0 ? 0 : pt.y < ZONE ? -Math.ceil(MAX * (ZONE - pt.y) / ZONE) : pt.y > h - ZONE ? Math.ceil(MAX * (pt.y - (h - ZONE)) / ZONE) : 0;
+      if (v) {
+        window.scrollBy(0, v);
+        const row = document.elementFromPoint(pt.x, Math.min(Math.max(pt.y, 1), h - 1))?.closest("tr[data-pid]") as HTMLElement | null;
+        if (row) extendRef.current(Number(row.dataset.pid));
+      }
+      frame = requestAnimationFrame(tick);
+    });
+    window.addEventListener("mousemove", move);
     window.addEventListener("mouseup", up);
-    return () => window.removeEventListener("mouseup", up);
+    return () => { cancelAnimationFrame(frame); window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
   }, [selecting]);
   useEffect(() => {
     if (!sel.length) return;
@@ -249,6 +267,14 @@ export function InlineEditor({
     change((prev) => prev.map((i) => ({ ...i, tier: "" })));
   }
 
+  function extendTo(id: number) {
+    if (anchor.current === null) return;
+    const order = inView.map((i) => items[i].player_id);
+    const a = order.indexOf(anchor.current), h = order.indexOf(id);
+    if (a < 0 || h < 0) return;
+    setSel(order.slice(Math.min(a, h), Math.max(a, h) + 1));
+  }
+
   // Runs of the same tier share one card.
   const runs: { tier: string; idx: number[] }[] = [];
   const inView: number[] = [];
@@ -269,6 +295,7 @@ export function InlineEditor({
     nextTier = Math.max(nextTier, ti + 1);
   }
   for (; nextTier < ORDER.length; nextTier++) if (!used.has(ORDER[nextTier])) cards.push({ tier: ORDER[nextTier], idx: [] });
+  extendRef.current = extendTo;
   let shownSoFar = 0;
   const listRank = items.map((it) => (it.position !== "K" && it.position !== "DEF" ? ++shownSoFar : 0));
   const posCount: Record<string, number> = {};
@@ -314,7 +341,7 @@ export function InlineEditor({
 
       {sel.length > 1 && (
         <p className="flex flex-wrap items-center gap-2 rounded-lg bg-[#DCE6D6] px-3 py-2 text-sm font-semibold">
-          {sel.length} players connected. Drag any one&apos;s ⠿ handle (or use its Tier menu) to move them all together.
+          {sel.length} players connected. Drag any one&apos;s ⠿ handle (or use its Tier menu) to move them all together. Shift+click another row to extend.
           <button className="underline" onClick={() => setSel([])}>Clear</button>
         </p>
       )}
@@ -327,16 +354,14 @@ export function InlineEditor({
           const row = t.closest("tr[data-pid]") as HTMLElement | null;
           if (!row) { setSel([]); return; }
           const id = Number(row.dataset.pid);
-          anchor.current = id; setSelecting(true); setSel([id]);
+          // Shift+click connects everything between the last row you started on and this one.
+          if (e.shiftKey && base.current !== null) { e.preventDefault(); anchor.current = base.current; setSelecting(true); extendTo(id); return; }
+          anchor.current = id; base.current = id; setSelecting(true); setSel([id]);
         }}
         onMouseOver={(e) => {
           if (!selecting || anchor.current === null) return;
           const row = (e.target as HTMLElement).closest("tr[data-pid]") as HTMLElement | null;
-          if (!row) return;
-          const order = inView.map((i) => items[i].player_id);
-          const a = order.indexOf(anchor.current), h = order.indexOf(Number(row.dataset.pid));
-          if (a < 0 || h < 0) return;
-          setSel(order.slice(Math.min(a, h), Math.max(a, h) + 1));
+          if (row) extendTo(Number(row.dataset.pid));
         }}
       >
         {cards.map((run, ri) => {
