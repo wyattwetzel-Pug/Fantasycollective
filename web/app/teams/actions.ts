@@ -3,15 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { makeMatcher } from "@/lib/leagues/match";
+import { persist, type Overrides } from "@/lib/leagues/persist";
 import { importSleeper } from "@/lib/leagues/sleeper";
 import { importEspn } from "@/lib/leagues/espn";
 import { importFleaflicker } from "@/lib/leagues/fleaflicker";
 import { importMfl } from "@/lib/leagues/mfl";
 import { ImportError, type Format, type ImportedLeague, type QbType, type Scoring } from "@/lib/leagues/types";
 
-type Db = Awaited<ReturnType<typeof createClient>>;
-type Overrides = { scoring: Scoring | null; qb: QbType | null; format: Format | null };
 
 const back = (key: "error" | "msg", text: string) => redirect(`/teams?${key}=${encodeURIComponent(text)}`);
 const PLATFORMS: Record<string, string> = { sleeper: "Sleeper", espn: "ESPN", fleaflicker: "Fleaflicker", mfl: "MyFantasyLeague" };
@@ -23,57 +21,6 @@ async function requireUser() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   return { supabase, user };
-}
-
-// Saves imported leagues and every team's roster. Returns how many leagues were stored and
-// how many players we skipped because they aren't in our player list.
-async function persist(supabase: Db, userId: string, platform: string, leagues: ImportedLeague[], over: Overrides) {
-  const { data: ours } = await supabase.from("players").select("id, name, position, nfl_team, external_id").limit(1000);
-  const match = makeMatcher(ours ?? []);
-
-  let synced = 0, unmatched = 0;
-  for (const lg of leagues) {
-    const { data: row, error } = await supabase
-      .from("leagues")
-      .upsert({
-        user_id: userId, platform, external_league_id: lg.externalId, name: lg.name,
-        scoring: over.scoring ?? lg.scoring ?? "ppr",
-        qb_type: over.qb ?? lg.qbType ?? "1qb",
-        format: over.format ?? lg.format ?? "redraft",
-        roster_settings: lg.settings,
-        synced_at: new Date().toISOString(),
-      }, { onConflict: "user_id,platform,external_league_id" })
-      .select("id").single();
-    if (error || !row) continue;
-
-    // Only one team can be "mine": the first match wins.
-    let claimed = false;
-    const used = new Set<string>();
-    const out: { league_id: number; team_name: string; is_mine: boolean; player_id: number; slot: string }[] = [];
-    lg.teams.forEach((t, idx) => {
-      let team = t.name;
-      if (used.has(team)) team = `${team} (${idx + 1})`;
-      used.add(team);
-      const mine = t.mine && !claimed;
-      if (mine) claimed = true;
-      const seen = new Set<number>();
-      for (const pl of t.players) {
-        const pid = match(pl.ref);
-        if (!pid) { unmatched++; continue; }
-        if (seen.has(pid)) continue;
-        seen.add(pid);
-        out.push({ league_id: row.id, team_name: team, is_mine: mine, player_id: pid, slot: pl.slot });
-      }
-    });
-
-    await supabase.from("league_rosters").delete().eq("league_id", row.id);
-    for (let i = 0; i < out.length; i += 500) {
-      const { error: insErr } = await supabase.from("league_rosters").insert(out.slice(i, i + 500));
-      if (insErr) back("error", `Saved ${synced} leagues, then failed on ${lg.name}: ${insErr.message}`);
-    }
-    synced++;
-  }
-  return { synced, unmatched };
 }
 
 const skipped = (n: number) => (n ? ` ${n} players weren't in our player list and were skipped.` : "");
@@ -99,12 +46,13 @@ export async function syncLeague(formData: FormData) {
   }
 
   // The user can override what a site doesn't tell us (or we can't detect).
-  const { synced, unmatched } = await persist(supabase, user.id, platform, leagues, {
+  const { synced, unmatched, error: saveError } = await persist(supabase, user.id, platform, leagues, {
     scoring: pickOf<Scoring>(text(formData, "scoring"), ["ppr", "half", "std"]),
     qb: pickOf<QbType>(text(formData, "qb"), ["1qb", "superflex"]),
     format: pickOf<Format>(text(formData, "format"), ["redraft", "dynasty"]),
   });
 
+  if (saveError) back("error", saveError);
   revalidatePath("/teams");
   back("msg", `Synced ${synced} league${synced === 1 ? "" : "s"} from ${PLATFORMS[platform]}.${skipped(unmatched)}`);
 }
@@ -139,9 +87,10 @@ export async function refreshLeague(formData: FormData) {
   }
   if (!leagues.length) back("error", `${league.name ?? "That league"} wasn't found on ${PLATFORMS[platform]} any more.`);
 
-  const { unmatched } = await persist(supabase, user.id, platform, leagues, {
+  const { unmatched, error: saveError } = await persist(supabase, user.id, platform, leagues, {
     scoring: league.scoring as Scoring, qb: league.qb_type as QbType, format: league.format as Format,
   });
+  if (saveError) back("error", saveError);
   revalidatePath("/teams");
   redirect(`/teams?league=${id}&msg=${encodeURIComponent(`Refreshed ${league.name}.${skipped(unmatched)}`)}`);
 }
