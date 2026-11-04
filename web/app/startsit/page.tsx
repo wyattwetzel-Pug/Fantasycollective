@@ -255,8 +255,6 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
         </thead>
         <tbody>
           {[
-            ["Consensus rank", chosen.map((r) => r.position_in_list), (v: number) => `#${v}`],
-            ["Position rank", chosen.map((r) => posRank.get(r.player_id)), (v: number) => `#${v}`],
             ["Avg rank", chosen.map((r) => Number(r.consensus_rank)), (v: number) => `${v}`],
           ].map(([label, vals, f]) => {
             const v = vals as (number | undefined)[];
