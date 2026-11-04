@@ -9,6 +9,7 @@ export const normPos = (p: string) => {
   const u = p.toUpperCase().replace(/[^A-Z/]/g, "");
   if (u === "D/ST" || u === "DST" || u === "DEF" || u === "TMDEF") return "DEF";
   if (u === "PK") return "K";
+  if (u === "FB") return "RB";
   return u;
 };
 
