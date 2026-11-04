@@ -41,49 +41,51 @@ async function TradeView({ searchParams }: { searchParams: Promise<Record<string
     .order("position_in_list").limit(1000)
     .returns<Row[]>();
 
-  const players: P[] = fixTiers(data ?? []).map((r) => ({
-    id: r.player_id, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "",
-    team: r.players?.nfl_team ?? "", rank: r.position_in_list, tier: r.tier,
-  }));
+  const count: Record<string, number> = {};
+  const players: P[] = fixTiers(data ?? []).map((r) => {
+    const position = r.players?.position ?? "";
+    count[position] = (count[position] ?? 0) + 1;
+    return { id: r.player_id, name: r.players?.name ?? "Unknown", position, team: r.players?.nfl_team ?? "", rank: r.position_in_list, posRank: count[position], tier: r.tier };
+  });
   const pill = (on: boolean) => `gl-pill !rounded-full text-xs ${on ? "on-o" : ""}`;
 
-  return (
-    <div className="space-y-4">
-      <div className="gl-hero grid items-center gap-4 p-6 sm:p-8">
-        <div>
-          <p className="mb-1 text-xs tracking-[0.4em] text-zinc-400">FANTASY FOOTBALL</p>
-          <h2 id="h-trade" className="gl-title text-4xl sm:text-5xl">Trade <span style={{ color: "var(--accent)" }}>Calculator</span></h2>
-          <p className="mt-3 text-sm text-zinc-200">Compare trades, analyze value, and make smarter moves.</p>
-          <p className="mt-2 text-xs text-zinc-500">Values come from the Ball Knowers Consensus for the settings on the right.</p>
-        </div>
+  const intro = (
+    <div>
+      <p className="mb-1 text-xs tracking-[0.4em] text-zinc-400">FANTASY FOOTBALL</p>
+      <h2 id="h-trade" className="gl-title text-4xl sm:text-5xl">Trade <span style={{ color: "var(--accent)" }}>Calculator</span></h2>
+      <p className="mt-2 text-sm text-zinc-300">Compare trades, analyze value, and make smarter moves.</p>
+    </div>
+  );
+  const settings = (
+    <div className="gl-panel space-y-3 p-4">
+      <h3 className="font-bold"><span style={{ color: "var(--accent)" }} aria-hidden="true">⚙</span> League Settings</h3>
+      <div>
+        <p className="mb-1 text-sm">League Type</p>
+        <div className="grid grid-cols-2 gap-2">{FORMATS.map(([v, l]) => <Link key={v} href={href(params, { format: v })} className={`${pill(params.format === v)} text-center`}>{l}</Link>)}</div>
       </div>
+      <div>
+        <p className="mb-1 text-sm">Scoring Format</p>
+        <div className="grid grid-cols-3 gap-2">{SCORING.map(([v, l]) => <Link key={v} href={href(params, { scoring: v })} className={`${pill(params.scoring === v)} !px-2 text-center`}>{l}</Link>)}</div>
+      </div>
+      <div>
+        <p className="mb-1 text-sm">Starting Lineup</p>
+        <div className="grid grid-cols-2 gap-2">{QBS.map(([v, l]) => <Link key={v} href={href(params, { qb: v })} className={`${pill(params.qb === v)} text-center`}>{l}</Link>)}</div>
+      </div>
+      <p className="text-xs text-zinc-500">Changing a setting clears the trade, since each setting has its own rankings.</p>
+    </div>
+  );
 
-      <div className="grid items-start gap-4 lg:grid-cols-[1fr_21rem]">
-        {error ? (
-          <p className="rounded border border-red-900 bg-red-950/30 p-3 text-sm text-red-300">Could not load players: {error.message}</p>
-        ) : players.length ? (
-          // Remount when the settings change so a trade never mixes two different rankings.
-          <TradeCalc key={`${params.format}-${params.scoring}-${params.qb}`} players={players} />
-        ) : (
-          <div className="gl-panel p-4 text-sm text-zinc-400">No published rankings yet for these settings, so there is nothing to price a trade with.</div>
-        )}
-
-        <div className="gl-panel space-y-3 p-4">
-          <h3 className="font-bold"><span style={{ color: "var(--accent)" }} aria-hidden="true">⚙</span> League Settings</h3>
-          <div>
-            <p className="mb-1 text-sm">League Type</p>
-            <div className="grid grid-cols-2 gap-2">{FORMATS.map(([v, l]) => <Link key={v} href={href(params, { format: v })} className={`${pill(params.format === v)} text-center`}>{l}</Link>)}</div>
-          </div>
-          <div>
-            <p className="mb-1 text-sm">Scoring Format</p>
-            <div className="grid grid-cols-3 gap-2">{SCORING.map(([v, l]) => <Link key={v} href={href(params, { scoring: v })} className={`${pill(params.scoring === v)} !px-2 text-center`}>{l}</Link>)}</div>
-          </div>
-          <div>
-            <p className="mb-1 text-sm">Starting Lineup</p>
-            <div className="grid grid-cols-2 gap-2">{QBS.map(([v, l]) => <Link key={v} href={href(params, { qb: v })} className={`${pill(params.qb === v)} text-center`}>{l}</Link>)}</div>
-          </div>
-          <p className="text-xs text-zinc-500">Changing a setting clears the trade, since each setting has its own rankings.</p>
-        </div>
+  return error ? (
+    <p className="rounded border border-red-900 bg-red-950/30 p-3 text-sm text-red-300">Could not load players: {error.message}</p>
+  ) : players.length ? (
+    // Remount when the settings change so a trade never mixes two different rankings.
+    <TradeCalc key={`${params.format}-${params.scoring}-${params.qb}`} players={players} intro={intro} settings={settings} />
+  ) : (
+    <div className="space-y-4">
+      {intro}
+      <div className="grid items-start gap-4 lg:grid-cols-[1fr_20rem]">
+        <div className="gl-panel p-4 text-sm text-zinc-400">No published rankings yet for these settings, so there is nothing to price a trade with.</div>
+        {settings}
       </div>
     </div>
   );
