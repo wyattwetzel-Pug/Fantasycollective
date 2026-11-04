@@ -1,6 +1,7 @@
 import { sessionUser, profileOf } from "@/lib/session";
 import Link from "next/link";
 import { signOut } from "./login/actions";
+import { Face } from "./face";
 
 // Top bar: player search, plus who is signed in and log in / log out.
 export async function Nav() {
@@ -15,7 +16,10 @@ export async function Nav() {
       </form>
       {me ? (
         <>
-          <span className="hidden rounded-full bg-[#FBFAF6] px-4 py-2 font-semibold sm:inline" style={{ border: "1px solid #DEDAD0" }}>{me.display_name}</span>
+          <Link href="/account" className="flex items-center gap-2 rounded-full bg-[#FBFAF6] py-1 pl-1 pr-4 font-semibold" style={{ border: "1px solid #DEDAD0" }}>
+            <Face url={me.avatar_url} name={me.display_name ?? "?"} size={30} />
+            <span className="hidden sm:inline">{me.display_name}</span>
+          </Link>
           <form action={signOut}><button className="rounded-full px-3 py-2 text-zinc-400 hover:text-black">Log out</button></form>
         </>
       ) : (

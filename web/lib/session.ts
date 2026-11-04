@@ -10,11 +10,11 @@ export const sessionUser = cache(async (): Promise<{ id: string } | null> => {
   return id ? { id } : null;
 });
 
-export type Profile = { display_name: string | null; is_admin: boolean; role: string };
+export type Profile = { display_name: string | null; avatar_url: string | null; is_admin: boolean; role: string };
 
 // The signed-in person's profile, fetched once per visit however many parts of the page ask.
 export const profileOf = cache(async (id: string): Promise<Profile | null> => {
   const supabase = await createClient();
-  const { data } = await supabase.from("profiles").select("display_name, is_admin, role").eq("id", id).maybeSingle<Profile>();
+  const { data } = await supabase.from("profiles").select("display_name, avatar_url, is_admin, role").eq("id", id).maybeSingle<Profile>();
   return data;
 });
