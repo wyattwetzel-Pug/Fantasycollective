@@ -25,8 +25,8 @@ export async function persist(supabase: Db, userId: string, platform: string, le
       const all = (await res.json()) as Record<string, { full_name?: string; first_name?: string; last_name?: string; position?: string; team?: string | null; age?: number | null; status?: string | null; injury_status?: string | null; years_exp?: number | null; search_rank?: number | null }>;
       const rows = [...missing].flatMap((id) => {
         const p = all[id];
-        if (!p || !["QB", "RB", "WR", "TE", "K"].includes(p.position ?? "")) return [];
-        return [{ external_id: id, name: p.full_name ?? `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim(), position: p.position, nfl_team: p.team ?? null, age: p.age ?? null, status: p.injury_status || p.status || null, is_rookie: p.years_exp === 0, search_rank: p.search_rank ?? null }];
+        if (!p || !["QB", "RB", "WR", "TE", "K", "FB"].includes(p.position ?? "")) return [];
+        return [{ external_id: id, name: p.full_name ?? `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim(), position: p.position === "FB" ? "RB" : p.position, nfl_team: p.team ?? null, age: p.age ?? null, status: p.injury_status || p.status || null, is_rookie: p.years_exp === 0, search_rank: p.search_rank ?? null }];
       });
       if (rows.length) {
         const admin = createClient(url, key, { auth: { persistSession: false } });

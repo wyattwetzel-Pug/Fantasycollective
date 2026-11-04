@@ -53,12 +53,12 @@ async function syncPlayers(db: SupabaseClient, log: string[]) {
   if (room <= 0) { log.push("Players: pool is full, none added."); return; }
   const fresh = Object.entries(all)
     .map(([id, p]) => ({ ...p, player_id: id }))
-    .filter((p) => p.active && !!p.team && ["QB", "RB", "WR", "TE", "K"].includes(p.position ?? "") && !have.has(p.player_id) && (p.full_name || p.last_name))
+    .filter((p) => p.active && !!p.team && ["QB", "RB", "WR", "TE", "K", "FB"].includes(p.position ?? "") && !have.has(p.player_id) && (p.full_name || p.last_name))
     .sort((a, b) => (a.search_rank ?? 999999) - (b.search_rank ?? 999999))
     .slice(0, room);
   if (!fresh.length) { log.push("Players: nobody new."); return; }
   await upsertChunks("players", fresh.map((p) => ({
-    external_id: p.player_id, name: p.full_name ?? `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim(), position: p.position, nfl_team: p.team ?? null,
+    external_id: p.player_id, name: p.full_name ?? `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim(), position: p.position === "FB" ? "RB" : p.position, nfl_team: p.team ?? null, // fullbacks play RB in fantasy
     age: p.age ?? null, status: statusOf(p), is_rookie: p.years_exp === 0, search_rank: p.search_rank ?? null,
   })), "external_id", db);
   log.push(`Players: added ${fresh.length} new, e.g. ${fresh.slice(0, 3).map((p) => p.full_name).join(", ")}.`);
