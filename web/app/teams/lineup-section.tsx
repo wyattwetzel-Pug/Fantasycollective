@@ -35,7 +35,7 @@ export async function LineupSection({ supabase, userId, chosen, isContributor, s
   const consensus = new Map<number, number>(fixTiers(cons ?? []).map((c) => [c.player_id, c.position_in_list]));
   const mine = new Map<number, number>();
   if (source === "mine" && mySet) {
-    const { data: own } = await supabase.from("rankings").select("player_id").eq("set_id", mySet.id).eq("needs_ranking", false).order("rank").limit(2000).returns<{ player_id: number }[]>();
+    const { data: own } = await supabase.from("rankings").select("player_id").eq("set_id", mySet.id).eq("needs_ranking", false).not("tier", "is", null).order("rank").limit(2000).returns<{ player_id: number }[]>();
     (own ?? []).forEach((r, i) => mine.set(r.player_id, i + 1));
   }
   const rankOf = (id: number) => (source === "mine" ? mine.get(id) ?? consensus.get(id) : consensus.get(id)) ?? null;

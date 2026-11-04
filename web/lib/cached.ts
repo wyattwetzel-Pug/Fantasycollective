@@ -167,7 +167,7 @@ export async function contributorRanks(id: number, setIds: number[]): Promise<{ 
   cacheLife("minutes");
   cacheTag("rankings");
   if (!setIds.length) return [];
-  const { data } = await publicClient().from("rankings").select("set_id, rank, tier, note").eq("player_id", id).in("set_id", setIds).eq("needs_ranking", false)
+  const { data } = await publicClient().from("rankings").select("set_id, rank, tier, note").eq("player_id", id).in("set_id", setIds).eq("needs_ranking", false).not("tier", "is", null)
     .returns<{ set_id: number; rank: number; tier: string | null; note: string | null }[]>();
   return data ?? [];
 }

@@ -32,12 +32,12 @@ export async function positionConsensus(combo: Combo, scope: string): Promise<Po
   const lists = await Promise.all((fresh.length ? fresh : sets).map(async (src) => {
     const { data: own } = await supabase
       .from("position_rankings").select("player_id, rank, tier, players(name, position, nfl_team)")
-      .eq("set_id", src.id).eq("scope", scope).order("rank").limit(1000).returns<Row[]>();
+      .eq("set_id", src.id).eq("scope", scope).not("tier", "is", null).order("rank").limit(1000).returns<Row[]>();
     let list = own ?? [];
     if (!list.length) {
       const { data: all } = await supabase
         .from("rankings").select("player_id, rank, tier, players(name, position, nfl_team)")
-        .eq("set_id", src.id).eq("needs_ranking", false).order("rank").limit(1000).returns<Row[]>();
+        .eq("set_id", src.id).eq("needs_ranking", false).not("tier", "is", null).order("rank").limit(1000).returns<Row[]>();
       list = (all ?? []).filter((r) => r.players && group.includes(r.players.position)).map((r, i) => ({ ...r, rank: i + 1 }));
     }
     return list;
@@ -76,11 +76,11 @@ export async function contributorPositionRanks(setId: number, scope: string): Pr
   cacheTag("rankings");
   const supabase = publicClient();
   type Row = { player_id: number; players: { position: string } | null };
-  const { data: own } = await supabase.from("position_rankings").select("player_id").eq("set_id", setId).eq("scope", scope).order("rank").limit(1000).returns<{ player_id: number }[]>();
+  const { data: own } = await supabase.from("position_rankings").select("player_id").eq("set_id", setId).eq("scope", scope).not("tier", "is", null).order("rank").limit(1000).returns<{ player_id: number }[]>();
   let ids = (own ?? []).map((r) => r.player_id);
   if (!ids.length) {
     const group = GROUPS[scope] ?? [scope];
-    const { data: all } = await supabase.from("rankings").select("player_id, players!inner(position)").eq("set_id", setId).eq("needs_ranking", false).in("players.position", group).order("rank").limit(1000).returns<Row[]>();
+    const { data: all } = await supabase.from("rankings").select("player_id, players!inner(position)").eq("set_id", setId).eq("needs_ranking", false).not("tier", "is", null).in("players.position", group).order("rank").limit(1000).returns<Row[]>();
     ids = (all ?? []).map((r) => r.player_id);
   }
   return Object.fromEntries(ids.map((id, i) => [id, i + 1]));

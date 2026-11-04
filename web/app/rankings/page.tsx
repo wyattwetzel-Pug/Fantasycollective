@@ -89,7 +89,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
     const { data, error } = await supabase
       .from("rankings")
       .select("player_id, rank, tier, note, players(name, position, nfl_team)")
-      .eq("set_id", chosen.id).eq("needs_ranking", false)
+      .eq("set_id", chosen.id).eq("needs_ranking", false).not("tier", "is", null)
       .order("rank").limit(1000)
       .returns<ListRow[]>();
     if (error) loadError = error.message;
@@ -112,7 +112,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
   if (chosen && params.pos !== "All") {
     const { data } = await supabase
       .from("position_rankings").select("player_id, rank, tier, players(name, position, nfl_team)")
-      .eq("set_id", chosen.id).eq("scope", params.pos).order("rank").limit(1000)
+      .eq("set_id", chosen.id).eq("scope", params.pos).not("tier", "is", null).order("rank").limit(1000)
       .returns<{ player_id: number; rank: number; tier: string | null; players: Player | null }[]>();
     if (data?.length) {
       scopeData = true;
