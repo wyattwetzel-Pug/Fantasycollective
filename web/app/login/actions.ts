@@ -3,17 +3,19 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { logEvent } from "@/lib/supabase/service";
 
 const back = (key: "error" | "message", text: string) =>
   redirect(`/login?${key}=${encodeURIComponent(text)}`);
 
 export async function signIn(formData: FormData) {
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: String(formData.get("email")),
     password: String(formData.get("password")),
   });
   if (error) back("error", error.message);
+  await logEvent("login", { userId: data?.user?.id });
   redirect("/rankings");
 }
 
@@ -29,6 +31,7 @@ export async function signUp(formData: FormData) {
     },
   });
   if (error) back("error", error.message);
+  await logEvent("signup", { userId: data.user?.id });
   if (data.session) redirect("/rankings");
   back("message", "Check your email for a confirmation link, then log in.");
 }

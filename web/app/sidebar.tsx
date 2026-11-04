@@ -22,6 +22,7 @@ const MAIN: Item[] = [
 export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
   const items = [...MAIN];
+  if (isAdmin) items.push({ label: "Site Stats", href: "/stats", icon: svg(<><path d="M4 20h16" /><rect x="5" y="11" width="3" height="7" /><rect x="10.5" y="6" width="3" height="12" /><rect x="16" y="9" width="3" height="9" /></>) });
   if (isAdmin) items.push({ label: "Admin", href: "/admin", icon: svg(<><path d="M12 3l8 4v5c0 4.4-3.2 7.8-8 9-4.8-1.2-8-4.6-8-9V7l8-4z" /><path d="M9 12l2 2 4-4" /></>) });
 
   return (

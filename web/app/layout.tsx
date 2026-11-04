@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { Nav } from "./nav";
 import { Sidebar } from "./sidebar";
 import { SidebarLoader } from "./sidebar-loader";
+import { Track } from "./track";
 
 const barlow = Barlow_Condensed({ subsets: ["latin"], weight: ["600", "700", "800"], style: ["normal"], variable: "--font-barlow" });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-inter" });
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Suspense fallback={<div className="h-[68px]" />}><Nav /></Suspense>
           {children}
         </div>
+        <Track />
       </body>
     </html>
   );
