@@ -26,7 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Suspense fallback={<div className="h-[68px]" />}><Nav /></Suspense>
           {children}
         </div>
-        <Track />
+        <Suspense fallback={null}><Track /></Suspense>
       </body>
     </html>
   );
