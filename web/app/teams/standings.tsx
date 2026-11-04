@@ -22,9 +22,12 @@ export function Standings({ teams, games, season }: { teams: T[]; games: number;
     const expWins = cur.w + cur.t / 2 + pLeft * left;
     const w = Math.round(expWins - cur.t / 2);
     const played = cur.w + cur.l + cur.t;
-    return { ...t, cur, expWins, left, w, l: Math.max(0, (live ? Math.max(total, played + left) : games) - w - cur.t), pct: expWins / Math.max(1, live ? Math.max(total, played + left) : games) };
+    const oppAvg = opps.length ? opps.reduce((x, o) => x + o.strength, 0) / opps.length : mean;
+    return { ...t, oppAvg, cur, expWins, left, w, l: Math.max(0, (live ? Math.max(total, played + left) : games) - w - cur.t), pct: expWins / Math.max(1, live ? Math.max(total, played + left) : games) };
   }).sort((a, b) => b.expWins - a.expWins || b.cur.w - a.cur.w);
-  const top = Math.max(...rows.map((r) => r.strength));
+  // Fuller bar = easier remaining schedule (weaker opponents on the consensus rankings).
+  const lo = Math.min(...rows.map((r) => r.oppAvg)), hi = Math.max(...rows.map((r) => r.oppAvg));
+  const easy = (r: { oppAvg: number }) => (hi === lo ? 100 : 100 - 90 * ((r.oppAvg - lo) / (hi - lo)));
 
   return (
     <div className="space-y-3">
@@ -41,7 +44,7 @@ export function Standings({ teams, games, season }: { teams: T[]; games: number;
               {live && <th className="px-2 py-2 text-center">Now</th>}
               <th className="px-2 py-2 text-center">{live ? "Projected" : "Record"}</th>
               <th className="hidden px-2 py-2 text-center sm:table-cell">Win %</th>
-              <th className="hidden w-1/4 px-2 py-2 md:table-cell">Lineup strength</th>
+              <th className="hidden w-1/4 px-2 py-2 md:table-cell">Strength of schedule <span className="normal-case tracking-normal">(fuller = easier)</span></th>
             </tr>
           </thead>
           <tbody>
@@ -55,7 +58,7 @@ export function Standings({ teams, games, season }: { teams: T[]; games: number;
                 <td className="px-2 py-2 text-center font-bold">{t.w}-{t.l}{t.cur.t ? `-${t.cur.t}` : ""}</td>
                 <td className="hidden px-2 py-2 text-center sm:table-cell">{(t.pct * 100).toFixed(0)}%</td>
                 <td className="hidden px-2 py-2 md:table-cell">
-                  <div className="h-2 overflow-hidden rounded bg-[#DEDAD0]"><div className="h-full rounded bg-[var(--bar)]" style={{ width: `${(t.strength / top) * 100}%` }} /></div>
+                  <div className="h-2 overflow-hidden rounded bg-[#DEDAD0]"><div className="h-full rounded bg-[var(--bar)]" style={{ width: `${easy(t)}%` }} /></div>
                 </td>
               </tr>
             ))}
