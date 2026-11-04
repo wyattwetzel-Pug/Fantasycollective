@@ -1,5 +1,6 @@
 "use server";
 
+import { positionSetId } from "@/lib/position-sets";
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -70,14 +71,15 @@ export async function saveScopeList(setId: number, scope: string, items: { playe
   if (!SCOPES.includes(scope)) return { ok: false as const, error: "Unknown position." };
   const { data: set } = await supabase.from("ranking_sets").select("id").eq("id", setId).eq("contributor_id", user.id).maybeSingle();
   if (!set) return { ok: false as const, error: "List not found." };
+  const target = await positionSetId(supabase, setId);
 
   for (let i = 0; i < items.length; i += 500) {
     const { error } = await supabase.from("position_rankings")
-      .upsert(items.slice(i, i + 500).map((r) => ({ ...r, set_id: setId, scope })), { onConflict: "set_id,scope,player_id" });
+      .upsert(items.slice(i, i + 500).map((r) => ({ ...r, set_id: target, scope })), { onConflict: "set_id,scope,player_id" });
     if (error) return { ok: false as const, error: error.message };
   }
   // Counts as an edit, so the list stays fresh for the consensus (position lists don't touch it themselves).
-  await supabase.from("ranking_sets").update({ updated_at: new Date().toISOString() }).eq("id", setId);
+  await supabase.from("ranking_sets").update({ updated_at: new Date().toISOString() }).in("id", [...new Set([setId, target])]);
 
   updateTag("rankings");
   return { ok: true as const };
@@ -102,7 +104,9 @@ export async function pasteRankings(setId: number, clip: CopiedRankings) {
     );
     if (error) return { ok: false as const, error: error.message };
   }
-  for (const [scope, list] of Object.entries(clip.scopes)) {
+  // Position lists are shared with the Superflex list, so they only come in when pasting onto the one that holds them.
+  const holder = await positionSetId(supabase, setId);
+  for (const [scope, list] of holder === setId ? Object.entries(clip.scopes) : []) {
     if (!SCOPES.includes(scope) || !list.length) continue;
     const { error: delError } = await supabase.from("position_rankings").delete().eq("set_id", setId).eq("scope", scope);
     if (delError) return { ok: false as const, error: delError.message };

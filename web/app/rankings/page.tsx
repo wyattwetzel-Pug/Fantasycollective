@@ -6,6 +6,7 @@ import { fixTiers } from "@/lib/tiers";
 import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
 import Link from "next/link";
+import { positionSetId } from "@/lib/position-sets";
 import { Face } from "@/app/face";
 import { PlayerLink } from "@/app/player-link";
 import { createClient } from "@/lib/supabase/server";
@@ -112,7 +113,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
   if (chosen && params.pos !== "All") {
     const { data } = await supabase
       .from("position_rankings").select("player_id, rank, tier, players(name, position, nfl_team)")
-      .eq("set_id", chosen.id).eq("scope", params.pos).not("tier", "is", null).order("rank").limit(1000)
+      .eq("set_id", await positionSetId(supabase, chosen.id)).eq("scope", params.pos).not("tier", "is", null).order("rank").limit(1000)
       .returns<{ player_id: number; rank: number; tier: string | null; players: Player | null }[]>();
     if (data?.length) {
       scopeData = true;
@@ -174,7 +175,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
       for (let from = 0; ; from += 1000) {
         const { data } = await supabase
           .from("position_rankings").select("scope, player_id, tier, players(name, position, nfl_team)")
-          .eq("set_id", mine.id).order("scope").order("rank").order("player_id").range(from, from + 999).returns<ScopeRow[]>();
+          .eq("set_id", await positionSetId(supabase, mine.id)).order("scope").order("rank").order("player_id").range(from, from + 999).returns<ScopeRow[]>();
         scopeRows.push(...(data ?? []));
         if ((data?.length ?? 0) < 1000) break;
       }

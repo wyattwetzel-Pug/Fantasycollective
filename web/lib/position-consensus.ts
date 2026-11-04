@@ -3,6 +3,7 @@ import { publicClient } from "@/lib/supabase/public";
 import { TIER_ORDER } from "@/lib/tier-config";
 import { fixTiers } from "@/lib/tiers";
 import { nowMs } from "@/lib/time";
+import { positionSetIds } from "@/lib/position-sets";
 
 type Player = { name: string; position: string; nfl_team: string | null };
 type Entry = { rank: number; tier: string | null };
@@ -29,10 +30,12 @@ export async function positionConsensus(combo: Combo, scope: string): Promise<Po
   type Row = { player_id: number; rank: number; tier: string | null; players: Player | null };
   const info = new Map<number, Player>();
   const perPlayer = new Map<number, Entry[]>();
-  const lists = await Promise.all((fresh.length ? fresh : sets).map(async (src) => {
+  const used = fresh.length ? fresh : sets;
+  const holder = await positionSetIds(supabase, used.map((s) => s.id));
+  const lists = await Promise.all(used.map(async (src) => {
     const { data: own } = await supabase
       .from("position_rankings").select("player_id, rank, tier, players(name, position, nfl_team)")
-      .eq("set_id", src.id).eq("scope", scope).not("tier", "is", null).order("rank").limit(1000).returns<Row[]>();
+      .eq("set_id", holder.get(src.id) ?? src.id).eq("scope", scope).not("tier", "is", null).order("rank").limit(1000).returns<Row[]>();
     let list = own ?? [];
     if (!list.length) {
       const { data: all } = await supabase
@@ -76,7 +79,7 @@ export async function contributorPositionRanks(setId: number, scope: string): Pr
   cacheTag("rankings");
   const supabase = publicClient();
   type Row = { player_id: number; players: { position: string } | null };
-  const { data: own } = await supabase.from("position_rankings").select("player_id").eq("set_id", setId).eq("scope", scope).not("tier", "is", null).order("rank").limit(1000).returns<{ player_id: number }[]>();
+  const { data: own } = await supabase.from("position_rankings").select("player_id").eq("set_id", (await positionSetIds(supabase, [setId])).get(setId) ?? setId).eq("scope", scope).not("tier", "is", null).order("rank").limit(1000).returns<{ player_id: number }[]>();
   let ids = (own ?? []).map((r) => r.player_id);
   if (!ids.length) {
     const group = GROUPS[scope] ?? [scope];
