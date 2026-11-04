@@ -61,7 +61,6 @@ export function LineupBoard({
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-bold">Based on</span>
             {srcLink("consensus", "Consensus")}
-            {srcLink("proj", "Projections")}
           </div>
         </div>
         <p className="text-sm text-zinc-300">
