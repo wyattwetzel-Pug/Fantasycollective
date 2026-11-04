@@ -65,7 +65,7 @@ export function PlayerList({ players, selected, base }: { players: PickerPlayer[
                 <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs leading-none" style={{ borderColor: on ? "var(--accent)" : "#B9B5A9" }} aria-hidden="true">{on ? "✓" : "+"}</span>
                 <Avatar id={p.id} name={p.name} size={36} />
                 <span className="min-w-0 flex-1">
-                  <span className="pn block truncate text-xs leading-tight">{p.rank}. {p.name}</span>
+                  <span className="pn block truncate text-xs leading-tight">{p.rank ? `${p.rank}. ` : ""}{p.name}</span>
                   <span className="mt-0.5 flex items-center gap-1">
                     <span className={`bd !px-1.5 !text-[10px] ${p.position}`}>{p.position}{p.posRank ? ` ${p.posRank}` : ""}</span>
                     <span className="rounded bg-[#EDE9DF] px-1.5 text-[10px] font-semibold leading-4">{p.team || "FA"}</span>
@@ -107,7 +107,7 @@ export function SelectedCards({ players, selected, base, startId }: { players: P
                 <span className="text-[11px] text-zinc-400">{p.team || "FA"}</span>
                 {tc && <span className="rounded-full border px-1.5 text-[10px] font-bold" style={{ borderColor: tc, color: tc }}>{p.tier}</span>}
               </span>
-              <span className="mt-auto text-[11px] text-zinc-400">Overall #{p.rank}</span>
+              <span className="mt-auto text-[11px] text-zinc-400">{p.rank ? `Overall #${p.rank}` : "Not ranked"}</span>
             </div>
           </div>
         );

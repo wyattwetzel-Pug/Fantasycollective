@@ -27,11 +27,12 @@ const SCORING = [["ppr", "PPR"], ["half", "Half PPR"], ["std", "Standard"]] as c
 const QBS = [["1qb", "1 QB"], ["superflex", "Superflex"]] as const;
 const TABS = [["rankings", "Rankings"], ["season", "Season"], ["matchup", "Matchup"], ["trends", "Trends"]] as const;
 
-type Params = { tab: string; format: string; scoring: string; qb: string };
+type Params = { tab: string; format: string; scoring: string; qb: string; league: string };
 
 function href(current: Params, over: Partial<Params>, p: number[]) {
   const next = { ...current, ...over };
-  const qs = new URLSearchParams({ format: next.format, scoring: next.scoring, qb: next.qb });
+  // A synced league decides the settings. Choosing settings by hand goes back to the full player list.
+  const qs = new URLSearchParams(next.league && next.league !== "all" ? { league: next.league } : { format: next.format, scoring: next.scoring, qb: next.qb });
   if (next.tab !== "rankings") qs.set("tab", next.tab);
   if (p.length) qs.set("p", p.join(","));
   return `/startsit?${qs}`;
@@ -45,14 +46,26 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
     format: pick("format", FORMATS.map((t) => t[0]), "redraft"),
     scoring: pick("scoring", SCORING.map((t) => t[0]), "ppr"),
     qb: pick("qb", QBS.map((t) => t[0]), "1qb"),
+    league: "",
   };
+  const byHand = ["format", "scoring", "qb"].some((k) => typeof sp[k] === "string");
   const ids = (typeof sp.p === "string" ? sp.p.split(",") : []).map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 4);
 
   const supabase = await createClient();
-  const combo = { format: params.format, scoring: params.scoring, qb_type: params.qb };
-
   const user = await sessionUser();
   const me = user ? await profileOf(user.id) : null;
+
+  // Someone with a synced league gets that league's settings and their own players, unless they pick otherwise.
+  type LeagueRow = { id: number; name: string | null; format: string; scoring: string; qb_type: string };
+  const { data: leagueRows } = user
+    ? await supabase.from("leagues").select("id, name, format, scoring, qb_type").order("synced_at", { ascending: false }).returns<LeagueRow[]>()
+    : { data: [] as LeagueRow[] };
+  const leagues = leagueRows ?? [];
+  const wantLeague = typeof sp.league === "string" ? sp.league : "";
+  const active = wantLeague === "all" || (!wantLeague && byHand) ? null : leagues.find((l) => String(l.id) === wantLeague) ?? (wantLeague ? null : leagues[0] ?? null);
+  if (active) { params.format = active.format; params.scoring = active.scoring; params.qb = active.qb_type; params.league = String(active.id); }
+  else if (wantLeague === "all") params.league = "all";
+  const combo = { format: params.format, scoring: params.scoring, qb_type: params.qb };
 
   const { data: all, error } = await supabase
     .from("consensus_current")
@@ -60,13 +73,27 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
     .match(combo).order("position_in_list").limit(1000)
     .returns<Row[]>();
 
-  const rows = fixTiers(all ?? []);
+  const allRows = fixTiers(all ?? []);
+  const rows = [...allRows];
   const posCount: Record<string, number> = {};
   const posRank = new Map<number, number>();
   rows.forEach((r) => { const k = r.players?.position ?? ""; posCount[k] = (posCount[k] ?? 0) + 1; posRank.set(r.player_id, posCount[k]); });
   // The position rank on the consensus comes from the position lists, not the Overall order.
   Object.entries(await positionRankMap(combo)).forEach(([id, rank]) => posRank.set(Number(id), rank));
-  const list: PickerPlayer[] = rows.map((r) => ({ id: r.player_id, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", team: r.players?.nfl_team ?? "", rank: r.position_in_list, posRank: posRank.get(r.player_id) ?? null, tier: r.tier }));
+  // In a league, the list is that user's own roster. Players the rankings don't cover are added after everyone ranked.
+  let mineIds: Set<number> | null = null;
+  if (active) {
+    const { data: mine } = await supabase.from("league_rosters").select("player_id").eq("league_id", active.id).eq("is_mine", true).limit(500).returns<{ player_id: number }[]>();
+    mineIds = new Set((mine ?? []).map((m) => m.player_id));
+    const have = new Set(allRows.map((r) => r.player_id));
+    const missing = [...mineIds].filter((id) => !have.has(id));
+    if (missing.length) {
+      const { data: extra } = await supabase.from("players").select("id, name, position, nfl_team").in("id", missing).returns<{ id: number; name: string; position: string; nfl_team: string | null }[]>();
+      (extra ?? []).forEach((p, i) => rows.push({ player_id: p.id, position_in_list: 900 + i, consensus_rank: 0, sources: 0, tier: null, players: { name: p.name, position: p.position, nfl_team: p.nfl_team } }));
+    }
+  }
+  const listRows = mineIds ? rows.filter((r) => mineIds!.has(r.player_id)) : rows;
+  const list: PickerPlayer[] = listRows.map((r) => ({ id: r.player_id, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", team: r.players?.nfl_team ?? "", rank: r.sources ? r.position_in_list : 0, posRank: r.sources ? posRank.get(r.player_id) ?? null : null, tier: r.tier }));
   const chosen = ids.map((id) => rows.find((r) => r.player_id === id)).filter((r): r is Row => !!r);
   const chosenIds = chosen.map((r) => r.player_id);
 
@@ -154,6 +181,7 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
   );
   const pill = (on: boolean) => `gl-pill !rounded-full text-xs ${on ? "on-o" : ""}`;
   const pair = chosen.length === 2 ? chosen : null;
+  const base: Record<string, string> = { ...(active ? { league: String(active.id) } : { format: params.format, scoring: params.scoring, qb: params.qb, ...(params.league === "all" ? { league: "all" } : {}) }), ...(params.tab !== "rankings" ? { tab: params.tab } : {}) };
 
   const f1 = (v: number | null) => (v === null ? "–" : v.toFixed(1));
   const best1 = (vals: (number | null)[], low = false) => {
@@ -255,7 +283,7 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
         </thead>
         <tbody>
           {[
-            ["Avg rank", chosen.map((r) => Number(r.consensus_rank)), (v: number) => `${v}`],
+            ["Avg rank", chosen.map((r) => (r.sources ? Number(r.consensus_rank) : undefined)), (v: number) => `${v}`],
           ].map(([label, vals, f]) => {
             const v = vals as (number | undefined)[];
             return (
@@ -311,13 +339,24 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
       </div>
 
       <div className="grid items-start gap-4 lg:grid-cols-[16rem_1fr] xl:grid-cols-[16rem_1fr_20rem]">
-        <div className="lg:row-span-2">
+        <div className="space-y-3 lg:row-span-2">
+        {leagues.length > 0 && (
+          <div className="gl-panel space-y-2 p-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">Your players</p>
+            <div className="flex flex-wrap gap-1.5">
+              {leagues.map((l) => (
+                <Link key={l.id} href={`/startsit?league=${l.id}${params.tab !== "rankings" ? `&tab=${params.tab}` : ""}`} className={`gl-pill !rounded-full !px-3 !py-1 text-xs ${active?.id === l.id ? "on" : ""}`}>{l.name ?? "League"}</Link>
+              ))}
+              <Link href={`/startsit?league=all${params.tab !== "rankings" ? `&tab=${params.tab}` : ""}`} className={`gl-pill !rounded-full !px-3 !py-1 text-xs ${!active ? "on" : ""}`}>All players</Link>
+            </div>
+          </div>
+        )}
         {error ? <p className="text-sm text-red-300">Could not load players: {error.message}</p>
-          : list.length ? <PlayerList players={list} selected={chosenIds} base={{ format: params.format, scoring: params.scoring, qb: params.qb, ...(params.tab !== "rankings" ? { tab: params.tab } : {}) }} />
-          : <p className="text-sm text-zinc-400">No published rankings yet for these settings, so there is nobody to compare.</p>}
+          : list.length ? <PlayerList players={list} selected={chosenIds} base={base} />
+          : <p className="text-sm text-zinc-400">{active ? "None of your players are on this league's rankings yet." : "No published rankings yet for these settings, so there is nobody to compare."}</p>}
         </div>
         <div className="min-w-0 xl:col-span-2">
-          <SelectedCards players={list} selected={chosenIds} startId={best.length >= 2 ? best[0].player_id : null} base={{ format: params.format, scoring: params.scoring, qb: params.qb, ...(params.tab !== "rankings" ? { tab: params.tab } : {}) }} />
+          <SelectedCards players={list} selected={chosenIds} startId={best.length >= 2 ? best[0].player_id : null} base={base} />
         </div>
 
         <div className="min-w-0 space-y-4">
@@ -385,17 +424,18 @@ async function StartSitView({ searchParams }: { searchParams: Promise<Record<str
 
           <div className="gl-panel space-y-3 p-4">
             <h3 className="font-bold"><span style={{ color: "var(--accent)" }} aria-hidden="true">⚙</span> League Settings</h3>
+            {active && <p className="text-xs text-zinc-400">Using {active.name}. Pick a setting below to switch to all players.</p>}
             <div>
               <p className="mb-1 text-sm">League Type</p>
-              <div className="grid grid-cols-2 gap-2">{FORMATS.map(([v, l]) => <Link key={v} href={href(params, { format: v }, chosenIds)} className={`${pill(params.format === v)} text-center`}>{l}</Link>)}</div>
+              <div className="grid grid-cols-2 gap-2">{FORMATS.map(([v, l]) => <Link key={v} href={href(params, { format: v, league: "all" }, chosenIds)} className={`${pill(params.format === v)} text-center`}>{l}</Link>)}</div>
             </div>
             <div>
               <p className="mb-1 text-sm">Scoring Format</p>
-              <div className="grid grid-cols-3 gap-2">{SCORING.map(([v, l]) => <Link key={v} href={href(params, { scoring: v }, chosenIds)} className={`${pill(params.scoring === v)} !px-2 text-center`}>{l}</Link>)}</div>
+              <div className="grid grid-cols-3 gap-2">{SCORING.map(([v, l]) => <Link key={v} href={href(params, { scoring: v, league: "all" }, chosenIds)} className={`${pill(params.scoring === v)} !px-2 text-center`}>{l}</Link>)}</div>
             </div>
             <div>
               <p className="mb-1 text-sm">Starting Lineup</p>
-              <div className="grid grid-cols-2 gap-2">{QBS.map(([v, l]) => <Link key={v} href={href(params, { qb: v }, chosenIds)} className={`${pill(params.qb === v)} text-center`}>{l}</Link>)}</div>
+              <div className="grid grid-cols-2 gap-2">{QBS.map(([v, l]) => <Link key={v} href={href(params, { qb: v, league: "all" }, chosenIds)} className={`${pill(params.qb === v)} text-center`}>{l}</Link>)}</div>
             </div>
           </div>
         </div>
