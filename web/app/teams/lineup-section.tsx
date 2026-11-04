@@ -4,6 +4,7 @@ import { defaultLineup, fillLineup } from "@/lib/lineup";
 import { defenseVsPosition, isOpen, opponentOf, type GameRow } from "@/lib/matchup";
 import { seasonLines } from "@/lib/season";
 import { fixTiers } from "@/lib/tiers";
+import { unrankedAfter } from "@/lib/fallback-rank";
 import { LineupBoard, type P } from "./lineup-board";
 
 type Db = Awaited<ReturnType<typeof createClient>>;
@@ -33,6 +34,8 @@ export async function LineupSection({ supabase, userId, chosen, isContributor, s
   ]);
   const info = new Map((playerRows ?? []).map((p) => [p.id, p]));
   const consensus = new Map<number, number>(fixTiers(cons ?? []).map((c) => [c.player_id, c.position_in_list]));
+  const ppgOf = (id: number) => { const l = lineMap[id]; return l && l.played ? l.points / l.played : -1; };
+  unrankedAfter(consensus, [...info.keys()], ppgOf).forEach((r, id) => consensus.set(id, r));
   const mine = new Map<number, number>();
   if (source === "mine" && mySet) {
     const { data: own } = await supabase.from("rankings").select("player_id").eq("set_id", mySet.id).eq("needs_ranking", false).not("tier", "is", null).order("rank").limit(2000).returns<{ player_id: number }[]>();

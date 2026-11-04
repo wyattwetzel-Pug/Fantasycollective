@@ -4,6 +4,8 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { fixTiers } from "@/lib/tiers";
+import { unrankedAfter } from "@/lib/fallback-rank";
+import { seasonLines } from "@/lib/season";
 import { nowMs } from "@/lib/time";
 import { playerValue } from "@/lib/value";
 import { refreshLeague, removeLeague } from "./actions";
@@ -86,6 +88,9 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
     const info = new Map((playerRows ?? []).map((p) => [p.id, p]));
 
     const consensus = new Map<number, Rank>(fixTiers(cons ?? []).map((c) => [c.player_id, { rank: c.position_in_list, tier: c.tier }]));
+    const lines = await seasonLines(chosen.scoring);
+    const ppgOf = (id: number) => { const l = lines[id]; return l && l.played ? l.points / l.played : -1; };
+    unrankedAfter(new Map([...consensus].map(([id, r]) => [id, r.rank])), [...info.keys()], ppgOf).forEach((r, id) => consensus.set(id, { rank: r, tier: null }));
     const rankOf = (id: number): Rank | undefined => consensus.get(id);
 
     // Position rank: where a player sits among all players at his position on this ranking.
