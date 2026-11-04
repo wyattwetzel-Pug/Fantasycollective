@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { Avatar } from "@/app/avatar";
 
 export type P = { id: number; name: string; position: string; team: string; rank: number; adp: number | null };
 export type Slots = { QB: number; RB: number; WR: number; TE: number; FLEX: number; SUPERFLEX: number; K: number; DEF: number };
@@ -105,7 +106,13 @@ export function MockRoom({
                   <div key={`${r}-${t}`} className="min-h-[3.2rem] rounded p-1 text-[11px]"
                        style={{ border: `1px solid ${current ? "#55745D" : t + 1 === slot ? "#9DB5A2" : "#DEDAD0"}`, background: current ? "#E3EAD9" : "#FBFAF6" }}>
                     <span className="block text-[9px] text-zinc-500">{r + 1}.{String((r % 2 === 0 ? t : teams - 1 - t) + 1).padStart(2, "0")}</span>
-                    {pl && <><span className="pn block truncate">{pl.name}</span><span className={`bd !px-1 !text-[9px] ${pl.position}`}>{pl.position}</span></>}
+                    {pl && (
+                      <span className="flex flex-col items-center gap-0.5 text-center">
+                        <Avatar id={pl.id} name={pl.name} size={40} />
+                        <span className="pn block w-full truncate leading-tight">{pl.name}</span>
+                        <span className={`bd !px-1 !text-[9px] ${pl.position}`}>{pl.position}</span>
+                      </span>
+                    )}
                   </div>
                 );
               }),
