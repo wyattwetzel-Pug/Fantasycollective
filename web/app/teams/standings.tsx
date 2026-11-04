@@ -44,7 +44,7 @@ export function Standings({ teams, games, season }: { teams: T[]; games: number;
               {live && <th className="px-2 py-2 text-center">Now</th>}
               <th className="px-2 py-2 text-center">{live ? "Projected" : "Record"}</th>
               <th className="hidden px-2 py-2 text-center sm:table-cell">Win %</th>
-              <th className="hidden w-1/4 px-2 py-2 md:table-cell">Strength of schedule <span className="normal-case tracking-normal">(fuller = easier)</span></th>
+              <th className="hidden w-1/4 px-2 py-2 md:table-cell">Strength of schedule</th>
             </tr>
           </thead>
           <tbody>
