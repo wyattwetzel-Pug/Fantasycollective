@@ -29,8 +29,8 @@ const POOL_LIMIT = 2500;
 const statusOf = (p: SleeperPlayer) => p.injury_status || p.status || null;
 
 // Keeps the player table in step with Sleeper: current team (trades, signings, releases), injury status,
-// age and popularity for players we have, plus any active player we are missing (free agents included),
-// most popular first. New players are appended to the bottom of every list as unsorted by the database,
+// age and popularity for players we have, plus any active player on an NFL team that we are missing, most popular
+// first. Free agents are left out; when one signs, the next sync adds him. New players are appended to the bottom of every list as unsorted by the database,
 // so no ranking moves.
 async function syncPlayers(db: SupabaseClient, log: string[]) {
   const ours = await fetchAll<{ id: number; external_id: string | null; name: string; position: string; nfl_team: string | null; age: number | null; status: string | null; is_rookie: boolean; search_rank: number | null }>((a, b) =>
@@ -53,7 +53,7 @@ async function syncPlayers(db: SupabaseClient, log: string[]) {
   if (room <= 0) { log.push("Players: pool is full, none added."); return; }
   const fresh = Object.entries(all)
     .map(([id, p]) => ({ ...p, player_id: id }))
-    .filter((p) => p.active && ["QB", "RB", "WR", "TE", "K"].includes(p.position ?? "") && !have.has(p.player_id) && (p.full_name || p.last_name))
+    .filter((p) => p.active && !!p.team && ["QB", "RB", "WR", "TE", "K"].includes(p.position ?? "") && !have.has(p.player_id) && (p.full_name || p.last_name))
     .sort((a, b) => (a.search_rank ?? 999999) - (b.search_rank ?? 999999))
     .slice(0, room);
   if (!fresh.length) { log.push("Players: nobody new."); return; }
