@@ -19,6 +19,34 @@ async function upsertChunks(table: string, rows: Record<string, unknown>[], onCo
   }
 }
 
+type SleeperPlayer = { player_id: string; full_name?: string; first_name?: string; last_name?: string; position?: string; team?: string | null; age?: number | null; status?: string | null; active?: boolean; years_exp?: number | null; search_rank?: number | null };
+
+// The app reads the player table 1000 rows at a time, so the pool stays under that.
+const POOL_LIMIT = 990;
+
+// Adds active players Sleeper has that we don't (free agents included), most popular first. Existing players
+// are left alone. The database appends each new player to the bottom of every list, unsorted, so no ranking moves.
+async function addMissingPlayers(db: SupabaseClient, log: string[]) {
+  const { data: ours, error } = await db.from("players").select("external_id").limit(1000);
+  if (error) throw new Error(`players: ${error.message}`);
+  const have = new Set((ours ?? []).map((p) => p.external_id as string));
+  const room = POOL_LIMIT - have.size;
+  if (room <= 0) { log.push("Players: pool is full, none added."); return; }
+
+  const all = await getJson<Record<string, SleeperPlayer>>("/v1/players/nfl");
+  const fresh = Object.entries(all)
+    .map(([id, p]) => ({ ...p, player_id: id }))
+    .filter((p) => p.active && ["QB", "RB", "WR", "TE", "K"].includes(p.position ?? "") && !have.has(p.player_id) && (p.full_name || p.last_name))
+    .sort((a, b) => (a.search_rank ?? 999999) - (b.search_rank ?? 999999))
+    .slice(0, room);
+  if (!fresh.length) { log.push("Players: nobody new."); return; }
+  await upsertChunks("players", fresh.map((p) => ({
+    external_id: p.player_id, name: p.full_name ?? `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim(), position: p.position, nfl_team: p.team ?? null,
+    age: p.age ?? null, status: p.status ?? null, is_rookie: p.years_exp === 0, search_rank: p.search_rank ?? null,
+  })), "external_id", db);
+  log.push(`Players: added ${fresh.length} new, e.g. ${fresh.slice(0, 3).map((p) => p.full_name).join(", ")}.`);
+}
+
 // Pulls the schedule, weekly stats and projections from Sleeper into Supabase.
 // Default: the current week and the one before it. backfill: every week so far. weeks: exact weeks.
 export async function runSync(opts: { weeks?: number[]; backfill?: boolean } = {}): Promise<{ ok: boolean; log: string[] }> {
@@ -35,6 +63,8 @@ export async function runSync(opts: { weeks?: number[]; backfill?: boolean } = {
     const season = Number(state.season);
     const current = Math.max(1, state.display_week ?? state.week ?? 1);
     log.push(`Sleeper says it is ${season} week ${current} (${state.season_type}).`);
+
+    await addMissingPlayers(db, log);
 
     const { data: ours, error: pErr } = await db.from("players").select("id, external_id").limit(1000);
     if (pErr) throw new Error(`players: ${pErr.message}`);

@@ -71,6 +71,7 @@ async function TradeView({ searchParams }: { searchParams: Promise<Record<string
   Object.entries(await positionRankMap(combo)).forEach(([id, rank]) => posRank.set(Number(id), rank));
 
   // Every team in the league: who owns whom.
+  const have = new Set(rows.map((r) => r.player_id));
   const owner = new Map<number, { team: string; mine: boolean }>();
   let teams: string[] = [];
   if (active) {
@@ -78,13 +79,12 @@ async function TradeView({ searchParams }: { searchParams: Promise<Record<string
     (ros ?? []).forEach((r) => owner.set(r.player_id, { team: r.team_name, mine: r.is_mine }));
     teams = [...new Set((ros ?? []).filter((r) => !r.is_mine).map((r) => r.team_name))].sort();
   }
-  const have = new Set(rows.map((r) => r.player_id));
-  const missing = [...owner.keys()].filter((id) => !have.has(id));
-  const extra = missing.length ? (await supabase.from("players").select("id, name, position, nfl_team").in("id", missing).returns<PlayerRow[]>()).data ?? [] : [];
-
+  // Everyone in the player table the rankings don't cover (unsorted players, rostered or not).
+  const { data: pool } = await supabase.from("players").select("id, name, position, nfl_team").order("search_rank", { nullsFirst: false }).limit(1000).returns<PlayerRow[]>();
+  const extra = (pool ?? []).filter((p) => !have.has(p.id));
   const players: P[] = [
     ...rows.map((r) => ({ id: r.player_id, name: r.players?.name ?? "Unknown", position: r.players?.position ?? "", team: r.players?.nfl_team ?? "", rank: r.position_in_list, posRank: posRank.get(r.player_id) ?? 0, tier: r.tier })),
-    // Rostered players the rankings don't cover count after everyone who is ranked.
+    // Players the rankings don't cover count after everyone who is ranked.
     ...extra.map((p, i) => ({ id: p.id, name: p.name, position: p.position, team: p.nfl_team ?? "", rank: 900 + i, posRank: 0, tier: null })),
   ].map((p) => ({ ...p, owner: owner.get(p.id)?.team ?? null, mine: owner.get(p.id)?.mine ?? false }));
 
