@@ -10,6 +10,8 @@ import { refreshLeague, removeLeague } from "./actions";
 import { SyncForm } from "./sync-form";
 import { TeamCards } from "./team-cards";
 import { LineupSection } from "./lineup-section";
+import { Standings } from "./standings";
+import { defaultLineup, fillLineup } from "@/lib/lineup";
 
 type League = {
   id: number; name: string | null; platform: string; scoring: string; qb_type: string; format: string; synced_at: string | null;
@@ -66,7 +68,7 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
   const chosen = leagues.find((l) => String(l.id) === str("league")) ?? leagues[0] ?? null;
   const isContributor = me?.role === "contributor";
   const wanted = str("src");
-  const tab = str("tab") === "rankings" ? "rankings" : "lineup";
+  const tab = str("tab") === "rankings" ? "rankings" : str("tab") === "standings" ? "standings" : "lineup";
   // The lineup can also be built from projections. League rankings only use your list or the consensus.
   const lineupSource: "mine" | "consensus" | "proj" = wanted === "proj" ? "proj" : "consensus";
 
@@ -74,7 +76,7 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
   if (chosen && tab === "lineup") {
     content = <LineupSection supabase={supabase} userId={user.id} chosen={chosen} isContributor={isContributor} source={lineupSource} />;
   }
-  if (chosen && tab === "rankings") {
+  if (chosen && (tab === "rankings" || tab === "standings")) {
     const combo = { format: chosen.format, scoring: chosen.scoring, qb_type: chosen.qb_type };
     const [{ data: rosterRows }, { data: playerRows }, { data: cons }] = await Promise.all([
       supabase.from("league_rosters").select("team_name, is_mine, player_id, slot").eq("league_id", chosen.id).limit(1000).returns<RosterRow[]>(),
@@ -128,7 +130,29 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
       avg: CORE.length ? CORE.reduce((sum, pos) => sum + (groupRank.get(`${t.name}|${pos}`) ?? 0), 0) / CORE.length : null,
     })).sort((a, b) => (a.avg ?? 99) - (b.avg ?? 99) || b.total - a.total);
 
-    content = (
+    if (tab === "standings") {
+      // Overall slots are handed out by position rank, so a QB and a WR can be compared for a FLEX spot.
+      const adjusted = new Map<number, number>();
+      const byPos = new Map<string, { id: number; pr: number; r: number }[]>();
+      info.forEach((p) => {
+        const r = rankOf(p.id)?.rank, pr = posRankOf.get(p.id);
+        if (!r || !pr) return;
+        byPos.set(p.position, [...(byPos.get(p.position) ?? []), { id: p.id, pr, r }]);
+      });
+      byPos.forEach((l) => {
+        const slots = l.map((x) => x.r).sort((a, b) => a - b);
+        [...l].sort((a, b) => a.pr - b.pr).forEach((x, i) => adjusted.set(x.id, slots[i]));
+      });
+      const has = (pos: string) => list.some((t) => t.players.some((p) => p.pos === pos));
+      const lineup = chosen.roster_settings?.lineup?.length ? chosen.roster_settings.lineup : defaultLineup(chosen.qb_type === "superflex", { K: has("K"), DEF: has("DEF") });
+      const strengths = list.map((t) => {
+        const usable = t.players.filter((p) => p.slot !== "ir");
+        const val = (p: TeamPlayer) => (adjusted.has(p.id) ? playerValue(adjusted.get(p.id)!) : 0);
+        const picked = fillLineup(lineup, usable, val);
+        return { name: t.name, mine: t.mine, strength: picked.reduce((s, x) => s + (x.player ? val(x.player) : 0), 0) };
+      });
+      content = <Standings teams={strengths} games={14} />;
+    } else content = (
       <div className="space-y-4">
         <p className="text-sm"><span className="font-bold">Ranked by</span> Ball Knowers Consensus</p>
 
@@ -154,7 +178,8 @@ async function TeamsView({ searchParams }: { searchParams: Promise<Record<string
       </div>
       <div role="tablist" aria-label="League sections" className="flex gap-2 border-b border-zinc-800 pb-3">
         <Link role="tab" aria-selected={tab === "lineup"} href={`/teams?league=${chosen.id}&tab=lineup`} className={`gl-pill !px-5 ${tab === "lineup" ? "on" : ""}`}>Lineup</Link>
-        <Link role="tab" aria-selected={tab === "rankings"} href={`/teams?league=${chosen.id}&tab=rankings`} className={`gl-pill !px-5 ${tab === "rankings" ? "on" : ""}`}>League Rankings</Link>
+        <Link role="tab" aria-selected={tab === "rankings"} href={`/teams?league=${chosen.id}&tab=rankings`} className={`gl-pill !px-5 ${tab === "rankings" ? "on" : ""}`}>Power Rankings</Link>
+        <Link role="tab" aria-selected={tab === "standings"} href={`/teams?league=${chosen.id}&tab=standings`} className={`gl-pill !px-5 ${tab === "standings" ? "on" : ""}`}>Top To Bottom</Link>
       </div>
       {content}
     </div>
