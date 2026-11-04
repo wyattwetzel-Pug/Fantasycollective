@@ -323,12 +323,12 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
                 {FORMATS.map(([v, label]) => <Link key={v} href={href(params, { format: v })} className={params.format === v ? "on" : ""}>{label}</Link>)}
               </div>
             </div>
-            <div>
+            {params.pos === "All" && <div>
               <p className="mb-2 font-bold">QB Format</p>
               <div className="gl-seg">
                 {QBS.map(([v, label]) => <Link key={v} href={href(params, { qb: v })} className={params.qb === v ? "on" : ""}>{v === "1qb" ? "Standard" : label}</Link>)}
               </div>
-            </div>
+            </div>}
             <div>
               <p className="mb-2 font-bold">Scoring</p>
               <div className="gl-seg">
