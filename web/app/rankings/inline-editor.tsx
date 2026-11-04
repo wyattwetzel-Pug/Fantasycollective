@@ -38,6 +38,23 @@ export function InlineEditor({
   const [pos, setPos] = useState("All");
   const items = store[pos] ?? [];
   const [dragId, setDragId] = useState<number | null>(null);
+  // Press and drag across rows to connect them; dragging one of the connected rows' handles moves them all.
+  const [dragIds, setDragIds] = useState<number[]>([]);
+  const [sel, setSel] = useState<number[]>([]);
+  const [selecting, setSelecting] = useState(false);
+  const anchor = useRef<number | null>(null);
+  useEffect(() => {
+    if (!selecting) return;
+    const up = () => { setSelecting(false); anchor.current = null; setSel((cur) => (cur.length > 1 ? cur : [])); };
+    window.addEventListener("mouseup", up);
+    return () => window.removeEventListener("mouseup", up);
+  }, [selecting]);
+  useEffect(() => {
+    if (!sel.length) return;
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setSel([]); };
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [sel.length]);
   const [over, setOver] = useState<{ id: number; after: boolean } | { card: string } | null>(null);
 
   // While a player is being dragged, scroll the page when the pointer nears the top or bottom edge,
@@ -127,31 +144,29 @@ export function InlineEditor({
   // Drag and drop: drop on a row to put the player before or after it (taking that row's tier),
   // or on a tier's header or empty card to put them at the top of that tier.
   function dropOnRow(targetId: number, after: boolean) {
-    if (dragId === null || dragId === targetId) return;
+    const ids = dragIds.length ? dragIds : dragId === null ? [] : [dragId];
+    if (!ids.length || ids.includes(targetId)) return;
     change((prev) => {
-      const from = prev.findIndex((i) => i.player_id === dragId);
       const target = prev.find((i) => i.player_id === targetId);
-      if (from < 0 || !target) return prev;
-      const next = [...prev];
-      const [moved] = next.splice(from, 1);
-      const at = next.findIndex((i) => i.player_id === targetId) + (after ? 1 : 0);
-      next.splice(at, 0, { ...moved, tier: target.tier, placed: true });
+      const moving = prev.filter((i) => ids.includes(i.player_id));
+      if (!target || !moving.length) return prev;
+      const next = prev.filter((i) => !ids.includes(i.player_id));
+      next.splice(next.findIndex((i) => i.player_id === targetId) + (after ? 1 : 0), 0, ...moving.map((m) => ({ ...m, tier: target.tier, placed: true })));
       return next;
     });
   }
 
   function dropOnTier(tier: string) {
     if (dragId === null) return;
-    moveToTier(dragId, tier);
+    moveToTier(dragIds.length ? dragIds : [dragId], tier);
   }
 
   // Put a player in a tier: at the top of it (a drop on the tier's header) or at the bottom (the Tier picker).
-  function moveToTier(id: number, tier: string, bottom = false) {
+  function moveToTier(ids: number[], tier: string, bottom = false) {
     change((prev) => {
-      const from = prev.findIndex((i) => i.player_id === id);
-      if (from < 0) return prev;
-      const next = [...prev];
-      const [moved] = next.splice(from, 1);
+      const moving = prev.filter((i) => ids.includes(i.player_id));
+      if (!moving.length) return prev;
+      const next = prev.filter((i) => !ids.includes(i.player_id));
       let at = bottom ? next.map((i) => i.tier).lastIndexOf(tier) + 1 || -1 : next.findIndex((i) => i.tier === tier);
       if (at < 0) {
         // Empty tier: it sits right after the last player in an earlier tier.
@@ -159,12 +174,12 @@ export function InlineEditor({
         at = 0;
         next.forEach((i, k) => { if (i.tier && ORDER.indexOf(i.tier) < ti) at = k + 1; });
       }
-      next.splice(at, 0, { ...moved, tier, placed: true });
+      next.splice(at, 0, ...moving.map((m) => ({ ...m, tier, placed: true })));
       return next;
     });
   }
 
-  function endDrag() { setDragId(null); setOver(null); }
+  function endDrag() { setDragId(null); setDragIds([]); setOver(null); setSel([]); }
 
   function save(publish: boolean) {
     const scope = pos;
@@ -297,7 +312,33 @@ export function InlineEditor({
         {pos !== "All" && <span className="self-center text-xs text-zinc-400">Showing only {pos === "DEF" ? "DST" : pos}. Rank numbers are still overall.</span>}
       </div>
 
-      <div className="space-y-5 overflow-x-auto pb-1">
+      {sel.length > 1 && (
+        <p className="flex flex-wrap items-center gap-2 rounded-lg bg-[#DCE6D6] px-3 py-2 text-sm font-semibold">
+          {sel.length} players connected. Drag any one&apos;s ⠿ handle (or use its Tier menu) to move them all together.
+          <button className="underline" onClick={() => setSel([])}>Clear</button>
+        </p>
+      )}
+      <div
+        className={`space-y-5 overflow-x-auto pb-1 ${selecting ? "select-none" : ""}`}
+        onMouseDown={(e) => {
+          if (e.button !== 0) return;
+          const t = e.target as HTMLElement;
+          if (t.closest("button, select, a, input, [draggable='true']")) return;
+          const row = t.closest("tr[data-pid]") as HTMLElement | null;
+          if (!row) { setSel([]); return; }
+          const id = Number(row.dataset.pid);
+          anchor.current = id; setSelecting(true); setSel([id]);
+        }}
+        onMouseOver={(e) => {
+          if (!selecting || anchor.current === null) return;
+          const row = (e.target as HTMLElement).closest("tr[data-pid]") as HTMLElement | null;
+          if (!row) return;
+          const order = inView.map((i) => items[i].player_id);
+          const a = order.indexOf(anchor.current), h = order.indexOf(Number(row.dataset.pid));
+          if (a < 0 || h < 0) return;
+          setSel(order.slice(Math.min(a, h), Math.max(a, h) + 1));
+        }}
+      >
         {cards.map((run, ri) => {
           const c = run.tier ? COLORS[run.tier] : "#8b8576";
           return (
@@ -334,9 +375,9 @@ export function InlineEditor({
                     const l = lines[it.player_id];
                     return (
                       <tr
-                        key={it.player_id}
-                        className={`${dragId === it.player_id ? "dragging" : ""} ${over && "id" in over && over.id === it.player_id ? (over.after ? "drop-after" : "drop-before") : ""}`}
-                        style={it.placed ? undefined : { background: "#fcf1cc" }}
+                        key={it.player_id} data-pid={it.player_id}
+                        className={`${dragIds.includes(it.player_id) || dragId === it.player_id ? "dragging" : ""} ${over && "id" in over && over.id === it.player_id ? (over.after ? "drop-after" : "drop-before") : ""}`}
+                        style={sel.length > 1 && sel.includes(it.player_id) ? { background: "#DCE6D6" } : it.placed ? undefined : { background: "#fcf1cc" }}
                         onDragOver={(e) => {
                           if (dragId === null) return;
                           e.preventDefault(); e.stopPropagation();
@@ -355,6 +396,7 @@ export function InlineEditor({
                               e.dataTransfer.setData("text/plain", String(it.player_id));
                               const row = e.currentTarget.closest("tr");
                               if (row) e.dataTransfer.setDragImage(row, 20, 20);
+                              setDragIds(sel.length > 1 && sel.includes(it.player_id) ? sel : []);
                               setDragId(it.player_id);
                             }}
                             onDragEnd={endDrag}
@@ -374,7 +416,7 @@ export function InlineEditor({
                           <span className="inline-flex gap-1">
                             <select
                               className={`${btn} w-[4.25rem] cursor-pointer !px-1 text-xs`} value="" aria-label={`Put ${it.name} in a tier`} title="Put in a tier"
-                              onChange={(e) => { if (e.target.value !== "") moveToTier(it.player_id, e.target.value === "__none" ? "" : e.target.value, true); }}
+                              onChange={(e) => { if (e.target.value !== "") moveToTier(sel.length > 1 && sel.includes(it.player_id) ? sel : [it.player_id], e.target.value === "__none" ? "" : e.target.value, true); }}
                             >
                               <option value="" disabled>Tier</option>
                               {ORDER.map((t) => <option key={t} value={t}>{t}</option>)}
