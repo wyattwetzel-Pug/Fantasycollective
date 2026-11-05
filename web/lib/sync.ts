@@ -1,3 +1,4 @@
+import { syncRotoworld } from "@/lib/rotoworld";
 import { fetchAll } from "@/lib/fetch-all";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
@@ -127,6 +128,7 @@ export async function runSync(opts: { weeks?: number[]; backfill?: boolean } = {
     }
     await snapshotRanks(db, log);
     await syncNews(db, log);
+    await syncRotoworld(db, log);
     return { ok: true, log };
   } catch (e) {
     log.push(`Failed: ${e instanceof Error ? e.message : String(e)}`);

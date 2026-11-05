@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { refreshRotoworld } from "@/lib/rotoworld";
 import { sessionUser } from "@/lib/session";
 import { Avatar } from "@/app/avatar";
 import { Suspense } from "react";
@@ -9,6 +11,8 @@ import { TopScorers } from "./top-scorers";
 
 async function HomeView() {
   const user = await sessionUser();
+  // Pull any new Rotoworld notes after the page is sent, so the next visit has them.
+  after(refreshRotoworld);
   const { top, risers, fallers, scorers, hasHistory, total, contributors, stories } = await homeData();
   const season = new Date().getFullYear();
   const timeAgo = (iso: string) => {

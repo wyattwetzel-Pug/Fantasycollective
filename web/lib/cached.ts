@@ -71,7 +71,7 @@ export async function homeData(): Promise<HomeData> {
     fetchAll<{ id: number; name: string; position: string }>((a, b) => db.from("players").select("id, name, position").in("position", ["QB", "RB", "WR", "TE", "K"]).order("id").range(a, b).returns<{ id: number; name: string; position: string }[]>()).then((data) => ({ data })),
     db.from("consensus_current").select("player_id", { count: "exact", head: true }).match(HOME_COMBO),
     db.from("ranking_sets").select("updated_at, contributor_id").eq("published", true),
-    db.from("news").select("id, headline, body, published_at, url, source, external_id").order("published_at", { ascending: false }).limit(30)
+    db.from("news").select("id, headline, body, published_at, url, source, external_id").order("published_at", { ascending: false }).limit(80)
       .returns<HomeData["stories"]>(),
     db.from("consensus_current").select("player_id, position_in_list, players!inner(name, position)").match(HOME_COMBO).not("players.position", "in", "(K,DEF)").order("position_in_list").limit(1000)
       .returns<{ player_id: number; position_in_list: number; players: { name: string; position: string } }[]>(),
@@ -98,7 +98,10 @@ export async function homeData(): Promise<HomeData> {
 
   // One row per story (a story naming several players is stored once per player).
   const seen = new Set<string>();
-  const stories = (newsRes.data ?? []).filter((n) => { const k = n.external_id ?? String(n.id); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 5);
+  // Rotoworld posts a lot, so at most three of the five are theirs and ESPN's bigger stories still show.
+  let roto = 0;
+  const stories = (newsRes.data ?? []).filter((n) => { const k = n.external_id ?? String(n.id); if (seen.has(k)) return false; seen.add(k); return true; })
+    .filter((n) => (n.source === "Rotoworld" ? ++roto <= 3 : true)).slice(0, 5);
 
   return {
     top: (topRes.data ?? []).map((r) => ({ player_id: r.player_id, position_in_list: r.position_in_list, name: r.players.name, position: r.players.position })),
