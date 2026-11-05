@@ -4,6 +4,7 @@ import { TIER_ORDER } from "@/lib/tier-config";
 import { fixTiers } from "@/lib/tiers";
 import { nowMs } from "@/lib/time";
 import { positionSetIds } from "@/lib/position-sets";
+import { loadFlex } from "@/lib/flex";
 
 type Player = { name: string; position: string; nfl_team: string | null };
 type Entry = { rank: number; tier: string | null };
@@ -33,6 +34,8 @@ export async function positionConsensus(combo: Combo, scope: string): Promise<Po
   const used = fresh.length ? fresh : sets;
   const holder = await positionSetIds(supabase, used.map((s) => s.id));
   const lists = await Promise.all(used.map(async (src) => {
+    // Flex is built from their RB, WR and TE lists unless they've edited Flex themselves.
+    if (scope === "FLEX") return loadFlex(supabase, src.id);
     const { data: own } = await supabase
       .from("position_rankings").select("player_id, rank, tier, players(name, position, nfl_team)")
       .eq("set_id", holder.get(src.id) ?? src.id).eq("scope", scope).not("tier", "is", null).order("rank").limit(1000).returns<Row[]>();
@@ -79,6 +82,7 @@ export async function contributorPositionRanks(setId: number, scope: string): Pr
   cacheTag("rankings");
   const supabase = publicClient();
   type Row = { player_id: number; players: { position: string } | null };
+  if (scope === "FLEX") return Object.fromEntries((await loadFlex(supabase, setId)).map((r, i) => [r.player_id, i + 1]));
   const { data: own } = await supabase.from("position_rankings").select("player_id").eq("set_id", (await positionSetIds(supabase, [setId])).get(setId) ?? setId).eq("scope", scope).not("tier", "is", null).order("rank").limit(1000).returns<{ player_id: number }[]>();
   let ids = (own ?? []).map((r) => r.player_id);
   if (!ids.length) {

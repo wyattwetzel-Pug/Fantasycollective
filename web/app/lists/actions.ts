@@ -85,6 +85,19 @@ export async function saveScopeList(setId: number, scope: string, items: { playe
   return { ok: true as const };
 }
 
+// Throws away a hand-edited Flex list, so Flex goes back to following the RB, WR and TE lists.
+export async function resetFlexList(setId: number) {
+  const { supabase, user } = await requireContributor();
+  const { data: set } = await supabase.from("ranking_sets").select("id").eq("id", setId).eq("contributor_id", user.id).maybeSingle();
+  if (!set) return { ok: false as const, error: "List not found." };
+  const target = await positionSetId(supabase, setId);
+  const { error } = await supabase.from("position_rankings").delete().eq("set_id", target).eq("scope", "FLEX");
+  if (error) return { ok: false as const, error: error.message };
+  await supabase.from("ranking_sets").update({ updated_at: new Date().toISOString() }).in("id", [...new Set([setId, target])]);
+  updateTag("rankings");
+  return { ok: true as const };
+}
+
 export type CopiedRankings = {
   label: string;
   overall: { player_id: number; tier: string; note: string; placed: boolean }[];

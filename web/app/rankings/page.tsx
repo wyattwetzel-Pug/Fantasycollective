@@ -2,6 +2,7 @@ import { fetchAll } from "@/lib/fetch-all";
 import { sessionUser, profileOf } from "@/lib/session";
 import { TIER_COLORS, tierInk } from "@/lib/tier-config";
 import { positionConsensus } from "@/lib/position-consensus";
+import { loadFlex } from "@/lib/flex";
 import { publishedSets, consensusRows } from "@/lib/cached";
 import { fixTiers } from "@/lib/tiers";
 import { Avatar } from "@/app/avatar";
@@ -112,7 +113,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
   // A contributor's own QB/RB/WR/TE/K/DST/Flex ranking, when they've made one, replaces the filtered Overall list.
   let scopeData = false;
   if (chosen && params.pos !== "All") {
-    const { data } = await supabase
+    const { data } = params.pos === "FLEX" ? { data: await loadFlex(supabase, chosen.id) } : await supabase
       .from("position_rankings").select("player_id, rank, tier, players(name, position, nfl_team)")
       .eq("set_id", await positionSetId(supabase, chosen.id)).eq("scope", params.pos).not("tier", "is", null).order("rank").limit(1000)
       .returns<{ player_id: number; rank: number; tier: string | null; players: Player | null }[]>();

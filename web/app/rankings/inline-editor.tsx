@@ -6,7 +6,8 @@ import Link from "next/link";
 import { Avatar } from "@/app/avatar";
 import { PlayerLink } from "@/app/player-link";
 import { TeamLogo } from "@/app/team-logo";
-import { saveList, saveScopeList, pasteRankings, type CopiedRankings } from "../lists/actions";
+import { saveList, saveScopeList, resetFlexList, pasteRankings, type CopiedRankings } from "../lists/actions";
+import { deriveFlex, FLEX_POSITIONS } from "@/lib/flex";
 
 export type Item = { player_id: number; name: string; position: string; team: string; tier: string; note: string; placed: boolean };
 export type Line = { proj: number | null; played: number; snapPct: number | null; posFinish: number | null };
@@ -36,6 +37,8 @@ export function InlineEditor({
   const [pending, start] = useTransition();
   const [limit, setLimit] = useState(100);
   const [pos, setPos] = useState("All");
+  // Flex follows your RB, WR and TE lists until you edit it yourself; then it's a list of its own.
+  const [customFlex, setCustomFlex] = useState(() => !!scopes.FLEX?.length);
   const items = store[pos] ?? [];
   const [dragId, setDragId] = useState<number | null>(null);
   // Press and drag across rows to connect them; dragging one of the connected rows' handles moves them all.
@@ -104,14 +107,31 @@ export function InlineEditor({
 
   function change(fn: (prev: Item[]) => Item[]) {
     const scope = pos;
+    if (scope === "FLEX") setCustomFlex(true);
     setStore((prev) => ({ ...prev, [scope]: tidy(fn(prev[scope] ?? [])) }));
     setDirtyScopes((prev) => new Set(prev).add(scope));
     setMessage("");
   }
 
   // A position's list starts as a copy of Overall for that position, until you change it.
+  // The Flex list built from the current RB, WR and TE lists (including changes you haven't saved).
+  function autoFlex(prev: Record<string, Item[]>): Item[] {
+    const all = prev.All;
+    const byId = new Map(all.map((it) => [it.player_id, it]));
+    const asBase = (it: Item) => ({ player_id: it.player_id, position: it.position, tier: it.tier || null });
+    const lists = Object.fromEntries(FLEX_POSITIONS.map((sc) => [sc, (prev[sc] ?? scopes[sc] ?? []).filter((it) => it.tier).map(asBase)]));
+    const built = deriveFlex(all.filter((it) => it.tier && it.placed && FLEX_POSITIONS.includes(it.position)).map(asBase), lists);
+    const made = built.flatMap((b) => {
+      const it = byId.get(b.player_id);
+      return it ? [{ ...it, tier: b.tier ?? "", placed: true }] : [];
+    });
+    const seen = new Set(made.map((it) => it.player_id));
+    // Everyone else at those positions (not ranked yet) follows, as in Overall.
+    return tidy([...made, ...all.filter((it) => FLEX_POSITIONS.includes(it.position) && !seen.has(it.player_id)).map((it) => ({ ...it, placed: true }))]);
+  }
+
   function choose(p: string) {
-    setStore((prev) => prev[p] ? prev : {
+    setStore((prev) => p === "FLEX" && !customFlex ? { ...prev, FLEX: autoFlex(prev) } : prev[p] ? prev : {
       ...prev,
       [p]: tidy(scopes[p] ?? prev.All.filter((it) => (GROUPS[p] ?? [p]).includes(it.position)).map((it) => ({ ...it, placed: true }))),
     });
@@ -197,6 +217,18 @@ export function InlineEditor({
     });
   }
 
+  function resetFlex() {
+    if (!window.confirm("Put Flex back on automatic? It will follow your RB, WR and TE rankings again, and your edits to the Flex list are discarded.")) return;
+    start(async () => {
+      const res = await resetFlexList(setId);
+      if (!res.ok) { setMessage(`Could not reset: ${res.error}`); return; }
+      setCustomFlex(false);
+      setStore((prev) => ({ ...prev, FLEX: autoFlex(prev) }));
+      setDirtyScopes((prev) => { const n = new Set(prev); n.delete("FLEX"); return n; });
+      setMessage("Flex now follows your RB, WR and TE rankings.");
+    });
+  }
+
   function endDrag() { setDragId(null); setDragIds([]); setOver(null); setSel([]); }
 
   function save(publish: boolean) {
@@ -239,7 +271,7 @@ export function InlineEditor({
   }, []);
 
   function copyRankings() {
-    const lists: Record<string, Item[]> = { ...scopes, ...store };
+    const lists: Record<string, Item[]> = Object.fromEntries(Object.entries({ ...scopes, ...store }).filter(([k]) => k !== "FLEX" || customFlex));
     const made: CopiedRankings = {
       label: settings,
       overall: store.All.map((i) => ({ player_id: i.player_id, tier: i.tier, note: i.note, placed: i.placed })),
@@ -336,7 +368,10 @@ export function InlineEditor({
         {POSITIONS.map((p) => (
           <button key={p} onClick={() => choose(p)} className={`gl-pill !px-5 ${pos === p ? "on" : ""}`}>{label(p)}</button>
         ))}
-        {pos !== "All" && <span className="self-center text-xs text-zinc-400">Showing only {pos === "DEF" ? "DST" : pos}. Rank numbers are still overall.</span>}
+        {pos === "FLEX" && (customFlex
+          ? <span className="flex items-center gap-2 self-center text-xs text-zinc-400">Your own Flex list; your RB, WR and TE lists aren&apos;t affected. <button onClick={resetFlex} className="gl-pill !px-3 !py-1 text-xs">Reset to automatic</button></span>
+          : <span className="self-center text-xs text-zinc-400">Automatic: built from your RB, WR and TE rankings and updates as you change them. Edit it here to make it your own.</span>)}
+        {pos !== "All" && pos !== "FLEX" && <span className="self-center text-xs text-zinc-400">Showing only {pos === "DEF" ? "DST" : pos}. Rank numbers are still overall.</span>}
       </div>
 
       {sel.length > 1 && (
