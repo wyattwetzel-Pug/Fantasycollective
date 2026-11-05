@@ -24,10 +24,6 @@ export function LineupBoard({
   starters: P[]; recommended: Filled[]; benchBest: P[]; startIds: Set<number>; swapFor: Map<number, P>;
   changes: number; curProj: number; recProj: number; recPpg: number;
 }) {
-  const srcLink = (v: string, label: string) => (
-    <Link href={`/teams?league=${leagueId}&tab=lineup&src=${v}`} className={`gl-pill ${source === v ? "on" : ""}`}>{label}</Link>
-  );
-
   const row = (p: P, label: string, key: string, isNew: boolean, swap: React.ReactNode) => {
     const a = p.allowed;
     const g = matchupGrade(a);
@@ -60,7 +56,11 @@ export function LineupBoard({
           <h3 className="mr-2 text-2xl">Best Lineup</h3>
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-bold">Based on</span>
-            {srcLink("consensus", "Consensus")}
+            <Link href={`/teams?league=${leagueId}&tab=lineup&src=consensus`} title="Ball Knowers Consensus" aria-label="Ball Knowers Consensus" aria-current={source === "consensus" ? "true" : undefined}
+              className="rounded-full" style={{ boxShadow: source === "consensus" ? "0 0 0 3px var(--accent)" : "none" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/consensus-logo.png" alt="Ball Knowers Consensus" width={40} height={40} className="h-10 w-10 rounded-full" />
+            </Link>
           </div>
         </div>
         <p className="text-sm text-zinc-300">
