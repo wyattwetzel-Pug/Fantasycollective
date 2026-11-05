@@ -341,7 +341,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
             </Link>
           </div>
 
-          <div className="gl-panel p-5">
+          {!editing && <div className="gl-panel p-5">
             <h3 className="mb-3 text-2xl">Expert Sources</h3>
             <div className="grid grid-cols-3 gap-2 text-center text-xs">
               <Link href={href(params, { ranker: "consensus" })} className={`rounded-xl p-2 ${!chosen ? "gl-src-on" : ""}`}>
@@ -363,7 +363,7 @@ async function RankingsView({ searchParams }: { searchParams: Promise<Record<str
               })}
             </div>
             {!sources.length && <p className="mt-2 text-xs text-zinc-500">No published lists for these settings yet.</p>}
-          </div>
+          </div>}
         </div>
       </div>
     </div>
